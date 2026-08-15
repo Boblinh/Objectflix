@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta name="description" content="Watch object shows on Objectflix." />
+    <title>Watch — Objectflix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./player-test.css" />
+  </head>
+  <body class="watch-page">
+    <a class="skip-link" href="#main-content">Skip to player</a>
+
+    <header class="navbar">
+      <div class="navbar__left">
+        <a class="logo" href="browse.html" aria-label="Back to Objectflix browse">
+          <span class="logo__mark">O</span>
+          <span class="logo__text">OBJECTFLIX</span>
+        </a>
+      </div>
+      <div class="navbar__right">
+        <a class="back-link" href="browse.html">Back to Browse</a>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1">
+      <section class="view view--active" id="watchView" aria-label="Watch page"></section>
+    </main>
+
+    <footer class="footer">
+      <p>Objectflix UI concept — built for frontend phase one.</p>
+    </footer>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "jassub": "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist/jassub.js",
+          "rvfc-polyfill": "https://cdn.jsdelivr.net/npm/rvfc-polyfill@1.0.8/+esm",
+          "abslink": "https://cdn.jsdelivr.net/npm/abslink@1.2.2/src/abslink.js",
+          "abslink/w3c": "https://cdn.jsdelivr.net/npm/abslink@1.2.2/adapters/w3c.js",
+          "throughput": "https://cdn.jsdelivr.net/npm/throughput@1.0.2/+esm"
+        }
+      }
+    </script>
+    <script type="module" src="./src/player.js"></script>
+    <script src="./src/env.js"></script>
+    <script src="./src/config.js"></script>
+    <script src="./src/api.js"></script>
+    <script src="./data.js"></script>
+    <script src="./src/shared.js"></script>
+    <script src="./src/watch.js"></script>
+    <script src="./src/assistant.js"></script>
+  </body>
+</html>

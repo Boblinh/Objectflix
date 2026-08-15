@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta name="description" content="Objectflix development video player and ASS subtitle test page." />
+    <title>Player Test — Objectflix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./player-test.css" />
+  </head>
+  <body class="player-test-page">
+    <a class="skip-link" href="#player-test-main">Skip to player</a>
+
+    <header class="player-test-nav">
+      <a class="logo" href="./index.html" aria-label="Return to Objectflix home">
+        <span class="logo__mark">O</span>
+        <span class="logo__text">OBJECTFLIX</span>
+      </a>
+      <div class="player-test-nav__meta">
+        <span class="dev-badge">DEVELOPMENT TEST</span>
+        <a class="back-link" href="./index.html">Back to home</a>
+      </div>
+    </header>
+
+    <main class="player-test-main" id="player-test-main">
+      <header class="player-test-heading">
+        <div>
+          <p class="eyebrow">PLAYBACK LAB</p>
+          <h1>Video &amp; subtitle test</h1>
+          <p>
+            Local media playback with Objectflix controls and JASSUB-rendered ASS subtitles.
+          </p>
+        </div>
+        <div class="shortcut-note" aria-label="Keyboard shortcut summary">
+          <span><kbd>Space</kbd> Play</span>
+          <span><kbd>←</kbd><kbd>→</kbd> Seek</span>
+          <span><kbd>M</kbd> Mute</span>
+          <span><kbd>F</kbd> Fullscreen</span>
+        </div>
+      </header>
+
+      <section class="player-stage" aria-label="Objectflix test video player">
+        <div
+          class="objectflix-player is-loading"
+          id="objectflixPlayer"
+          tabindex="0"
+          aria-label="Video player. Press Space or K to play and pause."
+        >
+          <div class="player-media">
+            <video
+              id="testVideo"
+              preload="metadata"
+              playsinline
+              webkit-playsinline="true"
+              disablepictureinpicture
+            >
+              Your browser does not support HTML video.
+            </video>
+
+            <canvas id="subtitleCanvas" class="JASSUB"></canvas>
+
+            <div class="player-loading" role="status" aria-live="polite">
+              <span class="loading-spinner" aria-hidden="true"></span>
+              <span>Loading player</span>
+            </div>
+
+            <button class="center-play" id="centerPlayButton" type="button" aria-label="Play video">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" /></svg>
+            </button>
+
+            <div class="player-message is-hidden" id="playerMessage" role="alert">
+              <strong id="playerMessageTitle">Test asset needed</strong>
+              <span id="playerMessageText"></span>
+            </div>
+          </div>
+
+          <div class="player-controls">
+            <label class="progress-control" for="progressSlider">
+              <span class="sr-only">Video progress</span>
+              <input
+                class="player-range player-range--progress"
+                id="progressSlider"
+                type="range"
+                min="0"
+                max="100"
+                value="0"
+                step="0.01"
+                aria-valuetext="0 minutes 0 seconds"
+              />
+            </label>
+
+            <div class="controls-row">
+              <div class="controls-group">
+                <button class="player-control-button" id="playPauseButton" type="button" aria-label="Play video">
+                  <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5z" /></svg>
+                  <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z" /></svg>
+                </button>
+
+                <div class="volume-control">
+                  <button class="player-control-button" id="muteButton" type="button" aria-label="Mute video">
+                    <svg class="icon-volume" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zm11.5-.8v7.6a4.5 4.5 0 0 0 0-7.6zm0-3v2.1a7 7 0 0 1 0 9.4v2.1a9 9 0 0 0 0-13.6z" /></svg>
+                    <svg class="icon-muted" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zm11.2.1 1.4 1.4 1.4-1.4 1.4 1.4-1.4 1.4 1.4 1.4-1.4 1.4-1.4-1.4-1.4 1.4-1.4-1.4 1.4-1.4-1.4-1.4z" /></svg>
+                  </button>
+                  <label class="volume-slider-wrap" for="volumeSlider">
+                    <span class="sr-only">Volume</span>
+                    <input class="player-range player-range--volume" id="volumeSlider" type="range" min="0" max="1" value="1" step="0.01" />
+                  </label>
+                </div>
+
+                <div class="time-display" aria-live="off">
+                  <span id="currentTime">0:00</span>
+                  <span aria-hidden="true">/</span>
+                  <span id="totalDuration">0:00</span>
+                </div>
+              </div>
+
+              <div class="controls-group">
+                <span class="subtitle-indicator" id="subtitleIndicator" title="ASS subtitle status">ASS</span>
+                <button class="player-control-button" id="fullscreenButton" type="button" aria-label="Enter fullscreen">
+                  <svg class="icon-enter-fullscreen" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5v2H6v3zm11-5h5v5h-2V6h-3zM6 15v3h3v2H4v-5zm12 3v-3h2v5h-5v-2z" /></svg>
+                  <svg class="icon-exit-fullscreen" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4V7h3V4zm6 0h2v3h3v2h-5zM4 15h5v5H7v-3H4zm11 0h5v2h-3v3h-2z" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="development-panel" aria-labelledby="development-status-title">
+        <div class="development-panel__heading">
+          <div>
+            <p class="eyebrow">LOCAL ASSET CHECK</p>
+            <h2 id="development-status-title">Development status</h2>
+          </div>
+          <span class="status-summary" id="statusSummary">Checking assets…</span>
+        </div>
+
+        <div class="status-list" aria-live="polite">
+          <div class="status-item" id="videoStatus" data-state="loading">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div><strong>Test video</strong><span id="videoStatusText">Checking local video…</span></div>
+          </div>
+          <div class="status-item" id="subtitleStatus" data-state="loading">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div><strong>ASS subtitles</strong><span id="subtitleStatusText">Waiting to load subtitles…</span></div>
+          </div>
+          <div class="status-item" id="fontStatus" data-state="idle">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div><strong>Custom fonts</strong><span id="fontStatusText">No local subtitle fonts configured.</span></div>
+          </div>
+        </div>
+
+        <div class="asset-paths">
+          <p><strong>Video path</strong><code>./assets/video/BFDI：TPOT 5： Fishes and Dishes.mp4</code></p>
+          <p><strong>Subtitle path</strong><code>./assets/subtitles/BFDI：TPOT 5： Fishes and Dishes.en.ass</code></p>
+          <p><strong>Font folder</strong><code>./assets/fonts/</code></p>
+        </div>
+
+        <p class="development-note">
+          This page is for local development only. Serve the project with VS Code Live Server; opening it as a
+          <code>file://</code> URL prevents workers and subtitle requests from loading correctly.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer player-test-footer">
+      <p>Objectflix playback lab — JASSUB 2.5.14 test surface.</p>
+    </footer>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "jassub": "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist/jassub.js",
+          "rvfc-polyfill": "https://cdn.jsdelivr.net/npm/rvfc-polyfill@1.0.8/+esm",
+          "abslink": "https://cdn.jsdelivr.net/npm/abslink@1.2.2/src/abslink.js",
+          "abslink/w3c": "https://cdn.jsdelivr.net/npm/abslink@1.2.2/adapters/w3c.js",
+          "throughput": "https://cdn.jsdelivr.net/npm/throughput@1.0.2/+esm"
+        }
+      }
+    </script>
+    <script type="module" src="./player-test.js"></script>
+  </body>
+</html>

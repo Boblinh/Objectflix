@@ -1,0 +1,10 @@
+{
+  "name": "objectflix",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Objectflix — the (fan-made) home of Battle for Dream Island.",
+  "scripts": {
+    "gen-env": "node scripts/gen-env.js"
+  }
+}

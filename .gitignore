@@ -1,0 +1,18 @@
+# Secrets
+.env
+src/env.js
+
+# TLS keys/certs for the local objectflix.com server (never commit)
+*.pem
+*.p12
+*.pfx
+
+# Node
+node_modules/
+
+# Local test media (episodes are stored in B2, not the repo)
+assets/video/
+
+# Logs
+*.log
+npm-debug.log*

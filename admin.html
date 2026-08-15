@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="Objectflix Administration." />
+    <title>Admin — Objectflix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body class="admin-page">
+    <a class="skip-link" href="#adminMain">Skip to content</a>
+
+    <!-- Access denied screen (shown by admin.js when authorization fails) -->
+    <section class="access-denied is-hidden" id="accessDenied" aria-labelledby="accessDeniedTitle">
+      <div class="access-denied__card">
+        <div class="access-denied__mark">O</div>
+        <p class="eyebrow">OBJECTFLIX ADMINISTRATION</p>
+        <h1 id="accessDeniedTitle">Access denied.</h1>
+        <p id="accessDeniedReason">You don't have permission to access Objectflix Administration.</p>
+        <div class="access-denied__actions">
+          <a class="button button--primary" href="browse.html">Back to Browse</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-shell admin-shell is-hidden" id="adminShell">
+      <header class="admin-navbar">
+        <div class="admin-navbar__left">
+          <a class="logo" href="browse.html" aria-label="Back to Objectflix browse">
+            <span class="logo__mark">O</span>
+            <span class="logo__text">OBJECTFLIX</span>
+          </a>
+          <span class="admin-console-label">ADMIN CONSOLE</span>
+        </div>
+        <div class="admin-navbar__right">
+          <div class="admin-identity" id="adminIdentity" aria-label="Signed in administrator">
+            <img class="admin-identity__avatar" id="adminIdentityAvatar" alt="" hidden />
+            <div class="admin-identity__text">
+              <span class="admin-identity__name" id="adminIdentityName"></span>
+              <span class="admin-identity__role" id="adminIdentityRole"></span>
+            </div>
+          </div>
+          <a class="back-link" href="browse.html">Back to Browse</a>
+        </div>
+      </header>
+
+      <div class="admin-layout">
+        <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
+          <nav class="admin-nav-tree">
+            <button class="admin-nav-item" data-view="dashboard" data-permission="dashboard.view" type="button">
+              <span class="admin-nav-item__label">Dashboard</span>
+            </button>
+
+            <div class="admin-nav-group">
+              <span class="admin-nav-group__label">Content</span>
+              <button class="admin-nav-item" data-view="shows" data-permission="shows.manage" type="button">
+                <span class="admin-nav-item__label">Shows</span>
+              </button>
+              <button class="admin-nav-item" data-view="episodes" data-permission="episodes.manage" type="button">
+                <span class="admin-nav-item__label">Episodes</span>
+              </button>
+            </div>
+
+            <div class="admin-nav-group">
+              <span class="admin-nav-group__label">Media</span>
+              <button class="admin-nav-item" data-view="upload" data-permission="media.upload" type="button">
+                <span class="admin-nav-item__label">Upload</span>
+              </button>
+              <button class="admin-nav-item" data-view="queue" data-permission="media.queue" type="button">
+                <span class="admin-nav-item__label">Upload Queue</span>
+              </button>
+            </div>
+
+            <div class="admin-nav-group">
+              <span class="admin-nav-group__label">System</span>
+              <button class="admin-nav-item" data-view="storage" data-permission="storage.manage" type="button">
+                <span class="admin-nav-item__label">Storage</span>
+              </button>
+              <button class="admin-nav-item" data-view="users" data-permission="users.manage" type="button">
+                <span class="admin-nav-item__label">Users</span>
+              </button>
+              <button class="admin-nav-item" data-view="assistants" data-permission="assistants.configure" type="button">
+                <span class="admin-nav-item__label">Assistants</span>
+              </button>
+              <button class="admin-nav-item" data-view="settings" data-permission="settings.manage" type="button">
+                <span class="admin-nav-item__label">Settings</span>
+              </button>
+            </div>
+          </nav>
+        </aside>
+
+        <main class="admin-main" id="adminMain" tabindex="-1">
+          <section class="admin-view is-active" id="viewDashboard" data-panel="dashboard" aria-label="Dashboard"></section>
+          <section class="admin-view" id="viewShows" data-panel="shows" aria-label="Shows"></section>
+          <section class="admin-view" id="viewEpisodes" data-panel="episodes" aria-label="Episodes"></section>
+          <section class="admin-view" id="viewUpload" data-panel="upload" aria-label="Upload"></section>
+          <section class="admin-view" id="viewQueue" data-panel="queue" aria-label="Upload Queue"></section>
+          <section class="admin-view" id="viewStorage" data-panel="storage" aria-label="Storage"></section>
+          <section class="admin-view" id="viewUsers" data-panel="users" aria-label="Users"></section>
+          <section class="admin-view" id="viewAssistants" data-panel="assistants" aria-label="Assistants"></section>
+          <section class="admin-view" id="viewSettings" data-panel="settings" aria-label="Settings"></section>
+        </main>
+      </div>
+    </div>
+
+    <!-- Generic modal container used by admin forms -->
+    <div class="modal is-hidden" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+      <div class="modal__backdrop" data-close-admin-modal="true"></div>
+      <div class="modal__panel admin-modal">
+        <button class="modal__close" id="adminModalClose" type="button" aria-label="Close">×</button>
+        <div id="adminModalContent"></div>
+      </div>
+    </div>
+
+    <script src="./src/env.js"></script>
+    <script src="./src/config.js"></script>
+    <script src="./src/api.js"></script>
+    <script src="./data.js"></script>
+    <script src="./src/shared.js"></script>
+    <script src="./src/admin/authorization.js"></script>
+    <script src="./src/admin/b2.js"></script>
+    <script src="./src/admin/admin.js"></script>
+  </body>
+</html>

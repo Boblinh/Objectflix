@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f0f10" />
+    <meta
+      name="description"
+      content="Browse the Objectflix library of object shows."
+    />
+    <title>Browse — Objectflix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./player-test.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="page-shell">
+      <div class="app" id="appRoot">
+        <header class="navbar" id="top">
+          <div class="navbar__left">
+            <button class="icon-button mobile-only" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Toggle navigation">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <a class="logo" href="browse.html" data-view="home" aria-label="Objectflix home">
+              <span class="logo__mark">O</span>
+              <span class="logo__text">OBJECTFLIX</span>
+            </a>
+            <nav class="navbar__nav desktop-nav" aria-label="Primary">
+              <button class="nav-link is-active" data-view="home" type="button" aria-current="page">Home</button>
+              <button class="nav-link" data-view="shows" type="button">TV Shows</button>
+              <button class="nav-link" data-view="movies" type="button">Movies</button>
+              <button class="nav-link" data-view="originals" type="button">Originals</button>
+              <button class="nav-link" data-view="my-list" type="button">My List</button>
+            </nav>
+          </div>
+
+          <div class="navbar__right">
+            <a class="admin-link is-hidden" id="adminLink" href="admin.html">Admin</a>
+            <button class="icon-circle" id="searchNavButton" type="button" aria-label="Open search">⌕</button>
+            <button class="icon-circle" type="button" aria-label="View notifications">◌</button>
+            <button class="avatar-button" id="avatarButton" type="button" aria-label="Current profile"></button>
+          </div>
+
+          <nav class="mobile-menu is-hidden" id="mobileMenu" aria-label="Mobile navigation">
+            <button class="nav-link is-active" data-view="home" type="button" aria-current="page">Home</button>
+            <button class="nav-link" data-view="shows" type="button">TV Shows</button>
+            <button class="nav-link" data-view="movies" type="button">Movies</button>
+            <button class="nav-link" data-view="originals" type="button">Originals</button>
+            <button class="nav-link" data-view="my-list" type="button">My List</button>
+          </nav>
+        </header>
+
+        <main id="main-content" tabindex="-1">
+          <section class="view view--active" id="homeView" aria-label="Home page"></section>
+
+          <section class="view" id="searchView" aria-label="Search page">
+            <div class="section section--search">
+              <div class="search-hero">
+                <p class="eyebrow">DISCOVER SOMETHING NEW</p>
+                <h2>Search the Objectflix library</h2>
+                <label class="search-bar" for="searchInput">
+                  <span class="sr-only">Search the Objectflix library</span>
+                  <span aria-hidden="true">⌕</span>
+                  <input id="searchInput" type="search" placeholder="Search shows, movies, creators, or genres" autocomplete="off" />
+                </label>
+                <div class="filter-row" id="searchFilters" role="group" aria-label="Search filters"></div>
+              </div>
+
+              <div class="search-block">
+                <div class="section-heading">
+                  <h3>Trending Searches</h3>
+                </div>
+                <div class="chip-row" id="trendingSearches"></div>
+              </div>
+
+              <div class="search-block">
+                <div class="section-heading">
+                  <h3>Results</h3>
+                  <p id="searchSummary" aria-live="polite">Browse featured picks and curated categories.</p>
+                </div>
+                <div class="results-grid" id="searchResults"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer class="footer">
+          <div class="footer__links">
+            <a href="#">About</a>
+            <a href="#">Help Center</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+          </div>
+          <p>Objectflix UI concept — built for frontend phase one.</p>
+        </footer>
+      </div>
+    </div>
+
+    <div class="modal is-hidden" id="detailsModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal__backdrop" data-close-modal="true"></div>
+      <div class="modal__panel" role="document">
+        <button class="modal__close" id="closeModalButton" type="button" aria-label="Close details">×</button>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <script src="./src/env.js"></script>
+    <script src="./src/config.js"></script>
+    <script src="./src/api.js"></script>
+    <script src="./data.js"></script>
+    <script src="./src/shared.js"></script>
+    <script src="./src/admin/authorization.js"></script>
+    <script src="./src/browse.js"></script>
+    <script src="./src/assistant.js"></script>
+  </body>
+</html>
