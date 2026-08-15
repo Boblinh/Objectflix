@@ -38,6 +38,7 @@ export class ObjectflixPlayer {
       destroyed: false,
       canvasTransferred: false,
       jassubWorkerError: null,
+      hasMetadata: false,
     };
 
     this.listenerController = new AbortController();
@@ -52,6 +53,7 @@ export class ObjectflixPlayer {
   load({ src, subtitleUrl }) {
     const { video, canvas } = this.elements;
     this.state.subtitleUrl = subtitleUrl || null;
+    this.state.hasMetadata = false;
 
     this.elements.controls.classList.remove("has-error", "subtitles-ready");
     this.elements.controls.classList.add("is-loading");
@@ -508,8 +510,12 @@ export class ObjectflixPlayer {
     video.addEventListener("timeupdate", () => this.syncTimeUI(), this.listenerOptions);
     video.addEventListener("durationchange", () => this.syncTimeUI(), this.listenerOptions);
     video.addEventListener("volumechange", () => this.syncVolumeUI(), this.listenerOptions);
-    video.addEventListener("waiting", () => controls.classList.add("is-loading"), this.listenerOptions);
-    video.addEventListener("stalled", () => controls.classList.add("is-loading"), this.listenerOptions);
+    video.addEventListener("waiting", () => {
+      if (!this.state.hasMetadata) controls.classList.add("is-loading");
+    }, this.listenerOptions);
+    video.addEventListener("stalled", () => {
+      if (!this.state.hasMetadata) controls.classList.add("is-loading");
+    }, this.listenerOptions);
     video.addEventListener("playing", () => controls.classList.remove("is-loading"), this.listenerOptions);
     video.addEventListener("canplay", () => {
       controls.classList.remove("is-loading");
@@ -518,6 +524,7 @@ export class ObjectflixPlayer {
     video.addEventListener("loadeddata", () => this.requestSubtitleResize(), this.listenerOptions);
     video.addEventListener("error", () => this.handleVideoError(), this.listenerOptions);
     video.addEventListener("loadedmetadata", () => {
+      this.state.hasMetadata = true;
       controls.classList.remove("is-loading", "has-error");
       this.setState("video", "ready", `Video ready — ${this.formatTime(video.duration)}.`);
       this.syncTimeUI();
