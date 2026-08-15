@@ -10,6 +10,12 @@
 
 const JASSUB_CDN = "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist";
 
+// Unique per page load. Appended to the media URL when subtitles are active
+// so the CORS-mode video fetch is not served from an opaque (no-CORS) HTTP
+// cache entry left by an earlier load of the same URL -- Chrome reuses that
+// cached response even after crossOrigin is set, leaving frames tainted.
+const MEDIA_BUST = Date.now().toString(36);
+
 export class ObjectflixPlayer {
   constructor({ video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, fakeDuration }) {
     this.elements = { video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText };
@@ -63,7 +69,15 @@ export class ObjectflixPlayer {
       this.state.workerUrl = null;
     }
 
-    video.src = src;
+    // Cross-origin CORS fetch: required so JASSUB can read video frames for
+    // ASS subtitles without the canvas being tainted. The media proxy sends
+    // Access-Control-Allow-Origin, so a CORS-mode request succeeds.
+    video.crossOrigin = "anonymous";
+    let mediaSrc = src;
+    if (subtitleUrl) {
+      mediaSrc += (src.includes("?") ? "&" : "?") + "v=" + MEDIA_BUST;
+    }
+    video.src = mediaSrc;
     video.load();
 
     if (subtitleUrl) {
