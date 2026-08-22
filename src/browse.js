@@ -133,6 +133,7 @@
     try {
       library = await SHARED.loadLibrary();
       rows = SHARED.buildRows(library);
+      window.OBJECTFLIX_LIBRARY = library;
       state.libraryLoading = false;
       renderHome();
       renderSearch();

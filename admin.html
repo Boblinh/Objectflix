@@ -81,6 +81,16 @@
             </div>
 
             <div class="admin-nav-group">
+              <span class="admin-nav-group__label">Community</span>
+              <button class="admin-nav-item" data-view="requests" data-permission="community.manage" type="button">
+                <span class="admin-nav-item__label">Requests</span>
+              </button>
+              <button class="admin-nav-item" data-view="feedback" data-permission="community.manage" type="button">
+                <span class="admin-nav-item__label">Feedback</span>
+              </button>
+            </div>
+
+            <div class="admin-nav-group">
               <span class="admin-nav-group__label">System</span>
               <button class="admin-nav-item" data-view="storage" data-permission="storage.manage" type="button">
                 <span class="admin-nav-item__label">Storage</span>
@@ -104,6 +114,8 @@
           <section class="admin-view" id="viewEpisodes" data-panel="episodes" aria-label="Episodes"></section>
           <section class="admin-view" id="viewUpload" data-panel="upload" aria-label="Upload"></section>
           <section class="admin-view" id="viewQueue" data-panel="queue" aria-label="Upload Queue"></section>
+          <section class="admin-view" id="viewRequests" data-panel="requests" aria-label="Requests"></section>
+          <section class="admin-view" id="viewFeedback" data-panel="feedback" aria-label="Feedback"></section>
           <section class="admin-view" id="viewStorage" data-panel="storage" aria-label="Storage"></section>
           <section class="admin-view" id="viewUsers" data-panel="users" aria-label="Users"></section>
           <section class="admin-view" id="viewAssistants" data-panel="assistants" aria-label="Assistants"></section>
@@ -127,6 +139,7 @@
     <script src="./data.js"></script>
     <script src="./src/shared.js"></script>
     <script src="./src/admin/authorization.js"></script>
+    <script src="./src/community.js"></script>
     <script src="./src/admin/b2.js"></script>
     <script src="./src/admin/admin.js"></script>
   </body>

@@ -44,6 +44,11 @@
           </div>
 
           <div class="navbar__right">
+            <nav class="community-links" aria-label="Community">
+              <button class="community-link" data-community-action="request-show" type="button">Request Show</button>
+              <button class="community-link" data-community-action="request-episode" type="button">Request Episode</button>
+              <button class="community-link community-link--accent" data-community-action="feedback" type="button">Feedback</button>
+            </nav>
             <a class="admin-link is-hidden" id="adminLink" href="admin.html">Admin</a>
             <button class="icon-circle" id="searchNavButton" type="button" aria-label="Open search">⌕</button>
             <button class="icon-circle" type="button" aria-label="View notifications">◌</button>
@@ -56,6 +61,9 @@
             <button class="nav-link" data-view="movies" type="button">Movies</button>
             <button class="nav-link" data-view="originals" type="button">Originals</button>
             <button class="nav-link" data-view="my-list" type="button">My List</button>
+            <button class="community-link" data-community-action="request-show" type="button">Request a Show</button>
+            <button class="community-link" data-community-action="request-episode" type="button">Request an Episode</button>
+            <button class="community-link community-link--accent" data-community-action="feedback" type="button">Send Feedback</button>
           </nav>
         </header>
 
@@ -95,6 +103,9 @@
 
         <footer class="footer">
           <div class="footer__links">
+            <a href="#" data-community-action="request-show">Request a Show</a>
+            <a href="#" data-community-action="request-episode">Request an Episode</a>
+            <a href="#" data-community-action="feedback">Send Feedback</a>
             <a href="#">About</a>
             <a href="#">Help Center</a>
             <a href="#">Privacy</a>
@@ -119,6 +130,7 @@
     <script src="./src/api.js"></script>
     <script src="./data.js"></script>
     <script src="./src/shared.js"></script>
+    <script src="./src/community.js"></script>
     <script src="./src/admin/authorization.js"></script>
     <script src="./src/browse.js"></script>
     <script src="./src/assistant.js"></script>

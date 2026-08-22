@@ -44,6 +44,7 @@
       "assistants.configure",
       "ai.configure",
       "settings.manage",
+      "community.manage",
       "tools",
     ],
     admin: [
@@ -52,6 +53,7 @@
       "episodes.manage",
       "media.upload",
       "media.queue",
+      "community.manage",
     ],
   };
 

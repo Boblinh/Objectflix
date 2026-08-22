@@ -124,6 +124,8 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     queueKey: "objectflix_admin_upload_queue",
     activityKey: "objectflix_admin_activity",
     settingsKey: "objectflix_admin_settings",
+    requestKey: "objectflix_community_requests",
+    feedbackKey: "objectflix_community_feedback",
   }),
 
   

@@ -180,6 +180,7 @@
 
     rows.push({ title: 'Continue Watching', key: 'continue', items: items.filter((item) => item.progress > 0).map((item) => item.id) });
     rows.push({ title: 'Trending Now', key: 'trending', items: items.slice(0, 4).map((item) => item.id) });
+    rows.push({ title: 'Top 10 Shows Today', key: 'top10', items: items.slice(0, 10).map((item) => item.id) });
     rows.push({ title: 'Popular Object Shows', key: 'shows', items: items.map((item) => item.id) });
     rows.push({ title: 'Recently Added', key: 'recent', items: [...items].reverse().slice(0, 5).map((item) => item.id) });
     rows.push({ title: 'Objectflix Originals', key: 'originals', items: items.map((item) => item.id) });

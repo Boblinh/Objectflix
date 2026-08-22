@@ -4,6 +4,7 @@
   const SHARED = window.OBJECTFLIX_SHARED;
   const CONFIG = window.OBJECTFLIX_CONFIG;
   const API = window.OBJECTFLIX_API;
+  const COMMUNITY = window.OBJECTFLIX_COMMUNITY;
 
   const SETTINGS = window.OBJECTFLIX_SETTINGS || null;
   const SETTINGS_STORAGE_KEY = CONFIG?.admin?.settingsKey || "objectflix_admin_settings";
@@ -53,6 +54,8 @@
     episodes: "episodes.manage",
     upload: "media.upload",
     queue: "media.queue",
+    requests: "community.manage",
+    feedback: "community.manage",
     storage: "storage.manage",
     users: "users.manage",
     assistants: "assistants.configure",
@@ -65,6 +68,8 @@
     episodes: { title: "Episodes", render: renderEpisodes },
     upload: { title: "Upload", render: renderUpload },
     queue: { title: "Upload Queue", render: renderQueue },
+    requests: { title: "Requests", render: renderRequests },
+    feedback: { title: "Feedback", render: renderFeedback },
     storage: { title: "Storage", render: renderStorage },
     users: { title: "Users", render: renderUsers },
     assistants: { title: "Assistants", render: renderAssistants },
@@ -234,14 +239,22 @@
   function refreshNavCounts() {
     const shows = buildCatalogModel();
     const queue = B2.getUploads();
-    const showsCount = document.querySelector('.admin-nav-item[data-view="shows"] .admin-nav-item__count');
-    const queueCount = document.querySelector('.admin-nav-item[data-view="queue"] .admin-nav-item__count');
-    if (showsCount) showsCount.textContent = shows.length;
-    if (queueCount) queueCount.textContent = queue.length;
+    const requests = COMMUNITY?.listRequests?.() || [];
+    const feedback = COMMUNITY?.listFeedback?.() || [];
+    const pendingRequests = requests.filter((r) => r.status === "pending").length;
+    const newFeedback = feedback.filter((f) => f.status === "new").length;
+    const setCount = (view, value) => {
+      const el = document.querySelector(`.admin-nav-item[data-view="${view}"] .admin-nav-item__count`);
+      if (el) el.textContent = value;
+    };
+    setCount("shows", shows.length);
+    setCount("queue", queue.length);
+    setCount("requests", pendingRequests || "");
+    setCount("feedback", newFeedback || "");
   }
 
   function seedNavCounts() {
-    for (const view of ["shows", "queue"]) {
+    for (const view of ["shows", "queue", "requests", "feedback"]) {
       const btn = document.querySelector(`.admin-nav-item[data-view="${view}"]`);
       if (btn && !btn.querySelector(".admin-nav-item__count")) {
         const span = document.createElement("span");
@@ -394,6 +407,45 @@
           renderQueue($("#viewQueue"));
           refreshNavCounts();
         },
+        "request-status": () => {
+          setRequestStatus(target.dataset.id, target.dataset.status);
+        },
+        "request-delete": () => {
+          if (!confirm("Delete this request permanently?")) return;
+          COMMUNITY.deleteRequest(target.dataset.id);
+          B2.logActivity("Request deleted", target.dataset.id);
+          renderRequests($("#viewRequests"));
+          refreshNavCounts();
+        },
+        "requests-clear-resolved": () => {
+          if (!confirm("Remove all resolved requests (approved, rejected, completed)?")) return;
+          COMMUNITY.clearRequests(true);
+          B2.logActivity("Requests cleared", "resolved only");
+          renderRequests($("#viewRequests"));
+          refreshNavCounts();
+        },
+        "feedback-toggle-read": () => {
+          const id = target.dataset.id;
+          const entry = COMMUNITY.listFeedback().find((f) => f.id === id);
+          if (!entry) return;
+          COMMUNITY.setFeedbackStatus(id, entry.status === "new" ? "read" : "new");
+          renderFeedback($("#viewFeedback"));
+          refreshNavCounts();
+        },
+        "feedback-delete": () => {
+          if (!confirm("Delete this feedback permanently?")) return;
+          COMMUNITY.deleteFeedback(target.dataset.id);
+          B2.logActivity("Feedback deleted", target.dataset.id);
+          renderFeedback($("#viewFeedback"));
+          refreshNavCounts();
+        },
+        "feedback-clear-read": () => {
+          if (!confirm("Remove all feedback already marked as read?")) return;
+          COMMUNITY.clearFeedback(true);
+          B2.logActivity("Feedback cleared", "read only");
+          renderFeedback($("#viewFeedback"));
+          refreshNavCounts();
+        },
         "storage-test": () => void handleStorageTest(),
         "storage-set-bucket": () => {
           settingsSet("defaultBucket", target.dataset.bucket);
@@ -454,6 +506,13 @@
     const activeUploads = queue.filter((u) => ["queued", "checking", "uploading"].includes(u.status)).length;
     const completedUploads = queue.filter((u) => ["complete", "exists"].includes(u.status)).length;
     const b2Ready = B2.isConfigured();
+    const requests = COMMUNITY?.listRequests?.() || [];
+    const feedback = COMMUNITY?.listFeedback?.() || [];
+    const pendingRequests = requests.filter((r) => r.status === "pending").length;
+    const newFeedback = feedback.filter((f) => f.status === "new").length;
+    const avgRating = feedback.length
+      ? (feedback.reduce((sum, f) => sum + Number(f.rating || 0), 0) / feedback.length).toFixed(1)
+      : null;
 
     panel.innerHTML = `
       <div class="admin-view__heading">
@@ -483,6 +542,16 @@
           <div class="stat-card__label">Media storage</div>
           <div class="stat-card__value" style="font-size:1.3rem">${b2Ready ? "Ready" : "Setup"}</div>
           <div class="stat-card__hint">${b2Ready ? "B2 credentials present" : "B2 credentials missing"}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Open requests</div>
+          <div class="stat-card__value">${pendingRequests}</div>
+          <div class="stat-card__hint">${requests.length} submitted in total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Feedback</div>
+          <div class="stat-card__value" style="font-size:1.3rem">${avgRating ? `${avgRating} ★` : "—"}</div>
+          <div class="stat-card__hint">${feedback.length ? `${newFeedback} unread of ${feedback.length}` : "No feedback yet"}</div>
         </div>
       </div>
 
@@ -1211,6 +1280,142 @@
         renderQueue($("#viewQueue"));
       }
     }, 1500);
+  }
+
+  const REQUEST_STATUS_BADGE = {
+    pending: '<span class="badge badge--warn">pending</span>',
+    approved: '<span class="badge badge--ok">approved</span>',
+    rejected: '<span class="badge">rejected</span>',
+    completed: '<span class="badge badge--accent">completed</span>',
+  };
+
+  function starsRow(rating) {
+    return `<span style="color:#f5c518;letter-spacing:2px;white-space:nowrap">${"★".repeat(rating)}<span style="color:rgba(255,255,255,0.2)">${"★".repeat(5 - rating)}</span></span>`;
+  }
+
+  function setRequestStatus(id, status) {
+    if (!ADMIN.can(session, "community.manage")) return;
+    const entry = COMMUNITY.setRequestStatus(id, status);
+    B2.logActivity("Request " + status, entry ? `${entry.type}: ${entry.title}` : id);
+    renderRequests($("#viewRequests"));
+    refreshNavCounts();
+  }
+
+  function renderRequests(panel) {
+    if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
+    const requests = COMMUNITY.listRequests();
+    const pendingCount = requests.filter((r) => r.status === "pending").length;
+    const hasResolved = requests.some((r) => r.status !== "pending");
+
+    panel.innerHTML = `
+      <div class="admin-view__heading">
+        <div>
+          <h1>Requests</h1>
+          <p>Show and episode requests submitted from the browse page. ${pendingCount} pending.</p>
+        </div>
+        <button class="button button--ghost button--small" type="button" data-admin-action="requests-clear-resolved" ${hasResolved ? "" : "disabled"}>Clear resolved</button>
+      </div>
+
+      <div class="admin-card admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Request</th>
+              <th>From</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${requests.map((request) => `
+              <tr>
+                <td><span class="badge ${request.type === "show" ? "badge--accent" : ""}">${esc(request.type)}</span></td>
+                <td>
+                  <strong>${esc(request.title || "Untitled")}</strong>
+                  ${request.episodeNumber ? `<div class="admin-field-hint">Episode: ${esc(request.episodeNumber)}</div>` : ""}
+                  ${request.link ? `<a class="admin-field-hint" href="${esc(request.link)}" target="_blank" rel="noopener">link ↗</a>` : ""}
+                  ${request.notes ? `<div class="admin-field-hint">${esc(request.notes)}</div>` : ""}
+                </td>
+                <td>${esc(request.requestedBy || "—")}</td>
+                <td><span class="admin-field-hint">${fmtDate(request.createdAt)}</span></td>
+                <td>${REQUEST_STATUS_BADGE[request.status] || esc(request.status)}</td>
+                <td>
+                  <div class="row-actions">
+                    ${["approved", "completed"].includes(request.status)
+                      ? ""
+                      : `<button class="button button--ghost button--small" type="button" data-admin-action="request-status" data-id="${esc(request.id)}" data-status="${request.status === "rejected" ? "pending" : "approved"}">${request.status === "rejected" ? "Un-reject" : "Approve"}</button>`}
+                    ${request.status === "approved"
+                      ? `<button class="button button--ghost button--small" type="button" data-admin-action="request-status" data-id="${esc(request.id)}" data-status="completed">Complete</button>`
+                      : ""}
+                    ${["pending", "approved"].includes(request.status)
+                      ? `<button class="button button--ghost button--small" type="button" data-admin-action="request-status" data-id="${esc(request.id)}" data-status="rejected">Reject</button>`
+                      : ""}
+                    <button class="button button--ghost button--small" type="button" data-admin-action="request-delete" data-id="${esc(request.id)}">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("") || '<tr><td colspan="6" class="admin-field-hint">No requests yet. When viewers submit one from the top nav, it lands here.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderFeedback(panel) {
+    if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
+    const feedback = COMMUNITY.listFeedback();
+    const newCount = feedback.filter((f) => f.status === "new").length;
+    const average = feedback.length
+      ? (feedback.reduce((sum, f) => sum + Number(f.rating || 0), 0) / feedback.length).toFixed(1)
+      : "—";
+    const hasRead = feedback.some((f) => f.status !== "new");
+
+    panel.innerHTML = `
+      <div class="admin-view__heading">
+        <div>
+          <h1>Feedback</h1>
+          <p>Viewer ratings and messages. ${newCount} unread · average rating ${average}/5.</p>
+        </div>
+        <button class="button button--ghost button--small" type="button" data-admin-action="feedback-clear-read" ${hasRead ? "" : "disabled"}>Clear read</button>
+      </div>
+
+      <div class="admin-card admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Rating</th>
+              <th>Message</th>
+              <th>Category</th>
+              <th>Contact</th>
+              <th>Received</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${feedback.map((entry) => `
+              <tr style="${entry.status === "new" ? "" : "opacity:0.65"}">
+                <td>${starsRow(Number(entry.rating) || 0)}</td>
+                <td style="max-width:380px">
+                  ${esc(entry.message || "—")}
+                  ${entry.sentBy ? `<div class="admin-field-hint">— ${esc(entry.sentBy)}</div>` : ""}
+                </td>
+                <td><span class="badge">${esc(entry.category || "General")}</span></td>
+                <td>${entry.discord ? `<code>@${esc(entry.discord)}</code>` : '<span class="admin-field-hint">none</span>'}</td>
+                <td><span class="admin-field-hint">${fmtDate(entry.createdAt)}</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="button button--ghost button--small" type="button" data-admin-action="feedback-toggle-read" data-id="${esc(entry.id)}">${entry.status === "new" ? "Mark read" : "Mark unread"}</button>
+                    <button class="button button--ghost button--small" type="button" data-admin-action="feedback-delete" data-id="${esc(entry.id)}">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("") || '<tr><td colspan="6" class="admin-field-hint">No feedback yet. When viewers send some, it lands here.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 
   async function handleStorageTest() {
