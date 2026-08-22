@@ -20,7 +20,39 @@ Objectflix is a personal streaming-platform project focused on providing a clean
 ## Architecture
 
 Objectflix uses a client/server architecture:
-
+```
+Objectflix
+├── Frontend
+│   ├── Browse
+│   ├── Watch
+│   ├── TV Edition
+│   └── Admin
+│
+├── Player
+│   ├── Video playback
+│   ├── Subtitles
+│   ├── Audio processing
+│   └── Playback diagnostics
+│
+├── Backend
+│   └── Cloudflare Worker
+│
+├── Data
+│   ├── Shows
+│   ├── Episodes
+│   └── Metadata
+│
+├── Assets
+│   ├── Posters
+│   ├── Backdrops
+│   ├── Logos
+│   ├── Fonts
+│   └── Subtitles
+│
+└── Deployment
+    ├── GitHub Pages
+    └── GitHub Actions
+```
 ## Technologies
 
 - HTML
