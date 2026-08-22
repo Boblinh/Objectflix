@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Virtual 7.1 Speaker Monitor — Objectflix (dev)</title>
+    <link rel="stylesheet" href="./audio-monitor.css" />
+  </head>
+  <body>
+    <header class="am-header">
+      <h1>Virtual 7.1 Speaker Monitor <span class="am-dev">DEV</span></h1>
+      <p class="am-sub">
+        Taps the live production graph (AnalyserNode observers only). No
+        processing is inserted and the player keeps owning the AudioContext.
+      </p>
+    </header>
+
+    <section class="am-status">
+      <div class="am-status-grid">
+        <div class="am-status-item"><span class="am-k">Audio Engine</span><span class="am-v" id="amEngine">—</span></div>
+        <div class="am-status-item"><span class="am-k">Mode</span><span class="am-v" id="amMode">—</span></div>
+        <div class="am-status-item"><span class="am-k">HRTF</span><span class="am-v" id="amHrtf">—</span></div>
+        <div class="am-status-item"><span class="am-k">Profile</span><span class="am-v" id="amProfile">—</span></div>
+        <div class="am-status-item"><span class="am-k">AudioContext</span><span class="am-v" id="amContext">—</span></div>
+        <div class="am-status-item"><span class="am-k">Channels</span><span class="am-v" id="amChannels">8</span></div>
+        <div class="am-status-item"><span class="am-k">Output</span><span class="am-v" id="amOutput">Stereo / Headphones</span></div>
+        <div class="am-status-item"><span class="am-k">Output Level</span><span class="am-v" id="amOutputLevel">—</span></div>
+      </div>
+      <div class="am-warnings" id="amWarnings"></div>
+      <div class="am-waiting" id="amWaiting">
+        Waiting for a debug-enabled player… Open a page with
+        <code>?audioDebug=1</code> and select <strong>Virtual 7.1</strong>.
+      </div>
+    </section>
+
+    <section class="am-layout">
+      <h2>Speaker layout <span class="am-azimuths" id="amAzimuths"></span></h2>
+      <div class="am-diagram" id="amDiagram">
+        <div class="am-ring" id="amRing"></div>
+        <div class="am-lfe-chip" id="amLfeChip">LFE — MONO</div>
+        <div class="am-listener" id="amListener">🎧</div>
+      </div>
+    </section>
+
+    <section class="am-cards" id="amCards" aria-label="Channel meters"></section>
+
+    <script type="module" src="./audio-monitor.js"></script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Audio Graph Diagnostics — Objectflix</title>
+    <style>
+      body {
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 24px;
+        background: #0f0f10;
+        color: #e5e5e5;
+      }
+      h1 { font-size: 18px; }
+      p { color: #9aa; max-width: 900px; }
+      button {
+        font: inherit;
+        padding: 8px 14px;
+        margin: 4px 8px 4px 0;
+        cursor: pointer;
+        border: 1px solid #444;
+        border-radius: 6px;
+        background: #1c1c22;
+        color: #eee;
+      }
+      button:hover { border-color: #f04451; }
+      #results { margin-top: 16px; }
+      .block { margin: 8px 0 16px; padding: 10px 12px; border: 1px solid #2a2a33; border-radius: 8px; }
+      .step { color: #7fd0ff; font-weight: 700; margin: 8px 0 4px; }
+      table { border-collapse: collapse; margin: 6px 0; }
+      th, td { border: 1px solid #333; padding: 3px 10px; text-align: right; }
+      th { background: #1a1a20; }
+      td:first-child, th:first-child { text-align: left; }
+      .pass { color: #9ce5b4; font-weight: 700; }
+      .fail { color: #ffabb2; font-weight: 700; }
+      .num { font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <h1>Virtual 7.1 — Audio Graph Diagnostics</h1>
+    <p>
+      Measures the real Web Audio graph built by <code>src/surround.js</code> using
+      AnalyserNode taps. All taps are attached to the same nodes the production
+      player uses. Run each block in order.
+    </p>
+    <button id="runSynthetic" type="button">1. Synthetic graph taps + Stereo vs Virtual diff</button>
+    <button id="runPanner" type="button">2. Panner azimuth / HRTF experiment</button>
+    <button id="runMedia" type="button">3. Real media-element engine path</button>
+    <button id="runComparison" type="button">4. Original vs Legacy vs New upmix</button>
+    <div id="results"></div>
+
+    <script type="module" src="./audio-diag.js"></script>
+  </body>
+</html>

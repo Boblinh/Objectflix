@@ -1,6 +1,6 @@
-// src/browse.js
-// Browse page logic for browse.html: library rows, search, details modal, ARG.
-// Load AFTER config.js, api.js, data.js and shared.js (classic scripts).
+
+
+
 (() => {
   const { profiles, trendingSearches, searchFilters } = window.OBJECTFLIX_DATA || { profiles: [], trendingSearches: [], searchFilters: [] };
   const SHARED = window.OBJECTFLIX_SHARED;
@@ -56,9 +56,9 @@
     search: elements.searchView,
   };
 
-  // ------------------------------------------------------------------
-  // Auth / profile bootstrap
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function currentUser() {
     return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
@@ -69,7 +69,7 @@
     try {
       profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
     } catch {
-      // ignore
+      
     }
 
     const user = currentUser();
@@ -110,7 +110,7 @@
     try {
       localStorage.setItem(`objectflix_mylist_${profile.id}`, JSON.stringify([...state.myList]));
     } catch {
-      // ignore
+      
     }
   }
 
@@ -120,13 +120,13 @@
     try {
       localStorage.setItem(`objectflix_likes_${profile.id}`, JSON.stringify([...state.likedTitles]));
     } catch {
-      // ignore
+      
     }
   }
 
-  // ------------------------------------------------------------------
-  // Library loading
-  // ------------------------------------------------------------------
+  
+  
+  
 
   async function bootLibrary() {
     state.libraryLoading = true;
@@ -177,9 +177,9 @@
     `;
   }
 
-  // ------------------------------------------------------------------
-  // Home view
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function renderHome() {
     const featured = library.find((item) => item.featured) || library[0];
@@ -321,9 +321,9 @@
     `;
   }
 
-  // ------------------------------------------------------------------
-  // Search view
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function renderSearch() {
     elements.searchFilters.innerHTML = searchFilters
@@ -427,9 +427,9 @@
     `;
   }
 
-  // ------------------------------------------------------------------
-  // Details modal
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function openDetails(id) {
     const item = library.find((entry) => entry.id === id);
@@ -498,9 +498,6 @@
     state.lastFocusedElement = null;
   }
 
-  // ------------------------------------------------------------------
-  // Play navigation (moves to watch.html)
-  // ------------------------------------------------------------------
 
   function playTitle(id) {
     const item = library.find((entry) => entry.id === id);
@@ -521,9 +518,6 @@
     window.location.href = `watch.html?id=${encodeURIComponent(item.id)}&ep=${encodeURIComponent(episode.id)}`;
   }
 
-  // ------------------------------------------------------------------
-  // List / likes
-  // ------------------------------------------------------------------
 
   function toggleMyList(id) {
     if (state.myList.has(id)) {
@@ -554,9 +548,6 @@
     carousel.scrollBy({ left: carousel.clientWidth * 0.82 * direction, behavior: 'smooth' });
   }
 
-  // ------------------------------------------------------------------
-  // ARG logo ritual
-  // ------------------------------------------------------------------
 
   function handleLogoRitual() {
     const { logoClicksRequired, clickWindowMs } = window.OBJECTFLIX_CONFIG.arg;
@@ -611,9 +602,6 @@
     }, 4500);
   }
 
-  // ------------------------------------------------------------------
-  // View switching
-  // ------------------------------------------------------------------
 
   function changeView(view) {
     state.currentView = view;
@@ -641,9 +629,6 @@
     elements.menuToggle.setAttribute('aria-expanded', 'false');
   }
 
-  // ------------------------------------------------------------------
-  // Events
-  // ------------------------------------------------------------------
 
   function bindEvents() {
     document.addEventListener('click', (event) => {
@@ -735,9 +720,6 @@
     });
   }
 
-  // ------------------------------------------------------------------
-  // Init
-  // ------------------------------------------------------------------
 
   function init() {
     const user = currentUser();
@@ -746,8 +728,6 @@
       return;
     }
 
-    // Show the Admin link only to authenticated administrators (Discord ID is
-    // the source of truth). Directly visiting admin.html always re-checks.
     const adminSession = window.OBJECTFLIX_ADMIN?.session?.();
     const adminLink = document.getElementById('adminLink');
     if (adminLink && adminSession) {

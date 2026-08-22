@@ -23,7 +23,7 @@
         if (key in merged) merged[key] = saved[key];
       }
     } catch {
-      // ignore malformed settings
+      
     }
     return merged;
   }
@@ -43,7 +43,7 @@
     try {
       localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(all));
     } catch {
-      // localStorage unavailable — ignore
+      
     }
   }
 
@@ -410,6 +410,10 @@
         "assistant-probe": () => void probeModels(),
         "ai-key-save": () => saveAiKey(),
         "ai-key-clear": () => clearAiKey(),
+        "ai-key-remove": (e) => removeAiKey(Number(e.target.dataset.keyIndex)),
+        "fb-key-save": (e) => saveFallbackKey(e.target.dataset.provider),
+        "fb-key-clear": (e) => clearFallbackKeys(e.target.dataset.provider),
+        "fb-key-remove": (e) => removeFallbackKey(e.target.dataset.provider, Number(e.target.dataset.keyIndex)),
         "history-clear": () => clearHistories(),
         "settings-reset": () => resetSettings(),
         "settings-view-catalog": () => viewCatalogPatches(),
@@ -981,7 +985,7 @@
           <div class="admin-form-row admin-form-row--split">
             <div class="admin-form-row">
               <label class="admin-label" for="uploadTitleField">Episode title <span class="admin-field-hint">(optional)</span></label>
-              <input class="admin-input" id="uploadTitleField" name="episodeTitle" placeholder="e.g. TPOT 24: Revelations of a Broken Past" />
+              <input class="admin-input" id="uploadTitleField" name="episodeTitle" placeholder="e.g. TPOT 25: The Grand Return" />
             </div>
             <div class="admin-form-row">
               <label class="admin-label" for="uploadBucketSelect">Bucket</label>
@@ -1310,7 +1314,6 @@
     try {
       localUsers = JSON.parse(localStorage.getItem("objectflix_users") || "{}");
     } catch {
-      // ignore malformed accounts
     }
     const emails = Object.keys(localUsers);
 
@@ -1382,7 +1385,6 @@
         B2.logActivity("Account removed", email);
       }
     } catch {
-      // ignore
     }
     renderUsers($("#viewUsers"));
   }
@@ -1398,8 +1400,15 @@
     if (!ADMIN.can(session, "assistants.configure")) return;
     const settings = settingsAll();
     const ai = CONFIG.ai || {};
-    const apiKey = localStorage.getItem("objectflix_ai_key") || ai.apiKey || "";
-    const maskedKey = apiKey ? `••••${apiKey.slice(-4)}` : "none";
+    const aiKeys = (() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("objectflix_ai_keys") || "[]");
+        if (Array.isArray(stored) && stored.length > 0) return stored;
+      } catch {}
+      const legacy = localStorage.getItem("objectflix_ai_key");
+      if (legacy) return [legacy];
+      return ai.apiKey ? [ai.apiKey] : [];
+    })();
 
     const assistants = [
       { id: "firey", name: "Firey", emoji: "🔥", desc: "The explosive, passionate host. Energetic and loud.", cardClass: "assistant-card--firey", avatarClass: "assistant-card__avatar--firey" },
@@ -1455,26 +1464,86 @@
         <div class="admin-card__title">Gemini model access</div>
         <div class="kv-list">
           <div class="kv-list__row"><span class="kv-list__key">Provider</span><span class="kv-list__value">${esc(ai.provider || "gemini")}</span></div>
-          <div class="kv-list__row"><span class="kv-list__key">API key</span><span class="kv-list__value">${esc(maskedKey)}</span></div>
+          <div class="kv-list__row"><span class="kv-list__key">Keys configured</span><span class="kv-list__value">${aiKeys.length}</span></div>
         </div>
         <div class="admin-form" style="margin-top:12px">
           <div class="admin-form-row">
-            <label class="admin-label" for="aiKeyField">API key override <span class="admin-field-hint">(stored in this browser)</span></label>
+            <label class="admin-label" for="aiKeyField">Add API key <span class="admin-field-hint">(stored in this browser, round-robin rotation)</span></label>
             <div class="admin-form-row admin-form-row--split" style="gap:10px">
-              <input class="admin-input" id="aiKeyField" type="password" placeholder="Paste a Gemini API key to override src/config.js" />
+              <input class="admin-input" id="aiKeyField" type="password" placeholder="Paste a Gemini API key" />
               <div class="row-actions">
-                <button class="button button--ghost button--small" type="button" data-admin-action="ai-key-save">Save override</button>
-                <button class="button button--ghost button--small" type="button" data-admin-action="ai-key-clear">Clear override</button>
+                <button class="button button--primary button--small" type="button" data-admin-action="ai-key-save">Add key</button>
               </div>
             </div>
           </div>
           <div class="admin-form-row">
+            <button class="button button--ghost button--small" type="button" data-admin-action="ai-key-clear">Clear all keys</button>
+          </div>
+          ${aiKeys.length > 0 ? `
+          <div style="margin-top:10px">
+            <span class="admin-field-hint" style="margin-bottom:6px;display:block">Configured keys:</span>
+            <div class="kv-list" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              ${aiKeys.map((k, i) => {
+                const masked = k.length > 8 ? `${k.slice(0, 4)}••••${k.slice(-4)}` : '••••';
+                return `<div class="kv-list__row" style="justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)">
+                  <span class="kv-list__key" style="font-family:monospace;font-size:0.85rem">${i + 1}. ${esc(masked)}</span>
+                  <button class="button button--ghost button--small" type="button" data-admin-action="ai-key-remove" data-key-index="${i}" style="color:var(--danger)">Remove</button>
+                </div>`;
+              }).join("")}
+            </div>
+          </div>
+          ` : ""}
+          <div class="admin-form-row" style="margin-top:12px">
             <button class="button button--ghost button--small" type="button" data-admin-action="assistant-probe">Probe available models</button>
             <span class="admin-field-hint" id="modelProbeResult"></span>
           </div>
           <div class="admin-form-row" id="modelChips"></div>
         </div>
       </div>
+
+      ${(CONFIG.ai?.fallbacks || []).map((fb) => {
+        const env = window.__OBJECTFLIX_ENV__ || {};
+        const envKeys = (env[fb.envKey] || '').split(',').map((k) => k.trim()).filter(Boolean);
+        let storedKeys = [];
+        try { storedKeys = JSON.parse(localStorage.getItem(`objectflix_ai_keys_${fb.id}`) || '[]'); } catch {}
+        if (!Array.isArray(storedKeys)) storedKeys = [];
+        const allKeys = [...new Set([...envKeys, ...storedKeys])];
+        const maskedKeys = allKeys.map((k) => k.length > 8 ? `${k.slice(0, 4)}••••${k.slice(-4)}` : '••••');
+
+        return `
+        <div class="admin-card">
+          <div class="admin-card__title">${esc(fb.name)} (fallback)</div>
+          <div class="kv-list">
+            <div class="kv-list__row"><span class="kv-list__key">Endpoint</span><span class="kv-list__value" style="font-family:monospace;font-size:0.8rem">${esc(fb.baseUrl)}</span></div>
+            <div class="kv-list__row"><span class="kv-list__key">Keys configured</span><span class="kv-list__value">${allKeys.length}</span></div>
+            <div class="kv-list__row"><span class="kv-list__key">Models</span><span class="kv-list__value">${fb.models.join(', ')}</span></div>
+          </div>
+          <div class="admin-form" style="margin-top:12px">
+            <div class="admin-form-row">
+              <label class="admin-label" for="fbKeyField_${fb.id}">Add API key</label>
+              <div class="admin-form-row admin-form-row--split" style="gap:10px">
+                <input class="admin-input" id="fbKeyField_${fb.id}" type="password" placeholder="Paste a ${esc(fb.name)} API key" />
+                <div class="row-actions">
+                  <button class="button button--primary button--small" type="button" data-admin-action="fb-key-save" data-provider="${fb.id}">Add key</button>
+                </div>
+              </div>
+            </div>
+            <div class="admin-form-row">
+              <button class="button button--ghost button--small" type="button" data-admin-action="fb-key-clear" data-provider="${fb.id}">Clear all keys</button>
+            </div>
+            ${allKeys.length > 0 ? `
+            <div style="margin-top:10px">
+              <div class="kv-list" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+                ${maskedKeys.map((m, i) => `
+                <div class="kv-list__row" style="justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border)">
+                  <span class="kv-list__key" style="font-family:monospace;font-size:0.85rem">${i + 1}. ${esc(m)}</span>
+                  <button class="button button--ghost button--small" type="button" data-admin-action="fb-key-remove" data-provider="${fb.id}" data-key-index="${i}" style="color:var(--danger)">Remove</button>
+                </div>`).join("")}
+              </div>
+            </div>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
     `;
   }
 
@@ -1495,7 +1564,6 @@
       sessionStorage.removeItem("objectflix_assistant_histories");
       sessionStorage.removeItem("objectflix_assistant_active");
     } catch {
-      // ignore
     }
     renderAssistants($("#viewAssistants"));
     const status = $("#assistantSettingsStatus");
@@ -1510,53 +1578,141 @@
       alert("Paste a Gemini API key first.");
       return;
     }
-    localStorage.setItem("objectflix_ai_key", key);
-    B2.logActivity("AI API key override saved", "key updated in this browser");
+    let keys = [];
+    try { keys = JSON.parse(localStorage.getItem("objectflix_ai_keys") || "[]"); } catch {}
+    if (!Array.isArray(keys)) keys = [];
+    if (keys.includes(key)) {
+      const status = $("#assistantSettingsStatus");
+      if (status) status.textContent = "This key is already configured.";
+      return;
+    }
+    keys.push(key);
+    localStorage.setItem("objectflix_ai_keys", JSON.stringify(keys));
+    localStorage.removeItem("objectflix_ai_key");
+    B2.logActivity("AI API key added", `key ${keys.length} added in this browser`);
+    field.value = "";
     renderAssistants($("#viewAssistants"));
     const status = $("#assistantSettingsStatus");
-    if (status) status.textContent = "API key override saved.";
+    if (status) status.textContent = `API key added (${keys.length} total).`;
+  }
+
+  function removeAiKey(index) {
+    let keys = [];
+    try { keys = JSON.parse(localStorage.getItem("objectflix_ai_keys") || "[]"); } catch {}
+    if (!Array.isArray(keys) || !keys[index]) return;
+    if (!confirm(`Remove API key ${index + 1}?`)) return;
+    keys.splice(index, 1);
+    if (keys.length > 0) {
+      localStorage.setItem("objectflix_ai_keys", JSON.stringify(keys));
+    } else {
+      localStorage.removeItem("objectflix_ai_keys");
+    }
+    B2.logActivity("AI API key removed", `key removed, ${keys.length} remaining`);
+    renderAssistants($("#viewAssistants"));
+    const status = $("#assistantSettingsStatus");
+    if (status) status.textContent = "Key removed.";
   }
 
   function clearAiKey() {
+    if (!confirm("Clear all configured API keys?")) return;
+    localStorage.removeItem("objectflix_ai_keys");
     localStorage.removeItem("objectflix_ai_key");
-    B2.logActivity("AI API key override cleared", "");
+    localStorage.removeItem("objectflix_ai_key_index");
+    B2.logActivity("AI API keys cleared", "");
     renderAssistants($("#viewAssistants"));
     const status = $("#assistantSettingsStatus");
-    if (status) status.textContent = "API key override cleared.";
+    if (status) status.textContent = "All API keys cleared.";
+  }
+
+  function saveFallbackKey(providerId) {
+    const field = $(`#fbKeyField_${providerId}`);
+    if (!field) return;
+    const key = field.value.trim();
+    if (!key) { alert("Paste an API key first."); return; }
+    const storeKey = `objectflix_ai_keys_${providerId}`;
+    let keys = [];
+    try { keys = JSON.parse(localStorage.getItem(storeKey) || "[]"); } catch {}
+    if (!Array.isArray(keys)) keys = [];
+    if (keys.includes(key)) {
+      const status = $("#assistantSettingsStatus");
+      if (status) status.textContent = "This key is already configured.";
+      return;
+    }
+    keys.push(key);
+    localStorage.setItem(storeKey, JSON.stringify(keys));
+    B2.logActivity(`${providerId} API key added`, `key ${keys.length} added`);
+    field.value = "";
+    renderAssistants($("#viewAssistants"));
+    const status = $("#assistantSettingsStatus");
+    if (status) status.textContent = `${providerId} key added (${keys.length} total).`;
+  }
+
+  function removeFallbackKey(providerId, index) {
+    const storeKey = `objectflix_ai_keys_${providerId}`;
+    let keys = [];
+    try { keys = JSON.parse(localStorage.getItem(storeKey) || "[]"); } catch {}
+    if (!Array.isArray(keys) || !keys[index]) return;
+    if (!confirm(`Remove ${providerId} key ${index + 1}?`)) return;
+    keys.splice(index, 1);
+    if (keys.length > 0) {
+      localStorage.setItem(storeKey, JSON.stringify(keys));
+    } else {
+      localStorage.removeItem(storeKey);
+    }
+    B2.logActivity(`${providerId} API key removed`, `${keys.length} remaining`);
+    renderAssistants($("#viewAssistants"));
+    const status = $("#assistantSettingsStatus");
+    if (status) status.textContent = `${providerId} key removed.`;
+  }
+
+  function clearFallbackKeys(providerId) {
+    if (!confirm(`Clear all ${providerId} API keys?`)) return;
+    localStorage.removeItem(`objectflix_ai_keys_${providerId}`);
+    localStorage.removeItem(`objectflix_ai_key_idx_${providerId}`);
+    B2.logActivity(`${providerId} API keys cleared`, "");
+    renderAssistants($("#viewAssistants"));
+    const status = $("#assistantSettingsStatus");
+    if (status) status.textContent = `All ${providerId} keys cleared.`;
   }
 
   async function probeModels() {
     const result = $("#modelProbeResult");
     const chips = $("#modelChips");
     const ai = CONFIG.ai || {};
-    const apiKey = localStorage.getItem("objectflix_ai_key") || ai.apiKey || "";
-    if (!apiKey) {
-      if (result) result.textContent = "No API key configured.";
+    let keys = [];
+    try { keys = JSON.parse(localStorage.getItem("objectflix_ai_keys") || "[]"); } catch {}
+    if (!Array.isArray(keys) || keys.length === 0) {
+      const legacy = localStorage.getItem("objectflix_ai_key");
+      if (legacy) keys = [legacy];
+      else if (ai.apiKey) keys = [ai.apiKey];
+    }
+    if (keys.length === 0) {
+      if (result) result.textContent = "No API keys configured.";
       return;
     }
     if (result) result.textContent = "Querying Gemini…";
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
-      if (!res.ok) {
-        if (result) result.textContent = `Model list failed (${res.status}).`;
-        return;
-      }
-      const data = await res.json();
-      const available = new Set(
-        (data.models || [])
-          .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
-          .map((m) => m.name.replace(/^models\//, ""))
-      );
-      const configured = ai.models || [];
-      if (chips) {
-        chips.innerHTML = configured
-          .map((model) => `<span class="model-chip"><span class="dot ${available.has(model) ? "is-online" : "is-offline"}"></span>${esc(model)}</span>`)
-          .join("");
-      }
-      if (result) result.textContent = `${available.size} generative model${available.size === 1 ? "" : "s"} reachable with this key.`;
-    } catch (err) {
-      if (result) result.textContent = `Probe failed: ${err.message}`;
+
+    const available = new Set();
+    for (const apiKey of keys) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+        if (!res.ok) continue;
+        const data = await res.json();
+        for (const m of data.models || []) {
+          if (m.supportedGenerationMethods?.includes("generateContent")) {
+            available.add(m.name.replace(/^models\//, ""));
+          }
+        }
+      } catch {}
     }
+
+    const configured = ai.models || [];
+    if (chips) {
+      chips.innerHTML = configured
+        .map((model) => `<span class="model-chip"><span class="dot ${available.has(model) ? "is-online" : "is-offline"}"></span>${esc(model)}</span>`)
+        .join("");
+    }
+    if (result) result.textContent = `${available.size} generative model${available.size === 1 ? "" : "s"} reachable across ${keys.length} key${keys.length === 1 ? "" : "s"}.`;
   }
 
   function renderSettings(panel) {

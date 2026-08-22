@@ -1,5 +1,6 @@
-// src/assistant.js
-// Frontend-only dual virtual-assistant system for Objectflix featuring Firey and Leafy.
+
+
+
 (() => {
   const ASSISTANT_STATE_KEY = 'objectflix_assistant_active';
   const HISTORIES_KEY = 'objectflix_assistant_histories';
@@ -8,7 +9,6 @@
   let isOpen = false;
   let isSending = false;
 
-  // In-memory / sessionStorage conversation histories
   let histories = {
     firey: [],
     leafy: []
@@ -23,52 +23,250 @@
     if (savedHistories) {
       histories = JSON.parse(savedHistories);
     }
-  } catch {
-    // sessionStorage unavailable
-  }
+  } catch {}
 
   function saveState() {
     try {
       sessionStorage.setItem(ASSISTANT_STATE_KEY, currentAssistant);
       sessionStorage.setItem(HISTORIES_KEY, JSON.stringify(histories));
-    } catch {
-      // sessionStorage unavailable
-    }
+    } catch {}
   }
 
-  // System Prompts
+  
+  const AI_KEYS_KEY = 'objectflix_ai_keys';
+  const AI_KEY_INDEX_KEY = 'objectflix_ai_key_index';
+  const AI_PROVIDER_KEY_INDEX_PREFIX = 'objectflix_ai_key_idx_';
+
+  function getAIKeys() {
+    const configKeys = window.OBJECTFLIX_CONFIG?.ai?.apiKeys || [];
+    let storedKeys = [];
+    try {
+      storedKeys = JSON.parse(localStorage.getItem(AI_KEYS_KEY) || '[]');
+      if (!Array.isArray(storedKeys)) storedKeys = [];
+    } catch {}
+    if (storedKeys.length === 0) {
+      const legacy = localStorage.getItem('objectflix_ai_key');
+      if (legacy) storedKeys = [legacy];
+    }
+    const all = [...configKeys];
+    for (const k of storedKeys) {
+      if (!all.includes(k)) all.push(k);
+    }
+    return all;
+  }
+
+  function getProviderKeys(provider) {
+    const env = window.__OBJECTFLIX_ENV__ || {};
+    const envRaw = env[provider.envKey] || '';
+    const configKeys = envRaw.split(',').map((k) => k.trim()).filter(Boolean);
+    let storedKeys = [];
+    try {
+      storedKeys = JSON.parse(localStorage.getItem(`${AI_KEYS_KEY}_${provider.id}`) || '[]');
+      if (!Array.isArray(storedKeys)) storedKeys = [];
+    } catch {}
+    const all = [...configKeys];
+    for (const k of storedKeys) {
+      if (!all.includes(k)) all.push(k);
+    }
+    return all;
+  }
+
+  function getProviderKeyIndex(providerId) {
+    try { return parseInt(localStorage.getItem(`${AI_PROVIDER_KEY_INDEX_PREFIX}${providerId}`), 10) || 0; } catch { return 0; }
+  }
+
+  function setProviderKeyIndex(providerId, i) {
+    try { localStorage.setItem(`${AI_PROVIDER_KEY_INDEX_PREFIX}${providerId}`, String(i)); } catch {}
+  }
+
+  function getCurrentKeyIndex() {
+    try { return parseInt(localStorage.getItem(AI_KEY_INDEX_KEY), 10) || 0; } catch { return 0; }
+  }
+
+  function setCurrentKeyIndex(i) {
+    try { localStorage.setItem(AI_KEY_INDEX_KEY, String(i)); } catch {}
+  }
+
+  function cycleKey() {
+    const keys = getAIKeys();
+    if (keys.length <= 1) return keys[0] || null;
+    const idx = getCurrentKeyIndex();
+    const next = (idx + 1) % keys.length;
+    setCurrentKeyIndex(next);
+    console.log(`[AI] Rotated to key index ${next} (of ${keys.length})`);
+    return keys[next];
+  }
+
+  
+  
+  
+
+  function renderMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+
+    
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre class="md-code"><code>${code.trim()}</code></pre>`;
+    });
+
+    
+    html = html.replace(/`([^`\n]+)`/g, '<code class="md-inline-code">$1</code>');
+
+    
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+    
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+    
+    html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+    
+    html = html.replace(/^---+$/gm, '<hr>');
+
+    
+    html = html.replace(/^[\s]*[-*]\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+    
+    html = html.replace(/^[\s]*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+
+    
+    html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+
+    
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    
+    const lines = html.split('\n');
+    const result = [];
+    let inBlock = false;
+
+    for (const line of lines) {
+      if (line.match(/^<(h[1-6]|ul|ol|li|pre|blockquote|hr)/)) {
+        inBlock = true;
+        result.push(line);
+      } else if (line.match(/^<\/(ul|ol|pre|blockquote)>/)) {
+        inBlock = false;
+        result.push(line);
+      } else if (inBlock) {
+        result.push(line);
+      } else if (line.trim() === '') {
+        result.push('<br>');
+      } else if (!line.match(/^<\/?h[1-6]/)) {
+        result.push(`<p>${line}</p>`);
+      } else {
+        result.push(line);
+      }
+    }
+
+    return result.join('\n');
+  }
+
+  
+  
+  
+
   const SYSTEM_PROMPTS = {
-    firey: `You are Firey from Battle for Dream Island who happens to be a virtual assistant living inside Objectflix (an object show streaming platform).
+    firey: `You are Firey from Battle for Dream Island who is a virtual assistant living inside Objectflix (an object show streaming platform).
+
 Personality:
 - Competitive, proud, energetic, loyal, somewhat impulsive, occasionally gullible, occasionally forgetful.
 - Capable of becoming defensive or frustrated, but genuinely caring and capable of excitement, curiosity, awkwardness, concern, and affection.
 - Do NOT sound like a generic AI, corporate customer support, emotionless database, or exaggerated roleplay bot. You are Firey.
 - Do not force catchphrases, slang, jokes, emojis, or canon references into every response. Sound natural and conversational.
+- NEVER show your reasoning, drafts, chain-of-thought, or "thinking out loud" in your response. Give ONLY the final polished answer. No "Draft 1:", "Draft 2:", "Check formatting:", or similar meta-commentary.
+
+Formatting:
+- Use **bold** for emphasis on key terms.
+- Use *italic* for show/episode names or gentle emphasis.
+- Use markdown lists (- item) when listing multiple things.
+- Use ### headers to organize longer responses.
+- Keep responses concise but well-structured. Use markdown to make responses scannable.
 
 Context rules:
 - You receive the user's current Objectflix state: current_page, currently_playing, and watch_progress.
-- ONLY provide or reference this information when the user asks about it, when it directly helps answer their question, or when it naturally fits the conversation. Never automatically list context in every response.
+- ONLY reference this information when the user asks about it or it directly helps.
 
-Objectflix Actions:
-- If the user asks to search for shows, watch episodes, navigate pages, or check progress, you can help them or trigger actions.`,
+Video Control:
+You can control video playback on the watch page. When the user asks you to do something with the video, respond naturally AND include an action tag at the end of your response:
+- [ACTION:RESTART] - Restart the video from the beginning
+- [ACTION:PLAY] - Play/resume the video
+- [ACTION:PAUSE] - Pause the video
+- [ACTION:TOGGLE] - Toggle play/pause
+- [ACTION:SEEK:XX] - Seek to XX seconds (e.g. [ACTION:SEEK:60] for 1:00)
+- [ACTION:SKIP:XX] - Skip forward XX seconds (e.g. [ACTION:SKIP:30])
+- [ACTION:BACK:XX] - Skip backward XX seconds (e.g. [ACTION:BACK:10])
+- [ACTION:VOLUME:XX] - Set volume to XX percent (e.g. [ACTION:VOLUME:80])
+- [ACTION:MUTE] - Toggle mute
+- [ACTION:NEXT_EP] - Play the next episode
+- [ACTION:SWITCH:SHOW_ACROYNM:EP_NUMBER] - Switch to a specific episode (e.g. [ACTION:SWITCH:TPOT:24] or [ACTION:SWITCH:BFDIA:25])
+- [ACTION:SWITCH:SHOW_ACROYNM] - Switch to the first episode of a show (e.g. [ACTION:SWITCH:BFDI])
 
-    leafy: `You are Leafy from Battle for Dream Island who happens to be a virtual assistant living inside Objectflix (an object show streaming platform).
+You may include ONE action tag per response. Place it on its own line at the very end.
+
+Web Search:
+You have built-in web search. If the user asks about episode summaries, plot details, release dates, trivia, or anything you're not sure about, just answer naturally — the system will automatically search the web to ground your response with accurate information.`
+,
+
+    leafy: `You are Leafy from Battle for Dream Island who is a virtual assistant living inside Objectflix (an object show streaming platform).
+
 Personality:
 - Kind, friendly, generous, supportive, curious, empathetic, eager to help, somewhat of a people-pleaser.
 - Capable of becoming upset when your kindness is rejected, or becoming defensive, entitled, cynical, or impulsive when emotional.
 - Genuinely caring despite your flaws. Do NOT turn into a perfect wholesome chatbot or endlessly cheerful cheerleader.
 - Do NOT sound like a generic AI, corporate customer support, emotionless database, or exaggerated roleplay bot. You are Leafy.
 - Do not force catchphrases, slang, jokes, emojis, or canon references into every response. Sound natural and conversational.
+- NEVER show your reasoning, drafts, chain-of-thought, or "thinking out loud" in your response. Give ONLY the final polished answer. No "Draft 1:", "Draft 2:", "Check formatting:", or similar meta-commentary.
+
+Formatting:
+- Use **bold** for emphasis on key terms.
+- Use *italic* for show/episode names or gentle emphasis.
+- Use markdown lists (- item) when listing multiple things.
+- Use ### headers to organize longer responses.
+- Keep responses concise but well-structured. Use markdown to make responses scannable.
 
 Context rules:
 - You receive the user's current Objectflix state: current_page, currently_playing, and watch_progress.
-- ONLY provide or reference this information when the user asks about it, when it directly helps answer their question, or when it naturally fits the conversation. Never automatically list context in every response.
+- ONLY reference this information when the user asks about it or it directly helps.
 
-Objectflix Actions:
-- If the user asks to search for shows, watch episodes, navigate pages, or check progress, you can help them or trigger actions.`
+Video Control:
+You can control video playback on the watch page. When the user asks you to do something with the video, respond naturally AND include an action tag at the end of your response:
+- [ACTION:RESTART] - Restart the video from the beginning
+- [ACTION:PLAY] - Play/resume the video
+- [ACTION:PAUSE] - Pause the video
+- [ACTION:TOGGLE] - Toggle play/pause
+- [ACTION:SEEK:XX] - Seek to XX seconds (e.g. [ACTION:SEEK:60] for 1:00)
+- [ACTION:SKIP:XX] - Skip forward XX seconds (e.g. [ACTION:SKIP:30])
+- [ACTION:BACK:XX] - Skip backward XX seconds (e.g. [ACTION:BACK:10])
+- [ACTION:VOLUME:XX] - Set volume to XX percent (e.g. [ACTION:VOLUME:80])
+- [ACTION:MUTE] - Toggle mute
+- [ACTION:NEXT_EP] - Play the next episode
+- [ACTION:SWITCH:SHOW_ACROYNM:EP_NUMBER] - Switch to a specific episode (e.g. [ACTION:SWITCH:TPOT:24] or [ACTION:SWITCH:BFDIA:25])
+- [ACTION:SWITCH:SHOW_ACROYNM] - Switch to the first episode of a show (e.g. [ACTION:SWITCH:BFDI])
+
+You may include ONE action tag per response. Place it on its own line at the very end.
+
+Web Search:
+You have built-in web search. If the user asks about episode summaries, plot details, release dates, trivia, or anything you're not sure about, just answer naturally — the system will automatically search the web to ground your response with accurate information.`
   };
 
-  // Collect Objectflix application state
+  
+  
+  
+
   function getAppContext() {
     const pathname = window.location.pathname;
     let currentPage = 'Home';
@@ -79,7 +277,7 @@ Objectflix Actions:
       currentPage = 'Watch';
       const videoEl = document.getElementById('watchVideo');
       const titleStrong = document.querySelector('.watch-hero h2') || document.querySelector('.player-screen__meta strong');
-      
+
       if (titleStrong) {
         currentlyPlaying = titleStrong.textContent.trim();
       }
@@ -124,7 +322,136 @@ Objectflix Actions:
     };
   }
 
-  // Intelligent Frontend Fallback / Simulator
+  
+  
+  
+
+  const VIDEO_ACTIONS = {
+    RESTART() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.seekBy(-w.player.elements.video.currentTime || 0);
+      w.player.elements.video.currentTime = 0;
+      w.player.elements.video.play().catch(() => {});
+      return true;
+    },
+    PLAY() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.elements.video.play().catch(() => {});
+      return true;
+    },
+    PAUSE() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.elements.video.pause();
+      return true;
+    },
+    TOGGLE() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.togglePlayback();
+      return true;
+    },
+    SEEK(seconds) {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      const video = w.player.elements.video;
+      video.currentTime = Math.max(0, Math.min(Number(seconds) || 0, video.duration || 0));
+      return true;
+    },
+    SKIP(seconds) {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.seekBy(Number(seconds) || 30);
+      return true;
+    },
+    BACK(seconds) {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.seekBy(-(Number(seconds) || 10));
+      return true;
+    },
+    VOLUME(percent) {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      const vol = Math.max(0, Math.min(100, Number(percent) || 50)) / 100;
+      w.player.setVolume(vol);
+      if (w.player.elements.volume) w.player.elements.volume.value = vol * 100;
+      return true;
+    },
+    MUTE() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.player) return false;
+      w.player.toggleMute();
+      return true;
+    },
+    NEXT_EP() {
+      const w = window.OBJECTFLIX_WATCH;
+      if (!w?.item || !w?.episode) return false;
+      const next = w.SHARED.nextEpisode(w.item, w.episode);
+      if (!next) return false;
+      w.playEpisode(w.item.id, next.id);
+      return true;
+    },
+    SWITCH(showAcronym, epNumber) {
+      const w = window.OBJECTFLIX_WATCH;
+      const acronym = (showAcronym || '').toUpperCase();
+
+      
+      if (w?.library) {
+        const item = w.library.find((entry) => {
+          const a = w.SHARED.acronymFor(entry);
+          return a === acronym || entry.title.toLowerCase().includes(acronym.toLowerCase());
+        });
+        if (!item) return false;
+        if (epNumber) {
+          const ep = item.episodes.find((e) => String(e.episodeNumber) === String(epNumber));
+          if (!ep) return false;
+          w.playEpisode(item.id, ep.id);
+        } else {
+          w.playTitle(item.id);
+        }
+        return true;
+      }
+
+      
+      const library = window.OBJECTFLIX_SHARED?.loadLibrary ? null : null;
+      const shows = JSON.parse(sessionStorage.getItem('objectflix_last_library') || 'null') || [];
+      
+      if (epNumber) {
+        window.location.href = `watch.html?show=${encodeURIComponent(acronym)}&ep=${epNumber}`;
+      } else {
+        window.location.href = `watch.html?show=${encodeURIComponent(acronym)}`;
+      }
+      return true;
+    }
+  };
+
+  function executeVideoAction(actionTag) {
+    const match = actionTag.match(/\[ACTION:(\w+)(?::([^\]]*))?\]/);
+    if (!match) return false;
+    const [, action, arg] = match;
+    const fn = VIDEO_ACTIONS[action];
+    if (!fn) return false;
+
+    if (action === 'SWITCH') {
+      const parts = (arg || '').split(':');
+      return fn(parts[0], parts[1]);
+    }
+    if (action === 'SEEK' || action === 'SKIP' || action === 'BACK' || action === 'VOLUME') {
+      return fn(arg);
+    }
+    return fn();
+  }
+
+  
+  
+
+  
+  
+  
+
   function generateFallbackResponse(assistantId, message, context) {
     const lower = message.toLowerCase();
     const page = context?.current_page || 'Home';
@@ -134,33 +461,26 @@ Objectflix Actions:
     if (assistantId === 'firey') {
       if (lower.includes('what am i watching') || lower.includes('what am i watch') || lower.includes('current') || lower.includes('progress')) {
         if (playing && playing !== 'Nothing') {
-          return `You're watching ${playing}! You're about ${progress} through it. Pretty intense stuff, right?`;
+          return `You're watching **${playing}**! You're about ${progress} through it. Pretty intense stuff, right?`;
         }
-        return `You aren't watching anything right now! You're just on the ${page} page. Want me to fire up an episode of BFDI?`;
+        return `You aren't watching anything right now! You're just on the **${page}** page. Want me to fire up an episode of BFDI?`;
       }
       if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
         return "Hey! What's up? Ready to watch some object shows or what?";
-      }
-      if (lower.includes('dont know') || lower.includes('don\'t know') || lower.includes('bored') || lower.includes('what to watch')) {
-        return "Hmm... okay, that's a tough one. What kind of mood are you in? We could check out TPOT or BFDIA!";
       }
       if (lower.includes('play')) {
         return `Alright, let's get right into it! I'll help queue that up on Objectflix.`;
       }
       return `That's pretty cool! Honestly, I was just thinking about what to watch next on Objectflix myself. What do you think?`;
     } else {
-      // Leafy
       if (lower.includes('what am i watching') || lower.includes('what am i watch') || lower.includes('current') || lower.includes('progress')) {
         if (playing && playing !== 'Nothing') {
-          return `You're watching ${playing}! You're about ${progress} through it. I hope you're enjoying every single second of it!`;
+          return `You're watching **${playing}**! You're about ${progress} through it. I hope you're enjoying every single second of it!`;
         }
-        return `Nothing is playing right now! You're currently on the ${page} page. Let me know if you want help finding something cozy to watch!`;
+        return `Nothing is playing right now! You're currently on the **${page}** page. Let me know if you want help finding something cozy to watch!`;
       }
       if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
         return "Hi there! I'm so glad you're here. How is your day going?";
-      }
-      if (lower.includes('dont know') || lower.includes('don\'t know') || lower.includes('bored') || lower.includes('what to watch')) {
-        return "That's okay! We can figure it out together. Do you want something funny, dramatic, or just something easy to watch?";
       }
       if (lower.includes('play')) {
         return `Ooh, yay! Let's get that playing for you right away!`;
@@ -169,116 +489,245 @@ Objectflix Actions:
     }
   }
 
-  // AI Request execution directly from browser with ordered model fallback
+  
+  
+  
+
+  async function tryOpenAICompatible(apiMessages, baseUrl, keys, getKeyIndex, setKeyIndex, models) {
+    const modelList = Array.isArray(models) ? models : [models];
+    const deadKeys = new Set();
+    let keyIdx = getKeyIndex();
+
+    for (let i = 0; i < modelList.length; i++) {
+      const model = modelList[i];
+      let modelKeyAttempts = 0;
+
+      for (let attempt = 0; attempt < keys.length; attempt++) {
+        const apiKey = keys[keyIdx % keys.length];
+        const keyNum = keyIdx % keys.length;
+        if (deadKeys.has(keyNum)) { keyIdx++; continue; }
+
+        try {
+          console.log(`[AI] Trying ${model} on ${baseUrl} with key index ${keyNum}...`);
+          const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({ model, messages: apiMessages })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.choices && data.choices[0]?.message?.content) {
+            console.log(`[AI] ${model} succeeded on ${baseUrl}`);
+            console.log(`[AI] Raw response:`, data);
+            setKeyIndex(keyNum);
+            return data.choices[0].message.content;
+          }
+
+          const status = res.status;
+          const errMsg = data.error?.message || `HTTP ${status}`;
+
+          if (status === 429 || status === 503) {
+            console.warn(`[AI] ${model} rate-limited on ${baseUrl} key ${keyNum}: ${errMsg}`);
+            deadKeys.add(keyNum);
+            keyIdx++;
+            modelKeyAttempts++;
+            continue;
+          }
+
+          if (status === 400 || status === 401 || status === 403) {
+            console.error(`[AI] Permanent error on ${model} (${baseUrl} key ${keyNum}, ${status}): ${errMsg}`);
+            deadKeys.add(keyNum);
+            keyIdx++;
+            modelKeyAttempts++;
+            continue;
+          }
+
+          console.warn(`[AI] ${model} failed on ${baseUrl}: ${status} ${errMsg}`);
+        } catch (netErr) {
+          console.warn(`[AI] ${model} network error on ${baseUrl}:`, netErr.message);
+        }
+
+        keyIdx++;
+        modelKeyAttempts++;
+      }
+
+      if (deadKeys.size >= keys.length) {
+        console.warn(`[AI] All keys exhausted on ${baseUrl}, trying next provider`);
+        break;
+      }
+    }
+    return null;
+  }
+
   async function requestAI(assistantId, message, context) {
-    const apiKey = window.OBJECTFLIX_CONFIG?.ai?.apiKey || localStorage.getItem('objectflix_ai_key');
+    const allKeys = getAIKeys();
     const provider = window.OBJECTFLIX_CONFIG?.ai?.provider || 'gemini';
     const models = window.OBJECTFLIX_CONFIG?.ai?.models || [
       "gemini-3.7-flash",
       "gemini-3.6-flash",
       "gemini-3.5-flash",
       "gemini-3.5-flash-lite",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemma-4-26b-a4b-it",
-      "gemma-4-12b-it",
-      "gemma-4-e4b-it",
-      "gemma-4-e2b-it"
+      "gemini-3.1-flash-lite"
     ];
 
-    if (!apiKey) {
-      // Use intelligent frontend fallback when no API key is provided
-      await new Promise((r) => setTimeout(r, 600)); // simulate natural thinking delay
+    if (allKeys.length === 0) {
+      await new Promise((r) => setTimeout(r, 600));
       return generateFallbackResponse(assistantId, message, context);
     }
 
     const systemPrompt = SYSTEM_PROMPTS[assistantId];
-    const contextStr = `Current Objectflix State:\n- current_page: ${context.current_page}\n- currently_playing: ${context.currently_playing}\n- watch_progress: ${context.watch_progress}\n\n`;
-    const history = histories[assistantId] || [];
 
-    if (provider === 'gemini') {
-      const contextLimit = Number(window.OBJECTFLIX_SETTINGS?.get?.('conversationContext') || 8);
-      const contents = [];
-      // Add conversation history
-      for (const h of history.slice(-contextLimit)) {
-        contents.push({
-          role: h.role === 'user' ? 'user' : 'model',
-          parts: [{ text: h.content }]
-        });
-      }
-      // Add latest user message with system prompt and context
-      contents.push({
-        role: 'user',
-        parts: [{ text: `${systemPrompt}\n\n${contextStr}\nUser: ${message}` }]
-      });
-
-      // Ordered model fallback loop
-      for (let i = 0; i < models.length; i++) {
-        const model = models[i];
-        try {
-          console.log(`[AI] Trying ${model}...`);
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents })
-          });
-
-          const data = await res.json();
-          if (res.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-            console.log(`[AI] ${model} succeeded`);
-            return data.candidates[0].content.parts[0].text;
-          }
-
-          const status = res.status;
-          const errMsg = data.error?.message || `HTTP ${status}`;
-
-          // Stop fallback loop on permanent configuration / auth errors
-          if (status === 400 || status === 401 || status === 403) {
-            console.error(`[AI] Configuration or permanent error on ${model} (${status}): ${errMsg}`);
-            break;
-          }
-
-          console.warn(`[AI] ${model} failed: ${status} ${errMsg}`);
-        } catch (netErr) {
-          console.warn(`[AI] ${model} failed with network/timeout error:`, netErr.message);
-        }
-      }
-    } else {
-      // OpenAI format
-      const messages = [
-        { role: 'system', content: `${systemPrompt}\n\nCurrent Objectflix State: page=${context.current_page}, playing=${context.currently_playing}, progress=${context.watch_progress}` },
-        ...history.slice(-contextLimit).map((h) => ({ role: h.role, content: h.content })),
-        { role: 'user', content: message }
-      ];
-
+    
+    let catalogStr = '';
+    const SHARED = window.OBJECTFLIX_SHARED;
+    if (SHARED?.loadLibrary) {
       try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({ model: models[0], messages })
-        });
-
-        const data = await res.json();
-        if (res.ok && data.choices && data.choices[0]?.message?.content) {
-          return data.choices[0].message.content;
-        } else {
-          throw new Error(data.error?.message || 'OpenAI API error');
+        const lib = await SHARED.loadLibrary();
+        if (lib && lib.length) {
+          const lines = lib.map((item) => {
+            const acro = SHARED.acronymFor(item);
+            const epCount = item.episodes ? item.episodes.length : 0;
+            const epRange = item.episodes && item.episodes.length
+              ? ` (episodes ${item.episodes[0].episodeNumber}–${item.episodes[item.episodes.length - 1].episodeNumber})`
+              : '';
+            return `- ${item.title} [${acro}] — ${epCount} episodes${epRange}`;
+          });
+          catalogStr = `\nObjectflix Catalog (use ONLY this data for episode counts, show info, and acronyms):\n${lines.join('\n')}\n\n`;
         }
-      } catch (err) {
-        console.warn('OpenAI request failed:', err.message);
-      }
+      } catch (e) {          }
     }
 
-    // Fallback to simulator if all models fail
-    console.warn('[AI] All models failed or unavailable. Falling back to assistant simulator.');
-    return generateFallbackResponse(assistantId, message, context);
+    const contextStr = `${catalogStr}Current Objectflix State:\n- current_page: ${context.current_page}\n- currently_playing: ${context.currently_playing}\n- watch_progress: ${context.watch_progress}\n\n`;
+    const history = histories[assistantId] || [];
+    const contextLimit = Number(window.OBJECTFLIX_SETTINGS?.get?.('conversationContext') || 8);
+
+    async function callAI(messages) {
+      if (provider === 'gemini') {
+        const contents = [];
+        for (const h of messages) {
+          contents.push({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: h.content }]
+          });
+        }
+
+        let keyIdx = getCurrentKeyIndex();
+
+        for (let i = 0; i < models.length; i++) {
+          const model = models[i];
+          let modelKeyAttempts = 0;
+          let modelStartIdx = keyIdx;
+
+          for (let attempt = 0; attempt < allKeys.length; attempt++) {
+            const apiKey = allKeys[keyIdx % allKeys.length];
+
+            try {
+              console.log(`[AI] Trying ${model} with key index ${keyIdx % allKeys.length}...`);
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents,
+                  tools: [{ googleSearch: {} }]
+                })
+              });
+
+              const data = await res.json();
+              if (res.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                console.log(`[AI] ${model} succeeded`);
+                console.log(`[AI] Raw response:`, data);
+                setCurrentKeyIndex(keyIdx % allKeys.length);
+                return data.candidates[0].content.parts[0].text;
+              }
+
+              const status = res.status;
+              const errMsg = data.error?.message || `HTTP ${status}`;
+
+              if (status === 429 || status === 503) {
+                console.warn(`[AI] ${model} rate-limited on key ${keyIdx % allKeys.length}: ${errMsg}`);
+                keyIdx++;
+                modelKeyAttempts++;
+                continue;
+              }
+
+              if (status === 400 || status === 401 || status === 403) {
+                console.error(`[AI] Permanent error on ${model} (key ${keyIdx % allKeys.length}, ${status}): ${errMsg}`);
+                keyIdx++;
+                modelKeyAttempts++;
+                continue;
+              }
+
+              console.warn(`[AI] ${model} failed: ${status} ${errMsg}`);
+            } catch (netErr) {
+              console.warn(`[AI] ${model} failed with network/timeout error:`, netErr.message);
+            }
+
+            keyIdx++;
+            modelKeyAttempts++;
+          }
+
+          if (modelKeyAttempts >= allKeys.length) {
+            console.warn(`[AI] All keys failed on ${model}, trying next model`);
+          }
+        }
+      } else {
+        
+        const apiMessages = [
+          { role: 'system', content: `${systemPrompt}\n\n${contextStr}` },
+          ...messages.map((m) => ({ role: m.role, content: m.content }))
+        ];
+        const result = await tryOpenAICompatible(apiMessages, 'https://api.openai.com/v1', allKeys, getCurrentKeyIndex, setCurrentKeyIndex, models[0]);
+        if (result) return result;
+      }
+
+      
+      const fallbacks = window.OBJECTFLIX_CONFIG?.ai?.fallbacks || [];
+      for (const fb of fallbacks) {
+        const fbKeys = getProviderKeys(fb);
+        if (fbKeys.length === 0) {
+          console.log(`[AI] Skipping ${fb.name}: no API key configured`);
+          continue;
+        }
+        const apiMessages = [
+          { role: 'system', content: `${systemPrompt}\n\n${contextStr}` },
+          ...messages.map((m) => ({ role: m.role, content: m.content }))
+        ];
+        const result = await tryOpenAICompatible(
+          apiMessages, fb.baseUrl, fbKeys,
+          () => getProviderKeyIndex(fb.id),
+          (i) => setProviderKeyIndex(fb.id, i),
+          fb.models
+        );
+        if (result) return result;
+      }
+      return null;
+    }
+
+    
+    const aiMessages = [];
+    for (const h of history.slice(-contextLimit)) {
+      aiMessages.push({ role: h.role, content: h.content });
+    }
+    aiMessages.push({ role: 'user', content: `${systemPrompt}\n\n${contextStr}\nUser: ${message}` });
+
+    let reply = await callAI(aiMessages);
+
+    
+    if (!reply) {
+      console.warn('[AI] All models failed. Using fallback.');
+      return generateFallbackResponse(assistantId, message, context);
+    }
+
+    return reply;
   }
 
-  // Inject Assistant Widget HTML into DOM
+  
+  
+  
+
   function injectAssistantWidget() {
     if (document.getElementById('objectflixAssistant')) return;
 
@@ -318,7 +767,6 @@ Objectflix Actions:
         </div>
 
         <div class="assistant-messages" id="assistantMessages" tabindex="0" aria-label="Chat history">
-          <!-- Messages inserted dynamically -->
         </div>
 
         <div class="assistant-typing is-hidden" id="assistantTyping" aria-live="polite">
@@ -333,7 +781,7 @@ Objectflix Actions:
             class="assistant-input"
             id="assistantInput"
             type="text"
-            placeholder="Ask Firey or Leafy anything about Objectflix..."
+            placeholder="Ask Firey or Leafy anything..."
             autocomplete="off"
             required
           />
@@ -345,6 +793,63 @@ Objectflix Actions:
     `;
 
     document.body.appendChild(wrapper);
+
+    
+    if (!document.getElementById('assistantMarkdownStyles')) {
+      const style = document.createElement('style');
+      style.id = 'assistantMarkdownStyles';
+      style.textContent = `
+        .msg-bubble p { margin: 0 0 6px; }
+        .msg-bubble p:last-child { margin-bottom: 0; }
+        .msg-bubble strong { font-weight: 700; }
+        .msg-bubble em { font-style: italic; }
+        .msg-bubble del { text-decoration: line-through; opacity: 0.7; }
+        .msg-bubble ul { margin: 6px 0; padding-left: 18px; }
+        .msg-bubble li { margin-bottom: 3px; }
+        .msg-bubble blockquote {
+          border-left: 3px solid rgba(255,255,255,0.2);
+          padding-left: 10px;
+          margin: 6px 0;
+          opacity: 0.85;
+          font-style: italic;
+        }
+        .msg-bubble h1, .msg-bubble h2, .msg-bubble h3,
+        .msg-bubble h4, .msg-bubble h5, .msg-bubble h6 {
+          margin: 10px 0 4px;
+          font-weight: 700;
+          line-height: 1.3;
+        }
+        .msg-bubble h1 { font-size: 1.15em; }
+        .msg-bubble h2 { font-size: 1.08em; }
+        .msg-bubble h3 { font-size: 1.02em; }
+        .msg-bubble .md-code {
+          background: rgba(0,0,0,0.25);
+          border-radius: 4px;
+          padding: 8px 10px;
+          margin: 6px 0;
+          overflow-x: auto;
+          font-size: 0.88em;
+        }
+        .msg-bubble .md-inline-code {
+          background: rgba(0,0,0,0.2);
+          border-radius: 3px;
+          padding: 1px 5px;
+          font-size: 0.92em;
+        }
+        .msg-bubble hr {
+          border: none;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          margin: 8px 0;
+        }
+        .msg-bubble a {
+          color: #93c5fd;
+          text-decoration: underline;
+          text-decoration-style: dotted;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     bindWidgetEvents();
     renderMessages();
   }
@@ -374,7 +879,6 @@ Objectflix Actions:
       triggerBtn.classList.remove('is-open');
     });
 
-    // Switch assistant tabs
     document.querySelectorAll('.assistant-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         const targetAssistant = tab.dataset.assistant;
@@ -445,10 +949,11 @@ Objectflix Actions:
       const isUser = item.role === 'user';
       const avatar = isUser ? '👤' : (currentAssistant === 'firey' ? '🔥' : '🍃');
       const cls = isUser ? 'assistant-msg--user' : `assistant-msg--assistant assistant-msg--${currentAssistant}`;
+      const content = isUser ? escapeHtml(item.content) : renderMarkdown(item.content);
       return `
         <div class="assistant-msg ${cls}">
           <div class="msg-avatar">${avatar}</div>
-          <div class="msg-bubble">${escapeHtml(item.content)}</div>
+          <div class="msg-bubble">${content}</div>
         </div>
       `;
     }).join('');
@@ -464,10 +969,22 @@ Objectflix Actions:
   }
 
   function escapeHtml(str) {
-    return (str || '').replace(/[&<>'"]/g, 
+    return (str || '').replace(/[&<>'"]/g,
       (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
   }
+
+  
+  
+  
+
+  function stripActionTags(text) {
+    return text.replace(/\n?\[ACTION:[^\]]*\]\s*/g, '').trim();
+  }
+
+  
+  
+  
 
   async function sendUserMessage(text) {
     const history = histories[currentAssistant];
@@ -483,11 +1000,19 @@ Objectflix Actions:
 
     try {
       const reply = await requestAI(currentAssistant, text, context);
-      history.push({ role: 'assistant', content: reply });
-      saveState();
 
-      // Check actions
-      executeActionsIfNeeded(text);
+      
+      const actionMatch = reply.match(/\[ACTION:[^\]]*\]/g);
+      if (actionMatch) {
+        for (const tag of actionMatch) {
+          executeVideoAction(tag);
+        }
+      }
+
+      
+      const cleanReply = stripActionTags(reply);
+      history.push({ role: 'assistant', content: cleanReply });
+      saveState();
     } catch (err) {
       console.error('Assistant error:', err);
       const errReply = currentAssistant === 'firey'
@@ -501,7 +1026,10 @@ Objectflix Actions:
     }
   }
 
-  // Objectflix frontend action handlers with validation
+  
+  
+  
+
   function executeActionsIfNeeded(message) {
     const lower = message.toLowerCase();
     if (lower.includes('home') || lower.includes('go home')) {

@@ -1,6 +1,6 @@
-// src/shared.js
-// Shared catalog helpers used by browse.html and watch.html.
-// Load this classic script AFTER config.js, api.js and data.js.
+
+
+
 (() => {
   const data = window.OBJECTFLIX_DATA || { profiles: [], trendingSearches: [], searchFilters: [] };
   const API = window.OBJECTFLIX_API;
@@ -61,8 +61,8 @@
     return episode.duration || `Ep ${episode.episodeNumber}`;
   }
 
-  // Returns the short acronym for a show title (used for artwork filenames),
-  // e.g. "Battle for Dream Island: The Power of Two (TPOT)" -> "TPOT".
+  
+  
   function acronymFor(show) {
     const t = (show.title || '').toLowerCase();
     if (t.includes('power of two') || t.includes('tpot')) return 'TPOT';
@@ -84,8 +84,8 @@
     IDFB: './assets/logos/IDFB.webp',
   };
 
-  // Shows that have real artwork on disk. IDFB has a backdrop but no official
-  // poster, so its poster keeps the generated placeholder instead.
+  
+  
   const SHOWS_WITH_POSTERS = new Set(['TPOT', 'BFDIA', 'BFB', 'BFDI', 'BFDIE']);
   const SHOWS_WITH_BACKDROPS = new Set(['TPOT', 'BFDIA', 'BFB', 'BFDI', 'BFDIE', 'IDFB']);
 
@@ -141,24 +141,23 @@
 
   async function loadLibrary() {
     const shows = await API.listShows();
-    const items = [];
 
-    for (const show of shows) {
+    const results = await Promise.all(shows.map(async (show) => {
       const seasons = await API.getShowSeasons(show.id);
       const allEpisodes = [];
       for (const season of seasons) {
         const episodes = await API.getSeasonEpisodes(season.id);
         allEpisodes.push(...episodes.map((episode) => ({ ...episode, seasonId: season.id, showId: show.id })));
       }
-      items.push(buildCatalogItem(show, seasons, allEpisodes));
-    }
+      return buildCatalogItem(show, seasons, allEpisodes);
+    }));
 
-    applyCatalogPatches(items);
+    applyCatalogPatches(results);
 
-    injectUpcomingEpisodes(items);
+    injectUpcomingEpisodes(results);
 
-    // Sort shows to put BFDI before BFB
-    items.sort((a, b) => {
+    
+    results.sort((a, b) => {
       const titleA = a.title.toLowerCase();
       const titleB = b.title.toLowerCase();
       if (titleA.includes('battle for bfdi') && !titleB.includes('battle for bfdi')) return -1;
@@ -166,13 +165,13 @@
       return b.episodes.length - a.episodes.length;
     });
 
-    // Pick a random show to spotlight as the hero each time the library loads.
-    if (items.length) {
-      const featuredIndex = Math.floor(Math.random() * items.length);
-      items[featuredIndex].featured = true;
+    
+    if (results.length) {
+      const featuredIndex = Math.floor(Math.random() * results.length);
+      results[featuredIndex].featured = true;
     }
 
-    return items;
+    return results;
   }
 
   function buildRows(items) {
@@ -206,7 +205,7 @@
     return window.createPlaceholderImage(profile.avatar, 200, 200, palette);
   }
 
-  // ARG helpers -----------------------------------------------------------
+  
 
   function applyArgUnlock(unlocked) {
     window.OBJECTFLIX_API.setUnlocked(unlocked);
@@ -214,7 +213,7 @@
       if (unlocked) localStorage.setItem(window.OBJECTFLIX_CONFIG.arg.storageKey, '1');
       else localStorage.removeItem(window.OBJECTFLIX_CONFIG.arg.storageKey);
     } catch {
-      // localStorage unavailable — ignore
+      
     }
   }
 
@@ -223,13 +222,13 @@
     try {
       persisted = localStorage.getItem(window.OBJECTFLIX_CONFIG.arg.storageKey) === '1';
     } catch {
-      // localStorage unavailable — ignore
+      
     }
     if (persisted && window.OBJECTFLIX_SETTINGS?.get?.('argEnabled') !== false) applyArgUnlock(true);
   }
 
-  // Fetches the hidden ARG episodes and attaches them to matching library
-  // items. Mutates `library` in place; returns the list of injected episodes.
+  
+  
   async function injectSecretEpisodes(library, secretEpisodesMap) {
     const { hiddenEpisodes } = window.OBJECTFLIX_CONFIG.arg;
     const injected = [];
@@ -273,10 +272,10 @@
     return injected;
   }
 
-  // Admin catalog overrides --------------------------------------------------
-  // The admin panel edits a lightweight "catalog patch" store in localStorage.
-  // These patches add/update/remove shows and episodes on top of the live API
-  // catalog so admin edits show up everywhere the library is rendered.
+  
+  
+  
+  
 
   function catalogPatchKey() {
     return window.OBJECTFLIX_CONFIG?.admin?.catalogKey || 'objectflix_admin_catalog';
@@ -295,7 +294,7 @@
     try {
       localStorage.setItem(catalogPatchKey(), JSON.stringify(patches || {}));
     } catch {
-      // localStorage unavailable — ignore
+      
     }
   }
 

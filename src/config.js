@@ -45,40 +45,68 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
   }),
 
   upcoming: Object.freeze({
-    episodes: Object.freeze([
-      Object.freeze({
-        id: "tpot-24-upcoming",
-        showAcronym: "TPOT",
-        episodeNumber: 24,
-        title: "TPOT 24: Revelations of a Broken Past",
-        description: "The highly anticipated 24th episode of Battle for Dream Island: The Power of Two.",
-        releaseDate: "August 16, 2026 (Tomorrow)",
-        released: false,
-      }),
-    ]),
+    episodes: Object.freeze([]),
   }),
 
   ai: Object.freeze({
     provider: "gemini",
     apiKey: (window.__OBJECTFLIX_ENV__ && window.__OBJECTFLIX_ENV__.GEMINI_API_KEY) || "",
+    apiKeys: Object.freeze(
+      ((window.__OBJECTFLIX_ENV__ && window.__OBJECTFLIX_ENV__.GEMINI_API_KEY) || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+    ),
     models: Object.freeze([
       "gemini-3.7-flash",
       "gemini-3.6-flash",
       "gemini-3.5-flash",
       "gemini-3.5-flash-lite",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemma-4-26b-a4b-it",
-      "gemma-4-12b-it",
-      "gemma-4-e4b-it",
-      "gemma-4-e2b-it"
+      "gemini-3.1-flash-lite"
+    ]),
+    
+    
+    
+    fallbacks: Object.freeze([
+      Object.freeze({
+        id: "groq",
+        name: "Groq",
+        baseUrl: "https://api.groq.com/openai/v1",
+        envKey: "GROQ_API_KEY",
+        models: Object.freeze([
+          "groq/compound",
+          "groq/compound-mini",
+          "openai/gpt-oss-120b",
+          "llama-3.3-70b-versatile",
+          "llama-3.1-8b-instant",
+        ]),
+      }),
+      Object.freeze({
+        id: "cerebras",
+        name: "Cerebras",
+        baseUrl: "https://api.cerebras.ai/v1",
+        envKey: "CEREBRAS_API_KEY",
+        models: Object.freeze([
+          "llama-3.3-70b",
+          "llama-3.1-8b",
+        ]),
+      }),
+      Object.freeze({
+        id: "mistral",
+        name: "Mistral",
+        baseUrl: "https://api.mistral.ai/v1",
+        envKey: "MISTRAL_API_KEY",
+        models: Object.freeze([
+          "mistral-small-latest",
+          "open-mistral-nemo",
+        ]),
+      }),
     ]),
   }),
 
-  // B2 object-name prefixes used for the public catalog. These map the show
-  // names in the Objectflix catalog to the folder used inside the B2 bucket.
-  // An episode is always stored as:  <show>/<episode>.<extension>
+  
+  
+  
   catalog: Object.freeze({
     showPrefixes: Object.freeze({
       BFDI: "bfdi",
@@ -86,10 +114,11 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
       BFB: "bfb",
       TPOT: "tpot",
       BFDIE: "bfdie",
+      "Inanimate Insanity": "ii",
     }),
   }),
 
-  // localStorage keys used by the admin panel.
+  
   admin: Object.freeze({
     catalogKey: "objectflix_admin_catalog",
     queueKey: "objectflix_admin_upload_queue",
@@ -97,24 +126,24 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     settingsKey: "objectflix_admin_settings",
   }),
 
-  // Backblaze B2 media storage. Episode uploads go to a configured bucket and
-  // are named <show>/<episode>.<extension> (e.g. bfdi/1a.mp4). The media files
-  // are served to the site through `mediaBase` (the Objectflix API worker).
-  //
-  // Uploads are signed by the Objectflix API worker (see worker/). The browser
-  // asks the worker for an upload URL + token, then streams the file straight
-  // to B2. The B2 credentials live as Cloudflare env vars on the worker and are
-  // never exposed to the browser — calling b2_authorize_account from a page
-  // origin is blocked by B2's CORS rules. Admin uploads use a separate
-  // write-capable key on the worker (B2_ADMIN_KEY_ID / B2_ADMIN_KEY) so the
-  // read key that streams episodes is never granted write access.
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   b2: Object.freeze({
     uploadEndpoint: "https://objectflix-api.boblinh.workers.dev/api/admin/uploads/sign",
     storageEndpoint: "https://objectflix-api.boblinh.workers.dev/api/admin/storage",
-    // Legacy direct-to-B2 path (kept only as a fallback when no proxy endpoint
-    // is configured). Browsers generally cannot call b2_authorize_account.
-    accountId: "", // Backblaze B2 Key ID (applicationKeyId)
-    applicationKey: "", // Backblaze B2 Application Key — keep private.
+    
+    
+    accountId: "", 
+    applicationKey: "", 
     mediaBase: "https://objectflix-api.boblinh.workers.dev/media",
     maxRetries: 2,
     buckets: Object.freeze([

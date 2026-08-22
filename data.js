@@ -38,8 +38,8 @@
   const trendingSearches = ['BFDI', 'BFDIA', 'BFB', 'TPOT', 'Object shows', 'Animation'];
   const searchFilters = ['All', 'Movies', 'TV Shows', 'Originals', 'Family', 'Sci-Fi', 'Comedy'];
 
-  // Objectflix-wide settings shared by every page. Stored in localStorage under
-  // the key configured in src/config.js (admin.settingsKey).
+  
+  
   const SETTINGS_DEFAULTS = {
     defaultAssistant: 'firey',
     conversationContext: 8,
@@ -58,7 +58,7 @@
           if (key in merged) merged[key] = saved[key];
         }
       } catch {
-        // ignore malformed settings
+        
       }
       return merged;
     },
@@ -72,7 +72,7 @@
       try {
         localStorage.setItem(SETTINGS_KEY(), JSON.stringify(current));
       } catch {
-        // localStorage unavailable — ignore
+        
       }
       return value;
     },

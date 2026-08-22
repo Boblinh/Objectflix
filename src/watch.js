@@ -1,7 +1,7 @@
-// src/watch.js
-// Watch page logic for watch.html: loads a show by ?id=, plays the episode
-// from ?ep=, mounts the Objectflix player, and switches episodes in-page.
-// Load AFTER config.js, api.js, data.js and shared.js (classic scripts).
+
+
+
+
 (() => {
   const SHARED = window.OBJECTFLIX_SHARED;
 
@@ -17,17 +17,28 @@
     secretEpisodes: new Map(),
   };
 
-  // ------------------------------------------------------------------
-  // Auth guard
-  // ------------------------------------------------------------------
+  
+  window.OBJECTFLIX_WATCH = {
+    get player() { return state.player; },
+    get item() { return state.item; },
+    get episode() { return state.episode; },
+    get library() { return state.library; },
+    playEpisode,
+    playTitle,
+    SHARED,
+  };
+
+  
+  
+  
 
   function currentUser() {
     return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
   }
 
-  // ------------------------------------------------------------------
-  // Render states
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function showLoading() {
     elements.watchView.innerHTML = `
@@ -67,9 +78,9 @@
     `;
   }
 
-  // ------------------------------------------------------------------
-  // Library loading
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function resolveEpisode(item, episodeId) {
     if (!item) return null;
@@ -84,9 +95,9 @@
     window.history.replaceState({}, '', url);
   }
 
-  // ------------------------------------------------------------------
-  // Watch view
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function renderWatch() {
     const item = state.item;
@@ -248,6 +259,11 @@
             </div>
 
             <div class="controls-group">
+              <select class="player-control-select player-control-select--small" id="watchAudioMode" title="Audio Mode">
+                <option value="original">Original</option>
+                <option value="stereo">Stereo</option>
+                <option value="virtual">Virtual 7.1</option>
+              </select>
               <select class="player-control-select" id="watchSubtitleSelect" title="Select Subtitles">
                 <option value="">Off</option>
               </select>
@@ -257,6 +273,33 @@
                 <svg class="icon-exit-fullscreen" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4V7h3V4zm6 0h2v3h3v2h-5zM4 15h5v5H7v-3H4zm11 0h5v2h-3v3h-2z" /></svg>
               </button>
             </div>
+          </div>
+
+          <div class="audio-panel is-hidden" id="watchAudioPanel">
+            <div class="audio-panel__heading">
+              <span class="audio-panel__title">Virtual 7.1 Headphones</span>
+              <span class="audio-panel__status" id="watchAudioPanelStatus"></span>
+            </div>
+            <label class="audio-panel__row" for="watchHrtfProfile">
+              <span>HRTF Profile</span>
+              <select class="player-control-select player-control-select--small" id="watchHrtfProfile">
+                <option value="itu">ITU 7.1 (Natural)</option>
+                <option value="cinema">Cinema</option>
+                <option value="wide">Wide</option>
+              </select>
+            </label>
+            <label class="audio-panel__row" for="watchSurroundIntensity">
+              <span>Surround <output id="watchSurroundIntensityValue">1.00</output></span>
+              <input class="player-range player-range--panel" id="watchSurroundIntensity" type="range" min="0" max="1.5" value="1" step="0.01" />
+            </label>
+            <label class="audio-panel__row" for="watchCenterLevel">
+              <span>Center <output id="watchCenterLevelValue">1.00</output></span>
+              <input class="player-range player-range--panel" id="watchCenterLevel" type="range" min="0" max="1.5" value="1" step="0.01" />
+            </label>
+            <label class="audio-panel__row" for="watchLfeLevel">
+              <span>Bass <output id="watchLfeLevelValue">1.00</output></span>
+              <input class="player-range player-range--panel" id="watchLfeLevel" type="range" min="0" max="2" value="1" step="0.01" />
+            </label>
           </div>
         </div>
       </div>
@@ -281,9 +324,6 @@
     `;
   }
 
-  // ------------------------------------------------------------------
-  // Player mounting
-  // ------------------------------------------------------------------
 
   async function mountWatchPlayer() {
     const Player = window.ObjectflixPlayer;
@@ -312,6 +352,16 @@
       message: 'watchPlayerMessage',
       messageTitle: 'watchPlayerMessageTitle',
       messageText: 'watchPlayerMessageText',
+      audioMode: 'watchAudioMode',
+      hrtfProfile: 'watchHrtfProfile',
+      surroundIntensity: 'watchSurroundIntensity',
+      centerLevel: 'watchCenterLevel',
+      lfeLevel: 'watchLfeLevel',
+      audioPanel: 'watchAudioPanel',
+      audioPanelStatus: 'watchAudioPanelStatus',
+      surroundIntensityValue: 'watchSurroundIntensityValue',
+      centerLevelValue: 'watchCenterLevelValue',
+      lfeLevelValue: 'watchLfeLevelValue',
     };
 
     const playerElements = {};
@@ -329,7 +379,6 @@
       subtitles = await window.OBJECTFLIX_API.getEpisodeSubtitles(episodeId);
       if (subtitles.length) subtitleUrl = SHARED.toAbsoluteMediaUrl(subtitles[0].url);
     } catch {
-      // Subtitles are optional — keep playing without them.
     }
 
     if (state.episode?.id !== episodeId) return;
@@ -358,9 +407,6 @@
     player.load({ src: state.episode.videoUrl, subtitleUrl });
   }
 
-  // ------------------------------------------------------------------
-  // Episode switching
-  // ------------------------------------------------------------------
 
   function playEpisode(itemId, episodeId) {
     const item = state.library.find((entry) => entry.id === itemId) || state.item;
@@ -390,9 +436,6 @@
     window.scrollTo({ top: 0 });
   }
 
-  // ------------------------------------------------------------------
-  // Events
-  // ------------------------------------------------------------------
 
   function bindEvents() {
     document.addEventListener('click', (event) => {
@@ -414,9 +457,6 @@
     });
   }
 
-  // ------------------------------------------------------------------
-  // Init
-  // ------------------------------------------------------------------
 
   function init() {
     const user = currentUser();
@@ -426,8 +466,9 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const showId = urlParams.get('id');
-    const episodeId = urlParams.get('ep') || '';
+    let showId = urlParams.get('id');
+    let episodeId = urlParams.get('ep') || '';
+    const showAcronym = urlParams.get('show') || '';
 
     showLoading();
 
@@ -441,6 +482,26 @@
         console.error('Failed to load the Objectflix library:', error);
         renderError(error);
         return;
+      }
+
+      if (!showId && showAcronym) {
+        const acro = showAcronym.toUpperCase();
+        const found = state.library.find((entry) => {
+          const a = SHARED.acronymFor(entry);
+          return a === acro || entry.title.toLowerCase().includes(showAcronym.toLowerCase());
+        });
+        if (!found) {
+          renderShowNotFound(`Show "${showAcronym}" not found.`);
+          return;
+        }
+        showId = found.id;
+        if (episodeId) {
+          const ep = found.episodes.find((e) => String(e.episodeNumber) === String(episodeId));
+          if (ep) {
+            episodeId = ep.id;
+            window.history.replaceState(null, '', `watch.html?id=${found.id}&ep=${ep.id}`);
+          }
+        }
       }
 
       if (!showId) {

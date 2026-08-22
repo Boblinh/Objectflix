@@ -1,9 +1,9 @@
 
-// Discord OAuth setup
-// 1. Go to https://discord.com/developers/applications -> New Application
-// 2. Copy the Application ID as clientId and the Client Secret
-// 3. Add your redirect URI under OAuth2 -> Redirects (must match EXACTLY).
-//    For local testing: http://localhost:8000/index.html
+
+
+
+
+
 const ENV = window.__OBJECTFLIX_ENV__ || {};
 const DISCORD_CONFIG = {
   clientId: ENV.DISCORD_CLIENT_ID || 'PASTE_DISCORD_CLIENT_ID',
@@ -31,7 +31,7 @@ export const Auth = {
 
   init() {
     this.bindEvents();
-    window.Auth = this; // Make globally accessible
+    window.Auth = this; 
     this.handleDiscordCallback();
   },
 
@@ -84,7 +84,7 @@ export const Auth = {
       return;
     }
 
-    // Simulate API delay
+    
     await new Promise(resolve => setTimeout(resolve, 800));
 
     if (this.state.mode === 'signup') {
@@ -200,7 +200,7 @@ export const Auth = {
       avatar: user.avatar || null,
     };
     localStorage.setItem('objectflix_current_user', JSON.stringify(session));
-    // Remove ?code=... from the URL so a refresh doesn't re-run the callback
+    
     window.history.replaceState({}, document.title, window.location.pathname);
     alert(`Signed in as ${session.displayName}!`);
     location.reload();

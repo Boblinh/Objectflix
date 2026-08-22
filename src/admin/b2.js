@@ -1,13 +1,13 @@
-// src/admin/b2.js
-// Backblaze B2 client + upload queue used by the Objectflix admin panel.
-// Load AFTER config.js and data.js.
-//
-// Episodes are stored in B2 using the exact naming convention:
-//   <show>/<episode>.<extension>        e.g. bfdia/1.mp4, bfdi/1a.mp4, tpot/23.mp4
-// No extra directories are ever added.
-//
-// The upload queue is persisted to localStorage so status survives refreshes;
-// the actual File objects are kept in memory (browser Files cannot be stored).
+
+
+
+
+
+
+
+
+
+
 (() => {
   const CONFIG = window.OBJECTFLIX_CONFIG?.b2 || {};
   const ADMIN_KEY = window.OBJECTFLIX_CONFIG?.admin || {};
@@ -17,9 +17,9 @@
 
   let lastStorageWarning = null;
 
-  // ------------------------------------------------------------------
-  // Naming helpers
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function showPrefixFor(showTitle) {
     const prefixes = window.OBJECTFLIX_CONFIG?.catalog?.showPrefixes || {};
@@ -27,7 +27,7 @@
     return prefixes[t] || t.toLowerCase().replace(/[^a-zA-Z0-9_-]/g, "") || "misc";
   }
 
-  // Builds the B2 object key: <show>/<episode>.<extension>
+  
   function objectKeyFor(showTitle, episodeNumber, fileName) {
     const prefix = showPrefixFor(showTitle);
     const cleanEpisode = String(episodeNumber || "").trim().replace(/[\\/]/g, "").toLowerCase();
@@ -57,9 +57,9 @@
     return Boolean(CONFIG.accountId && CONFIG.applicationKey);
   }
 
-  // ------------------------------------------------------------------
-  // LocalStorage helpers
-  // ------------------------------------------------------------------
+  
+  
+  
 
   function loadJSON(key, fallback) {
     try {
@@ -74,7 +74,7 @@
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // localStorage unavailable — ignore
+      
     }
   }
 
@@ -96,9 +96,9 @@
     saveJSON(ACTIVITY_KEY, list.slice(0, 100));
   }
 
-  // ------------------------------------------------------------------
-  // B2 native API
-  // ------------------------------------------------------------------
+  
+  
+  
 
   let cachedAuth = null;
 
@@ -141,7 +141,7 @@
       try {
         data = await res.json();
       } catch {
-        // body is not JSON
+        
       }
       if (!res.ok) {
         const e = new Error(data?.error || `Storage info failed (${res.status}).`);
@@ -167,9 +167,9 @@
     return data.buckets || [];
   }
 
-  // Checks whether an object already exists. The Objectflix media proxy is
-  // authoritative (it is what the site streams from); the bucket's direct
-  // endpoint is probed as a fallback when the proxy is unreachable.
+  
+  
+  
   async function checkObject(key, bucketName) {
     const probeUrls = [mediaUrlFor(key)];
     const bucket = configuredBucket(bucketName);
@@ -179,7 +179,7 @@
         const res = await fetch(url, { method: "HEAD", cache: "no-store" });
         if (res.ok) return { exists: true, url, status: res.status };
       } catch {
-        // try the next probe
+        
       }
     }
     return { exists: false, url: probeUrls[0], status: 0, offline: true };
@@ -220,8 +220,8 @@
     });
   }
 
-  // Asks the Objectflix worker to sign an upload, or falls back to the legacy
-  // direct-native-API path (which browsers cannot use for b2_authorize_account).
+  
+  
   async function getUploadTarget(bucketName, key) {
     if (CONFIG.uploadEndpoint) {
       let res;
@@ -240,7 +240,7 @@
       try {
         data = await res.json();
       } catch {
-        // body is not JSON
+        
       }
       if (!res.ok) {
         const e = new Error(data?.error || `Upload signing failed (${res.status}).`);
@@ -279,11 +279,11 @@
     return uploadWithProgress(target.uploadUrl, headers, file, onProgress);
   }
 
-  // ------------------------------------------------------------------
-  // Upload queue
-  // ------------------------------------------------------------------
+  
+  
+  
 
-  // In-memory File store (browser Files cannot be serialized to storage).
+  
   const pendingFiles = new Map();
 
   function enqueue({ showId, showTitle, episodeNumber, fileName, file, bucketName, key }) {
@@ -298,7 +298,7 @@
       bucket: bucketName || configuredBucket()?.name || "",
       key,
       mediaUrl: mediaUrlFor(key),
-      status: "queued", // queued | checking | uploading | complete | exists | failed | not-configured
+      status: "queued", 
       progress: 0,
       error: null,
       createdAt: Date.now(),

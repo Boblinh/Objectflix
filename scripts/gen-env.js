@@ -1,15 +1,15 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Reads .env at the repo root and writes src/env.js, which the app loads
-// before src/config.js so window.__OBJECTFLIX_ENV__ is available everywhere.
-// src/env.js is gitignored (it contains real secrets).
+
+
+
 
 const root = new URL("..", import.meta.url);
 const envPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), ".env");
 const outPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), "src", "env.js");
 
-const KEYS = ["GEMINI_API_KEY", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "ARG_SECRET"];
+const KEYS = ["GEMINI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "ARG_SECRET"];
 
 const values = {};
 for (const key of KEYS) values[key] = "";
@@ -25,11 +25,11 @@ try {
     if (KEYS.includes(key)) values[key] = trimmed.slice(eq + 1).trim();
   }
 } catch {
-  // No .env — write empty placeholders so the app keeps working.
+  
 }
 
-// Environment variables (e.g. GitHub Actions secrets) override .env, so the
-// same generator works locally and in CI without committing any secrets.
+
+
 for (const key of KEYS) {
   const v = process.env[key];
   if (v !== undefined && v !== "") values[key] = v;

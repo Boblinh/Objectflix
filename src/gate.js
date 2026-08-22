@@ -1,6 +1,6 @@
-// src/gate.js
-// Entry page logic for index.html: auth gate + "Who's watching?" profiles.
-// Load this classic script AFTER data.js (needs window.OBJECTFLIX_DATA).
+
+
+
 (() => {
   const data = window.OBJECTFLIX_DATA || { profiles: [] };
   const profiles = data.profiles;
@@ -41,7 +41,7 @@
     try {
       sessionStorage.setItem('objectflix_active_profile', JSON.stringify(profile));
     } catch {
-      // sessionStorage unavailable — ignore
+      
     }
     window.location.href = 'browse.html';
   }
@@ -57,7 +57,7 @@
       id: 'p' + (userProfiles.length + 1),
       name: name,
       avatar: name[0].toUpperCase(),
-      className: 'profile-avatar--gradient-a', // Default
+      className: 'profile-avatar--gradient-a', 
     };
 
     userProfiles.push(newProfile);

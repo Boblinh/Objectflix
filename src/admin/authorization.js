@@ -1,30 +1,30 @@
-// src/admin/authorization.js
-// Objectflix Admin Authorization
-// --------------------------------
-// The single source of truth for who can use the admin panel.
-//
-// Administrators are identified ONLY by their authenticated Discord User ID
-// (the canonical identifier). To add a staff member, add their Discord User
-// ID here — nothing else in the codebase needs to change:
-//
-//   ADMIN_ROLES = {
-//     "874633313309048862": "owner",
-//     "SOME_DISCORD_USER_ID": "admin",
-//   };
-//
-// Roles map to permissions. `owner` implicitly has every permission; other
-// roles only get the permissions listed for them below.
-//
-// The Discord ID is authoritative. If a Discord username or display name has
-// changed since it was recorded, the account is still allowed to sign in and
-// the discrepancy is flagged in the UI (see identityStatus()).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (() => {
   const ADMIN_ROLES = {
     "874633313309048862": "owner",
   };
 
-  // Expected username / display name per Discord ID. Used ONLY to flag when
-  // someone's Discord identity has changed — never to grant or deny access.
+  
+  
   const EXPECTED_IDENTITY = {
     "874633313309048862": {
       username: "boblinh",
@@ -74,8 +74,8 @@
     return ADMIN_ROLES[discordId] || null;
   }
 
-  // Builds the resolved admin session for the currently signed-in user, or
-  // null when the user is not an authenticated Discord administrator.
+  
+  
   function session() {
     const user = currentUser();
     if (!isDiscordUser(user)) return null;
@@ -107,8 +107,8 @@
     };
   }
 
-  // Checks whether a session has a permission. Pass the resolved session to
-  // avoid re-reading localStorage in hot paths; otherwise it resolves it.
+  
+  
   function can(sessionOrPermission, permission) {
     if (typeof sessionOrPermission === "string") {
       permission = sessionOrPermission;

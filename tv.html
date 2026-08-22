@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0612" />
+    <title>Objectflix — TV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      .is-hidden { display: none !important; }
+
+      :root {
+        --bg: #0a0612;
+        --surface: rgba(18, 10, 36, 0.95);
+        --surface-hover: rgba(40, 24, 80, 0.9);
+        --text: #eef0ff;
+        --muted: #8b8fad;
+        --accent: #7c3aed;
+        --accent-glow: rgba(124, 58, 237, 0.5);
+        --card-w: 260px;
+        --card-h: 146px;
+        --row-gap: 28px;
+        --focus-ring: 0 0 0 4px rgba(124, 58, 237, 0.85), 0 0 30px rgba(124, 58, 237, 0.35);
+      }
+
+      html, body { height: 100%; overflow: hidden; }
+
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      
+      #tvWarning {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg);
+      }
+      #tvWarning .box {
+        text-align: center; max-width: 520px; padding: 48px;
+      }
+      #tvWarning .box h1 {
+        font-size: 2rem; margin-bottom: 12px;
+      }
+      #tvWarning .box p {
+        color: var(--muted); font-size: 1.1rem; margin-bottom: 24px; line-height: 1.6;
+      }
+      #tvWarning .box .countdown {
+        font-size: 3rem; font-weight: 800; color: var(--accent);
+        margin-bottom: 16px;
+      }
+      #tvWarning .box .btn-row {
+        display: flex; gap: 12px; justify-content: center;
+      }
+      #tvWarning .box button {
+        padding: 12px 28px; border-radius: 12px; border: none;
+        font-size: 1rem; font-weight: 600; cursor: pointer;
+      }
+      #tvWarning .btn-stay {
+        background: var(--accent); color: #fff;
+      }
+      #tvWarning .btn-leave {
+        background: rgba(255,255,255,0.08); color: var(--text);
+      }
+
+      
+      #tvApp { display: none; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+      #tvApp.is-active { display: block; }
+
+      .tv-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 28px 48px 0;
+      }
+      .tv-logo {
+        display: flex; align-items: center; gap: 12px;
+        font-size: 1.4rem; font-weight: 800; letter-spacing: 2px;
+      }
+      .tv-logo__mark {
+        width: 40px; height: 40px; border-radius: 10px;
+        background: var(--accent); display: grid; place-items: center;
+        font-size: 1.2rem; font-weight: 800; color: #fff;
+      }
+      .tv-header__time {
+        font-size: 1rem; color: var(--muted); font-weight: 500;
+      }
+
+      
+      .tv-hero {
+        position: relative; width: 100%; height: 55vh; min-height: 380px;
+        overflow: hidden; margin-bottom: 12px;
+      }
+      .tv-hero__bg {
+        position: absolute; inset: 0; background-size: cover; background-position: center;
+        filter: blur(2px) brightness(0.45); transform: scale(1.05);
+      }
+      .tv-hero__gradient {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, var(--bg) 0%, transparent 50%);
+      }
+      .tv-hero__content {
+        position: absolute; bottom: 48px; left: 48px; right: 48px;
+      }
+      .tv-hero__eyebrow {
+        font-size: 0.8rem; font-weight: 700; letter-spacing: 3px;
+        color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+      }
+      .tv-hero__title {
+        font-size: 2.8rem; font-weight: 800; line-height: 1.1;
+        margin-bottom: 12px; max-width: 600px;
+      }
+      .tv-hero__desc {
+        font-size: 1rem; color: var(--muted); max-width: 500px;
+        line-height: 1.5; margin-bottom: 20px;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      }
+      .tv-hero__actions {
+        display: flex; gap: 12px;
+      }
+      .tv-btn {
+        padding: 14px 32px; border-radius: 14px; border: none;
+        font-size: 1rem; font-weight: 700; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .tv-btn--primary { background: var(--accent); color: #fff; }
+      .tv-btn--ghost { background: rgba(255,255,255,0.1); color: var(--text); }
+      .tv-btn:focus-visible {
+        outline: none; box-shadow: var(--focus-ring); transform: scale(1.04);
+      }
+
+      
+      .tv-rows { padding: 0 48px 60px; }
+      .tv-row { margin-bottom: var(--row-gap); }
+      .tv-row__title {
+        font-size: 1.2rem; font-weight: 700; margin-bottom: 14px;
+        padding-left: 4px;
+      }
+      .tv-row__scroll {
+        display: flex; gap: 16px; overflow-x: auto;
+        scroll-behavior: smooth; scrollbar-width: none;
+        padding: 8px 4px;
+      }
+      .tv-row__scroll::-webkit-scrollbar { display: none; }
+
+      
+      .tv-card {
+        flex: 0 0 var(--card-w); border-radius: 14px; overflow: hidden;
+        position: relative; cursor: pointer;
+        aspect-ratio: 16 / 9;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .tv-card__img {
+        width: 100%; height: 100%; object-fit: cover;
+        background: rgba(255,255,255,0.04);
+      }
+      .tv-card__overlay {
+        position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%);
+        display: flex; flex-direction: column; justify-content: flex-end;
+        padding: 14px;
+      }
+      .tv-card__label {
+        font-size: 0.85rem; font-weight: 700; line-height: 1.2;
+      }
+      .tv-card__meta {
+        font-size: 0.7rem; color: var(--muted); margin-top: 3px;
+      }
+      .tv-card:focus-visible {
+        outline: none; box-shadow: var(--focus-ring); transform: scale(1.08);
+        z-index: 2;
+      }
+      .tv-card--wide { flex: 0 0 calc(var(--card-w) * 1.7); aspect-ratio: 16 / 7; }
+
+      
+      .tv-loading {
+        height: 100vh; display: grid; place-items: center;
+        font-size: 1.1rem; color: var(--muted);
+      }
+      .tv-loading__spinner {
+        width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.08);
+        border-top-color: var(--accent); border-radius: 50%;
+        animation: spin 0.8s linear infinite; margin-bottom: 16px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      
+      .tv-modal {
+        position: fixed; inset: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      }
+      .tv-modal.is-hidden { display: none; }
+      .tv-modal__card {
+        background: var(--surface); border-radius: 20px;
+        width: min(720px, 90vw); overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+      }
+      .tv-modal__hero {
+        width: 100%; height: 300px; object-fit: cover;
+      }
+      .tv-modal__body { padding: 28px 32px 32px; }
+      .tv-modal__title { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+      .tv-modal__desc { color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+      .tv-modal__episodes {
+        max-height: 220px; overflow-y: auto;
+      }
+      .tv-ep {
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 14px; border-radius: 12px; cursor: pointer;
+        transition: background 0.15s;
+      }
+      .tv-ep:hover, .tv-ep:focus-visible {
+        background: var(--surface-hover); outline: none;
+      }
+      .tv-ep:focus-visible { box-shadow: var(--focus-ring); }
+      .tv-ep__num {
+        width: 36px; height: 36px; border-radius: 10px;
+        background: rgba(124, 58, 237, 0.2); color: var(--accent);
+        display: grid; place-items: center; font-weight: 700; font-size: 0.9rem;
+        flex-shrink: 0;
+      }
+      .tv-ep__title { font-size: 0.95rem; font-weight: 600; }
+      .tv-ep__dur { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+    </style>
+  </head>
+  <body>
+
+    
+    <div id="tvLoadingScreen" style="
+      position:fixed;inset:0;z-index:9998;
+      display:grid;place-items:center;
+      background:#0a0612;
+      font-family:'Inter',system-ui,sans-serif;color:#8b8fad;
+    ">
+      <div style="text-align:center">
+        <div style="
+          width:48px;height:48px;margin:0 auto 20px;
+          border:4px solid rgba(255,255,255,0.08);border-top-color:#7c3aed;
+          border-radius:50%;animation:spin .8s linear infinite;
+        "></div>
+        <div style="font-size:1.2rem;font-weight:700;color:#eef0ff;margin-bottom:6px">Loading Objectflix</div>
+        <div style="font-size:0.9rem">Fetching the library…</div>
+      </div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+    
+    <div id="tvWarning" class="is-hidden">
+      <div class="box">
+        <h1>Objectflix — TV Edition</h1>
+        <p>This version is optimized for smart TVs and may not work well on your current device.</p>
+        <div class="countdown" id="tvCountdown">10</div>
+        <p>Redirecting to the standard version shortly…</p>
+        <div class="btn-row">
+          <button class="btn-stay" id="tvStayBtn" type="button">Stay Here</button>
+          <button class="btn-leave" id="tvLeaveBtn" type="button">Go Now</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div id="tvApp">
+      <header class="tv-header">
+        <div class="tv-logo">
+          <span class="tv-logo__mark">O</span>
+          OBJECTFLIX
+        </div>
+        <span class="tv-header__time" id="tvClock"></span>
+      </header>
+
+      <section class="tv-hero" id="tvHero"></section>
+
+      <section class="tv-rows" id="tvRows"></section>
+    </div>
+
+    
+    <div class="tv-modal is-hidden" id="tvModal">
+      <div class="tv-modal__card" id="tvModalCard"></div>
+    </div>
+
+    <script src="./src/env.js"></script>
+    <script src="./src/config.js"></script>
+    <script src="./src/api.js"></script>
+    <script src="./data.js"></script>
+    <script src="./src/shared.js"></script>
+    <script src="./src/tv.js"></script>
+  </body>
+</html>
