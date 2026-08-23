@@ -325,6 +325,13 @@
   }
 
 
+  function askAdminsForCurrentEpisode() {
+    window.OBJECTFLIX_COMMUNITY?.openEpisodeRequest?.({
+      title: state.item?.title || '',
+      episodeNumber: String(state.episode?.episodeNumber ?? ''),
+    });
+  }
+
   function showEpisodeMissingScreen() {
     if (state.player) {
       state.player.destroy();
@@ -338,9 +345,19 @@
           <span class="eyebrow">NOT AVAILABLE</span>
           <strong>${state.episode.title}</strong>
           <span class="player-screen__hint">The episode is not on the backend right now... You could ask for admins to upload them on demand!</span>
+          <button class="button button--primary" type="button" id="askAdminsBtn" style="margin-top:18px">Ask Admins</button>
         </div>
       </div>
     `;
+    panel.querySelector('#askAdminsBtn')?.addEventListener('click', askAdminsForCurrentEpisode);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ask')) {
+      params.delete('ask');
+      const query = params.toString();
+      window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+      askAdminsForCurrentEpisode();
+    }
   }
 
   async function mountWatchPlayer() {

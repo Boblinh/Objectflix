@@ -177,6 +177,7 @@
     if (currentEpisode.videoUrl && !(await SHARED.isEpisodeStreamable(currentEpisode.videoUrl))) {
       dom.loading.classList.add('is-hidden');
       showMessage('Not Available', 'The episode is not on the backend right now... You could ask for admins to upload them on demand!');
+      showAskAdminsButton();
       return;
     }
 
@@ -246,9 +247,23 @@
 
   
   function showMessage(title, text) {
+    dom.message.querySelector('#tvAskAdminsBtn')?.remove();
     dom.messageTitle.textContent = title;
     dom.messageText.textContent = text;
     dom.message.classList.remove('is-hidden');
+  }
+
+  function showAskAdminsButton() {
+    if (document.getElementById('tvAskAdminsBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'tvAskAdminsBtn';
+    btn.type = 'button';
+    btn.className = 'tv-ask-admins';
+    btn.textContent = 'Ask Admins';
+    btn.addEventListener('click', () => {
+      window.location.href = `watch.html?id=${encodeURIComponent(currentItem.id)}&ep=${encodeURIComponent(currentEpisode.id)}&ask=1`;
+    });
+    dom.message.appendChild(btn);
   }
 
   

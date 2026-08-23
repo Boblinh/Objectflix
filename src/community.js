@@ -270,17 +270,17 @@
     `;
   }
 
-  function requestEpisodeForm() {
+  function requestEpisodeForm(prefill = {}) {
     const library = Array.isArray(window.OBJECTFLIX_LIBRARY) ? window.OBJECTFLIX_LIBRARY : [];
     const options = library.map((item) => `<option value="${escapeHtml(item.title)}"></option>`).join("");
     return `
       <form id="communityForm" class="community-form" data-form-type="episode">
         <datalist id="communityShowOptions">${options}</datalist>
         <label class="community-label">Show
-          <input class="community-input" name="title" required maxlength="120" list="communityShowOptions" placeholder="e.g. Battle for BFDI" />
+          <input class="community-input" name="title" required maxlength="120" list="communityShowOptions" placeholder="e.g. Battle for BFDI" value="${escapeHtml(prefill.title || "")}" />
         </label>
         <label class="community-label">Episode number or title
-          <input class="community-input" name="episodeNumber" required maxlength="120" placeholder="e.g. 6 or &quot;The Big Finale&quot;" />
+          <input class="community-input" name="episodeNumber" required maxlength="120" placeholder="e.g. 6 or &quot;The Big Finale&quot;" value="${escapeHtml(prefill.episodeNumber || "")}" />
         </label>
         <label class="community-label">Anything else? <span class="community-hint">(optional)</span>
           <textarea class="community-textarea" name="notes" maxlength="1000" placeholder="Extra details that could help us find it…"></textarea>
@@ -344,11 +344,11 @@
     });
   }
 
-  function openRequestEpisode() {
+  function openRequestEpisode(prefill) {
     openCommunityModal({
       eyebrow: "COMMUNITY REQUEST",
       title: "Request an Episode",
-      bodyHTML: requestEpisodeForm(),
+      bodyHTML: requestEpisodeForm(prefill || {}),
     });
   }
 
@@ -479,6 +479,7 @@
     fetchFeedback,
     addRequest,
     addFeedback,
+    openEpisodeRequest: openRequestEpisode,
     syncOutbox,
     pendingOutboxCount,
     setRequestStatus,
