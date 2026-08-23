@@ -174,6 +174,12 @@
       }
     } catch {}
 
+    if (currentEpisode.videoUrl && !(await SHARED.isEpisodeStreamable(currentEpisode.videoUrl))) {
+      dom.loading.classList.add('is-hidden');
+      showMessage('Not Available', 'The episode is not on the backend right now... You could ask for admins to upload them on demand!');
+      return;
+    }
+
     player.load({ src: currentEpisode.videoUrl, subtitleUrl });
 
     

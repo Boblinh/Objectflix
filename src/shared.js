@@ -381,8 +381,23 @@
     }
   }
 
-  function showUnreleasedNoticeModal(episode) {
-    let modal = document.getElementById('unreleasedNoticeModal');
+  // Returns true when the episode's video is actually playable: either the URL
+  // does not point at our /media proxy, or the Worker confirms the object
+  // exists on the bucket. Fails open (true) when the check itself fails, so a
+  // status-endpoint hiccup never blocks playback.
+  async function isEpisodeStreamable(src) {
+    if (!src) return false;
+    const marker = '/media/';
+    const idx = src.indexOf(marker);
+    if (idx === -1) return true;
+    try {
+      return await window.OBJECTFLIX_API.mediaExists(decodeURIComponent(src.slice(idx + marker.length)));
+    } catch {
+      return true;
+    }
+  }
+
+  function showUnreleasedNoticeModal(episode) {    let modal = document.getElementById('unreleasedNoticeModal');
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'unreleasedNoticeModal';
@@ -426,6 +441,7 @@
     loadLibrary,
     buildRows,
     nextEpisode,
+    isEpisodeStreamable,
     createAvatarImage,
     applyArgUnlock,
     restoreArgUnlock,

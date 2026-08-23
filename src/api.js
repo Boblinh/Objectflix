@@ -139,6 +139,11 @@ window.OBJECTFLIX_API = (() => {
       return data.subtitles || [];
     },
 
+    async mediaExists(key) {
+      const data = await request(endpoints.mediaStatus(key));
+      return Boolean(data.exists);
+    },
+
     async searchShows(query, { signal } = {}) {
       const data = await request(endpoints.search(query), { signal });
       return data.results || [];

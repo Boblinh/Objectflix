@@ -325,6 +325,24 @@
   }
 
 
+  function showEpisodeMissingScreen() {
+    if (state.player) {
+      state.player.destroy();
+      state.player = null;
+    }
+    const panel = elements.watchView.querySelector('.player-panel');
+    if (!panel || !state.episode) return;
+    panel.innerHTML = `
+      <div class="player-screen player-screen--active">
+        <div class="player-screen__meta">
+          <span class="eyebrow">NOT AVAILABLE</span>
+          <strong>${state.episode.title}</strong>
+          <span class="player-screen__hint">The episode is not on the backend right now... You could ask for admins to upload them on demand!</span>
+        </div>
+      </div>
+    `;
+  }
+
   async function mountWatchPlayer() {
     const Player = window.ObjectflixPlayer;
     if (!Player) {
@@ -383,6 +401,12 @@
 
     if (state.episode?.id !== episodeId) return;
     if (!playerElements.video.isConnected) return;
+
+    if (!(await SHARED.isEpisodeStreamable(state.episode.videoUrl))) {
+      if (state.episode?.id !== episodeId || !playerElements.video.isConnected) return;
+      showEpisodeMissingScreen();
+      return;
+    }
 
     const player = new Player({ ...playerElements, fakeDuration: state.episode.fakeDuration });
     state.player = player;
