@@ -1,7 +1,9 @@
 (() => {
   const CONFIG = window.OBJECTFLIX_CONFIG;
+  const API = window.OBJECTFLIX_API;
   const REQUESTS_KEY = (CONFIG?.admin?.requestKey) || "objectflix_community_requests";
   const FEEDBACK_KEY = (CONFIG?.admin?.feedbackKey) || "objectflix_community_feedback";
+  const OUTBOX_KEY = (CONFIG?.admin?.communityOutboxKey) || "objectflix_community_outbox";
   const CATEGORIES = ["General", "Bug Report", "Feature Idea", "Content Suggestion", "Compliment", "Other"];
 
   function readStore(key) {
@@ -21,10 +23,6 @@
     }
   }
 
-  function makeId(prefix) {
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-
   function currentUserName() {
     let user = null;
     try {
@@ -35,84 +33,139 @@
     return user?.displayName || user?.username || user?.email || "";
   }
 
+  
+
   const listRequests = () => readStore(REQUESTS_KEY);
   const listFeedback = () => readStore(FEEDBACK_KEY);
 
-  function addRequest(payload) {
-    const requests = listRequests();
-    const entry = {
-      id: makeId("req"),
+  function normalizeRequestPayload(payload) {
+    return {
       type: payload.type === "episode" ? "episode" : "show",
       title: String(payload.title || "").trim(),
       episodeNumber: String(payload.episodeNumber || "").trim(),
       link: String(payload.link || "").trim(),
       notes: String(payload.notes || "").trim(),
       requestedBy: String(payload.requestedBy || currentUserName()).trim(),
-      createdAt: Date.now(),
-      status: "pending",
     };
-    requests.unshift(entry);
-    writeStore(REQUESTS_KEY, requests);
-    return entry;
   }
 
-  function addFeedback(payload) {
-    const feedback = listFeedback();
-    const entry = {
-      id: makeId("fb"),
+  function normalizeFeedbackPayload(payload) {
+    return {
       rating: Math.max(1, Math.min(5, Number(payload.rating) || 0)),
       category: CATEGORIES.includes(payload.category) ? payload.category : "General",
       discord: String(payload.discord || "").trim(),
       message: String(payload.message || "").trim(),
       sentBy: String(payload.sentBy || currentUserName()).trim(),
-      createdAt: Date.now(),
-      status: "new",
     };
-    feedback.unshift(entry);
-    writeStore(FEEDBACK_KEY, feedback);
-    return entry;
   }
 
-  function setRequestStatus(id, status) {
-    const requests = listRequests();
-    const entry = requests.find((item) => item.id === id);
-    if (entry) {
-      entry.status = status;
-      writeStore(REQUESTS_KEY, requests);
+  function readOutbox() {
+    return readStore(OUTBOX_KEY);
+  }
+
+  async function addRequest(payload) {
+    try {
+      const entry = await API.submitCommunityRequest(normalizeRequestPayload(payload));
+      return { ok: true, entry };
+    } catch (error) {
+      const outbox = readOutbox();
+      outbox.push({ kind: "request", payload: normalizeRequestPayload(payload), queuedAt: Date.now(), error: error.message });
+      writeStore(OUTBOX_KEY, outbox);
+      return { ok: false, error };
     }
-    return entry;
   }
 
-  function setFeedbackStatus(id, status) {
-    const feedback = listFeedback();
-    const entry = feedback.find((item) => item.id === id);
-    if (entry) {
-      entry.status = status;
-      writeStore(FEEDBACK_KEY, feedback);
+  async function addFeedback(payload) {
+    try {
+      const entry = await API.submitCommunityFeedback(normalizeFeedbackPayload(payload));
+      return { ok: true, entry };
+    } catch (error) {
+      const outbox = readOutbox();
+      outbox.push({ kind: "feedback", payload: normalizeFeedbackPayload(payload), queuedAt: Date.now(), error: error.message });
+      writeStore(OUTBOX_KEY, outbox);
+      return { ok: false, error };
     }
-    return entry;
   }
 
-  function deleteRequest(id) {
+  async function syncOutbox() {
+    const outbox = readOutbox();
+    if (!outbox.length) return 0;
+    const remaining = [];
+    for (const item of outbox) {
+      try {
+        if (item.kind === "request") await API.submitCommunityRequest(item.payload);
+        else if (item.kind === "feedback") await API.submitCommunityFeedback(item.payload);
+        else continue;
+      } catch {
+        remaining.push(item);
+      }
+    }
+    writeStore(OUTBOX_KEY, remaining);
+    return outbox.length - remaining.length;
+  }
+
+  function pendingOutboxCount() {
+    return readOutbox().length;
+  }
+
+  
+
+  async function fetchRequests() {
+    const items = await API.listAdminCommunity("requests");
+    writeStore(REQUESTS_KEY, items);
+    return items;
+  }
+
+  async function fetchFeedback() {
+    const items = await API.listAdminCommunity("feedback");
+    writeStore(FEEDBACK_KEY, items);
+    return items;
+  }
+
+  async function setRequestStatus(id, status) {
+    const result = await API.updateAdminCommunity("requests", id, { status });
+    writeStore(REQUESTS_KEY, listRequests().map((item) => (item.id === id ? { ...item, status } : item)));
+    return result;
+  }
+
+  async function setFeedbackStatus(id, status) {
+    const result = await API.updateAdminCommunity("feedback", id, { status });
+    writeStore(FEEDBACK_KEY, listFeedback().map((item) => (item.id === id ? { ...item, status } : item)));
+    return result;
+  }
+
+  async function deleteRequest(id) {
+    const result = await API.deleteAdminCommunity("requests", id);
     writeStore(REQUESTS_KEY, listRequests().filter((item) => item.id !== id));
+    return result;
   }
 
-  function deleteFeedback(id) {
+  async function deleteFeedback(id) {
+    const result = await API.deleteAdminCommunity("feedback", id);
     writeStore(FEEDBACK_KEY, listFeedback().filter((item) => item.id !== id));
+    return result;
   }
 
-  function clearRequests(onlyResolved) {
-    writeStore(
-      REQUESTS_KEY,
-      onlyResolved ? listRequests().filter((item) => item.status === "pending") : []
-    );
+  async function clearRequests(onlyResolved) {
+    const items = listRequests();
+    const targets = onlyResolved
+      ? items.filter((item) => item.status !== "pending").map((item) => item.id)
+      : items.map((item) => item.id);
+    await Promise.allSettled(targets.map((id) => API.deleteAdminCommunity("requests", id)));
+    const removed = new Set(targets);
+    writeStore(REQUESTS_KEY, items.filter((item) => !removed.has(item.id)));
+    return targets.length;
   }
 
-  function clearFeedback(onlyRead) {
-    writeStore(
-      FEEDBACK_KEY,
-      onlyRead ? listFeedback().filter((item) => item.status === "new") : []
-    );
+  async function clearFeedback(onlyRead) {
+    const items = listFeedback();
+    const targets = onlyRead
+      ? items.filter((item) => item.status !== "new").map((item) => item.id)
+      : items.map((item) => item.id);
+    await Promise.allSettled(targets.map((id) => API.deleteAdminCommunity("feedback", id)));
+    const removed = new Set(targets);
+    writeStore(FEEDBACK_KEY, items.filter((item) => !removed.has(item.id)));
+    return targets.length;
   }
 
   
@@ -315,42 +368,65 @@
     if (hint) hint.textContent = rating ? `${rating}/5` : "Tap a star to rate";
   }
 
-  function handleFormSubmit(form) {
+  async function handleFormSubmit(form) {
     const formData = new FormData(form);
     const type = form.dataset.formType;
-
-    if (type === "feedback" && !selectedRating) {
-      const hint = form.querySelector("[data-rating-hint]");
-      if (hint) hint.textContent = "Please pick a star rating first!";
-      return;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const setSending = (sending) => {
+      if (submitButton) {
+        submitButton.disabled = sending;
+        submitButton.textContent = sending ? "Sending…" : submitButton.dataset.originalLabel;
+      }
+    };
+    if (submitButton) {
+      if (!submitButton.dataset.originalLabel) submitButton.dataset.originalLabel = submitButton.textContent;
+      setSending(true);
     }
 
-    if (type === "feedback") {
-      addFeedback({
-        rating: selectedRating,
-        category: formData.get("category"),
-        discord: formData.get("discord"),
-        message: formData.get("message"),
-        sentBy: formData.get("sentBy"),
+    try {
+      if (type === "feedback") {
+        if (!selectedRating) {
+          const hint = form.querySelector("[data-rating-hint]");
+          if (hint) hint.textContent = "Please pick a star rating first!";
+          setSending(false);
+          return;
+        }
+        const result = await addFeedback({
+          rating: selectedRating,
+          category: formData.get("category"),
+          discord: formData.get("discord"),
+          message: formData.get("message"),
+          sentBy: formData.get("sentBy"),
+        });
+        if (result.ok) {
+          showSuccess("Feedback sent!", "Thanks for helping Objectflix get better. Your feedback is now in the admin inbox.");
+        } else {
+          showSuccess("Saved for later", "We couldn't reach the server just now, so your feedback was stored on this device and will be delivered automatically.");
+        }
+        return;
+      }
+
+      const result = await addRequest({
+        type,
+        title: formData.get("title"),
+        episodeNumber: formData.get("episodeNumber"),
+        link: formData.get("link"),
+        notes: formData.get("notes"),
+        requestedBy: formData.get("requestedBy"),
       });
-      showSuccess("Feedback sent!", "Thanks for helping Objectflix get better. Your feedback is now in the admin inbox.");
-      return;
+      if (result.ok) {
+        showSuccess(
+          "Request received!",
+          type === "show"
+            ? "Your show suggestion was delivered to the admins. Keep an eye on the catalog!"
+            : "Your episode request was delivered to the admins. Keep an eye on the catalog!"
+        );
+      } else {
+        showSuccess("Saved for later", "We couldn't reach the server just now, so your request was stored on this device and will be delivered automatically.");
+      }
+    } finally {
+      if (submitButton && document.body.contains(submitButton)) setSending(false);
     }
-
-    addRequest({
-      type,
-      title: formData.get("title"),
-      episodeNumber: formData.get("episodeNumber"),
-      link: formData.get("link"),
-      notes: formData.get("notes"),
-      requestedBy: formData.get("requestedBy"),
-    });
-    showSuccess(
-      "Request received!",
-      type === "show"
-        ? "Your show suggestion was delivered to the admins. Keep an eye on the catalog!"
-        : "Your episode request was delivered to the admins. Keep an eye on the catalog!"
-    );
   }
 
   document.addEventListener("click", (event) => {
@@ -393,15 +469,21 @@
     }
   });
 
+  void syncOutbox();
+
   window.OBJECTFLIX_COMMUNITY = {
     categories: CATEGORIES,
     listRequests,
+    listFeedback,
+    fetchRequests,
+    fetchFeedback,
     addRequest,
+    addFeedback,
+    syncOutbox,
+    pendingOutboxCount,
     setRequestStatus,
     deleteRequest,
     clearRequests,
-    listFeedback,
-    addFeedback,
     setFeedbackStatus,
     deleteFeedback,
     clearFeedback,

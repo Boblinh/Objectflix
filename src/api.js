@@ -39,7 +39,7 @@ window.OBJECTFLIX_API = (() => {
       try {
         body = await res.json();
       } catch {
-        
+
       }
 
       if (!res.ok) {
@@ -55,6 +55,44 @@ window.OBJECTFLIX_API = (() => {
     } finally {
       clearTimeout(timer);
       if (signal) signal.removeEventListener("abort", onExternalAbort);
+    }
+  }
+
+  async function send(path, { method = "POST", body, signal } = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    if (signal?.aborted) controller.abort();
+
+    const headers = { Accept: "application/json" };
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+
+    try {
+      const res = await fetch(`${apiBaseUrl}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {
+
+      }
+
+      if (!res.ok) {
+        const message = data?.error || data?.message || `Request failed (${res.status})`;
+        throw new ApiError(message, res.status);
+      }
+      return data;
+    } catch (err) {
+      if (err.name === "AbortError") {
+        throw new ApiError("The request timed out. Check your connection and try again.", 0);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -104,6 +142,32 @@ window.OBJECTFLIX_API = (() => {
     async searchShows(query, { signal } = {}) {
       const data = await request(endpoints.search(query), { signal });
       return data.results || [];
+    },
+
+    async submitCommunityRequest(payload) {
+      const data = await send(endpoints.communityRequests, { body: payload });
+      return data.request;
+    },
+
+    async submitCommunityFeedback(payload) {
+      const data = await send(endpoints.communityFeedback, { body: payload });
+      return data.feedback;
+    },
+
+    async listAdminCommunity(kind) {
+      const endpoint = kind === "feedback" ? endpoints.adminCommunityFeedback : endpoints.adminCommunityRequests;
+      const data = await request(endpoint);
+      return kind === "feedback" ? data.feedback || [] : data.requests || [];
+    },
+
+    async updateAdminCommunity(kind, id, patch) {
+      const endpoint = (kind === "feedback" ? endpoints.adminCommunityFeedback : endpoints.adminCommunityRequests) + `/${encodeURIComponent(id)}`;
+      return send(endpoint, { method: "PATCH", body: patch });
+    },
+
+    async deleteAdminCommunity(kind, id) {
+      const endpoint = (kind === "feedback" ? endpoints.adminCommunityFeedback : endpoints.adminCommunityRequests) + `/${encodeURIComponent(id)}`;
+      return send(endpoint, { method: "DELETE" });
     },
   };
 })();

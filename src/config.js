@@ -19,6 +19,10 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     episode: (id) => `/api/episodes/${id}`,
     episodeSubtitles: (id) => `/api/episodes/${id}/subtitles`,
     search: (query) => `/api/search?q=${encodeURIComponent(query)}`,
+    communityRequests: "/api/community/requests",
+    communityFeedback: "/api/community/feedback",
+    adminCommunityRequests: "/api/admin/community/requests",
+    adminCommunityFeedback: "/api/admin/community/feedback",
   }),
 
   

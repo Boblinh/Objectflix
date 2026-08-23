@@ -263,6 +263,9 @@
       }
     }
     refreshNavCounts();
+    if (COMMUNITY?.fetchRequests && COMMUNITY?.fetchFeedback) {
+      void Promise.allSettled([COMMUNITY.fetchRequests(), COMMUNITY.fetchFeedback()]).then(() => refreshNavCounts());
+    }
   }
 
   function showAccessDenied() {
@@ -408,41 +411,61 @@
           refreshNavCounts();
         },
         "request-status": () => {
-          setRequestStatus(target.dataset.id, target.dataset.status);
+          void setRequestStatus(target.dataset.id, target.dataset.status);
         },
-        "request-delete": () => {
+        "request-delete": async () => {
           if (!confirm("Delete this request permanently?")) return;
-          COMMUNITY.deleteRequest(target.dataset.id);
-          B2.logActivity("Request deleted", target.dataset.id);
+          try {
+            await COMMUNITY.deleteRequest(target.dataset.id);
+            B2.logActivity("Request deleted", target.dataset.id);
+          } catch (error) {
+            alert(`Could not delete request: ${error.message}`);
+          }
           renderRequests($("#viewRequests"));
           refreshNavCounts();
         },
-        "requests-clear-resolved": () => {
+        "requests-clear-resolved": async () => {
           if (!confirm("Remove all resolved requests (approved, rejected, completed)?")) return;
-          COMMUNITY.clearRequests(true);
-          B2.logActivity("Requests cleared", "resolved only");
+          try {
+            await COMMUNITY.clearRequests(true);
+            B2.logActivity("Requests cleared", "resolved only");
+          } catch (error) {
+            alert(`Could not clear requests: ${error.message}`);
+          }
           renderRequests($("#viewRequests"));
           refreshNavCounts();
         },
-        "feedback-toggle-read": () => {
+        "feedback-toggle-read": async () => {
           const id = target.dataset.id;
           const entry = COMMUNITY.listFeedback().find((f) => f.id === id);
           if (!entry) return;
-          COMMUNITY.setFeedbackStatus(id, entry.status === "new" ? "read" : "new");
+          try {
+            await COMMUNITY.setFeedbackStatus(id, entry.status === "new" ? "read" : "new");
+          } catch (error) {
+            alert(`Could not update feedback: ${error.message}`);
+          }
           renderFeedback($("#viewFeedback"));
           refreshNavCounts();
         },
-        "feedback-delete": () => {
+        "feedback-delete": async () => {
           if (!confirm("Delete this feedback permanently?")) return;
-          COMMUNITY.deleteFeedback(target.dataset.id);
-          B2.logActivity("Feedback deleted", target.dataset.id);
+          try {
+            await COMMUNITY.deleteFeedback(target.dataset.id);
+            B2.logActivity("Feedback deleted", target.dataset.id);
+          } catch (error) {
+            alert(`Could not delete feedback: ${error.message}`);
+          }
           renderFeedback($("#viewFeedback"));
           refreshNavCounts();
         },
-        "feedback-clear-read": () => {
+        "feedback-clear-read": async () => {
           if (!confirm("Remove all feedback already marked as read?")) return;
-          COMMUNITY.clearFeedback(true);
-          B2.logActivity("Feedback cleared", "read only");
+          try {
+            await COMMUNITY.clearFeedback(true);
+            B2.logActivity("Feedback cleared", "read only");
+          } catch (error) {
+            alert(`Could not clear feedback: ${error.message}`);
+          }
           renderFeedback($("#viewFeedback"));
           refreshNavCounts();
         },
@@ -1289,19 +1312,36 @@
     completed: '<span class="badge badge--accent">completed</span>',
   };
 
+  async function syncCommunityView(kind) {
+    if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
+    try {
+      await (kind === "feedback" ? COMMUNITY.fetchFeedback() : COMMUNITY.fetchRequests());
+    } catch {
+
+    }
+    const panel = $(kind === "feedback" ? "#viewFeedback" : "#viewRequests");
+    if (kind === "feedback") renderFeedback(panel, true);
+    else renderRequests(panel, true);
+    refreshNavCounts();
+  }
+
   function starsRow(rating) {
     return `<span style="color:#f5c518;letter-spacing:2px;white-space:nowrap">${"★".repeat(rating)}<span style="color:rgba(255,255,255,0.2)">${"★".repeat(5 - rating)}</span></span>`;
   }
 
-  function setRequestStatus(id, status) {
+  async function setRequestStatus(id, status) {
     if (!ADMIN.can(session, "community.manage")) return;
-    const entry = COMMUNITY.setRequestStatus(id, status);
-    B2.logActivity("Request " + status, entry ? `${entry.type}: ${entry.title}` : id);
-    renderRequests($("#viewRequests"));
-    refreshNavCounts();
+    try {
+      await COMMUNITY.setRequestStatus(id, status);
+      B2.logActivity("Request " + status, id);
+      renderRequests($("#viewRequests"), true);
+      refreshNavCounts();
+    } catch (error) {
+      alert(`Could not update request: ${error.message}`);
+    }
   }
 
-  function renderRequests(panel) {
+  function renderRequests(panel, skipRefresh) {
     if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
     const requests = COMMUNITY.listRequests();
     const pendingCount = requests.filter((r) => r.status === "pending").length;
@@ -1361,9 +1401,11 @@
         </table>
       </div>
     `;
+
+    if (!skipRefresh) void syncCommunityView("requests");
   }
 
-  function renderFeedback(panel) {
+  function renderFeedback(panel, skipRefresh) {
     if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
     const feedback = COMMUNITY.listFeedback();
     const newCount = feedback.filter((f) => f.status === "new").length;
@@ -1416,6 +1458,8 @@
         </table>
       </div>
     `;
+
+    if (!skipRefresh) void syncCommunityView("feedback");
   }
 
   async function handleStorageTest() {
