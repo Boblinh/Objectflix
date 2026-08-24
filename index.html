@@ -130,24 +130,7 @@
         <div class="profile-gate__content">
           <p class="eyebrow">WELCOME TO OBJECTFLIX</p>
           <h1 id="profile-title">Who&apos;s watching?</h1>
-          <div class="profile-grid" id="profileGrid">
-            <button class="profile-card" type="button" data-profile-id="p1" aria-label="Choose profile Leaf">
-              <div class="profile-avatar profile-avatar--gradient-a">L</div>
-              <div class="profile-name">Leaf</div>
-            </button>
-            <button class="profile-card" type="button" data-profile-id="p2" aria-label="Choose profile Clover">
-              <div class="profile-avatar profile-avatar--gradient-b">C</div>
-              <div class="profile-name">Clover</div>
-            </button>
-            <button class="profile-card" type="button" data-profile-id="p3" aria-label="Choose profile Brick">
-              <div class="profile-avatar profile-avatar--gradient-c">B</div>
-              <div class="profile-name">Brick</div>
-            </button>
-            <button class="profile-card" type="button" data-profile-id="p4" aria-label="Choose profile Nova">
-              <div class="profile-avatar profile-avatar--gradient-d">N</div>
-              <div class="profile-name">Nova</div>
-            </button>
-          </div>
+          <div class="profile-grid" id="profileGrid"></div>
           <div class="profile-actions">
             <button class="button button--ghost" id="manageProfilesButton" type="button">Manage Profiles</button>
             <button class="button button--secondary" id="gateAuthButton" type="button">Sign In / Switch Account</button>
@@ -168,6 +151,29 @@
           <li><strong>My List:</strong> Add shows you love to your list!</li>
         </ul>
         <button class="button button--primary" id="closeOnboardingBtn" type="button">Let&apos;s Go!</button>
+      </div>
+    </div>
+
+    
+    <div class="modal is-hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+      <div class="modal__backdrop" id="profileModalBackdrop"></div>
+      <div class="modal__panel profile-modal__panel">
+        <h2 id="profileModalTitle">Add Profile</h2>
+        <form id="profileForm" class="profile-modal__form" novalidate>
+          <label class="auth-label" for="profileNameInput">Name</label>
+          <input class="auth-input" id="profileNameInput" type="text" maxlength="30" placeholder="Profile name" autocomplete="off" required />
+          <label class="auth-label" for="profileAvatarInput">Avatar letter</label>
+          <input class="auth-input" id="profileAvatarInput" type="text" maxlength="1" placeholder="First letter of the name" autocomplete="off" />
+          <span class="auth-label">Color</span>
+          <div class="avatar-swatch-row" id="profileSwatchRow"></div>
+          <p class="auth-alert is-hidden" id="profileModalError" role="alert"></p>
+          <div class="profile-modal__actions">
+            <button class="button button--danger is-hidden" id="profileDeleteBtn" type="button">Delete</button>
+            <span class="profile-modal__spacer"></span>
+            <button class="button button--ghost" id="profileCancelBtn" type="button">Cancel</button>
+            <button class="button button--primary" id="profileSubmitBtn" type="submit">Create Profile</button>
+          </div>
+        </form>
       </div>
     </div>
 

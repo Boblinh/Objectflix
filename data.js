@@ -28,12 +28,9 @@
     return `data:image/svg+xml;charset=UTF-8,${encoded}`;
   };
 
-  const profiles = [
-    { id: 'p1', name: 'Leaf', avatar: 'L', className: 'profile-avatar--gradient-a' },
-    { id: 'p2', name: 'Clover', avatar: 'C', className: 'profile-avatar--gradient-b' },
-    { id: 'p3', name: 'Brick', avatar: 'B', className: 'profile-avatar--gradient-c' },
-    { id: 'p4', name: 'Nova', avatar: 'N', className: 'profile-avatar--gradient-d' },
-  ];
+  // Profiles are created by players and stored server-side (D1 via the API).
+  // No pre-made profiles are provided anymore.
+  const profiles = [];
 
   const trendingSearches = ['BFDI', 'BFDIA', 'BFB', 'TPOT', 'Object shows', 'Animation'];
   const searchFilters = ['All', 'Movies', 'TV Shows', 'Originals', 'Family', 'Sci-Fi', 'Comedy'];

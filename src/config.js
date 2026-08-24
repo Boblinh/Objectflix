@@ -22,6 +22,8 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     search: (query) => `/api/search?q=${encodeURIComponent(query)}`,
     communityRequests: "/api/community/requests",
     communityFeedback: "/api/community/feedback",
+    profiles: "/api/profiles",
+    profile: (id) => `/api/profiles/${id}`,
     adminCommunityRequests: "/api/admin/community/requests",
     adminCommunityFeedback: "/api/admin/community/feedback",
   }),

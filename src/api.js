@@ -154,10 +154,29 @@ window.OBJECTFLIX_API = (() => {
       return data.request;
     },
 
-    async submitCommunityFeedback(payload) {
-      const data = await send(endpoints.communityFeedback, { body: payload });
-      return data.feedback;
-    },
+  async submitCommunityFeedback(payload) {
+    const data = await send(endpoints.communityFeedback, { body: payload });
+    return data.feedback;
+  },
+
+  async listProfiles(account) {
+    const data = await request(`${endpoints.profiles}?account=${encodeURIComponent(account)}`);
+    return data.profiles || [];
+  },
+
+  async createProfile(payload) {
+    const data = await send(endpoints.profiles, { body: payload });
+    return data.profile;
+  },
+
+  async updateProfile(id, payload) {
+    const data = await send(endpoints.profile(id), { method: "PATCH", body: payload });
+    return data.profile;
+  },
+
+  async deleteProfile(id, account) {
+    return send(`${endpoints.profile(id)}?account=${encodeURIComponent(account)}`, { method: "DELETE" });
+  },
 
     async listAdminCommunity(kind) {
       const endpoint = kind === "feedback" ? endpoints.adminCommunityFeedback : endpoints.adminCommunityRequests;

@@ -2153,3 +2153,74 @@ h1 {
 
 
 
+
+.button--danger {
+  background: linear-gradient(135deg, #8d1f2d, #c22b3d);
+  color: #fff;
+}
+.button--danger:hover { filter: brightness(1.12); }
+
+.profile-modal__panel {
+  width: min(420px, calc(100vw - 48px));
+  max-width: 420px;
+}
+.profile-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.profile-modal__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.profile-modal__spacer { flex: 1; }
+
+.avatar-swatch-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+.avatar-swatch {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.avatar-swatch.is-selected {
+  border-color: #f5f5f7;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.profile-card-wrap { position: relative; }
+.profile-edit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #f5f5f7;
+  background: rgba(0, 0, 0, 0.65);
+  color: #f5f5f7;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.profile-grid.is-managing .profile-edit { display: flex; }
+.profile-card-wrap:hover .profile-edit { display: flex; }
+
+.profile-empty-hint {
+  color: #a3a7b3;
+  font-size: 14px;
+  margin-top: 12px;
+  grid-column: 1 / -1;
+}

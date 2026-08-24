@@ -72,17 +72,11 @@
       
     }
 
-    const user = currentUser();
-    let userProfiles = [];
-    if (user) {
-      userProfiles = JSON.parse(localStorage.getItem(`objectflix_profiles_${user.email}`) || 'null') || [];
+    if (!profile) {
+      window.location.href = 'index.html';
+      return { profile: null, userProfiles: [] };
     }
-    if (!userProfiles.length) userProfiles = profiles;
-
-    if (!profile || !userProfiles.some((p) => p.id === profile.id)) {
-      profile = userProfiles[0] || null;
-    }
-    return { profile, userProfiles };
+    return { profile, userProfiles: [profile] };
   }
 
   function applyCurrentProfile() {
