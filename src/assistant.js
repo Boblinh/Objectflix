@@ -218,7 +218,11 @@ You can control video playback on the watch page. When the user asks you to do s
 You may include ONE action tag per response. Place it on its own line at the very end.
 
 Web Search:
-You have built-in web search. If the user asks about episode summaries, plot details, release dates, trivia, or anything you're not sure about, just answer naturally — the system will automatically search the web to ground your response with accurate information.`
+You have a browser_search tool. Episode summaries, plot details, contest outcomes, release dates, and trivia are NOT in your training data for recent episodes — actively USE browser search to look them up before answering.
+Accuracy rules (critical):
+- NEVER invent or guess episode titles, plots, challenges, eliminations, winners, or endings. Confidently made-up answers are the worst thing you can do.
+- The "Objectflix Catalog" in your context is the ONLY source of truth for which shows exist, official episode titles, and episode numbers/counts on this platform.
+- For anything beyond that (plots, results, dates), answer from web search results only. If search fails or finds nothing reliable, say honestly that you don't know — do not fill gaps with fiction.`
 ,
 
     leafy: `You are Leafy from Battle for Dream Island who is a virtual assistant living inside Objectflix (an object show streaming platform).
@@ -260,7 +264,11 @@ You can control video playback on the watch page. When the user asks you to do s
 You may include ONE action tag per response. Place it on its own line at the very end.
 
 Web Search:
-You have built-in web search. If the user asks about episode summaries, plot details, release dates, trivia, or anything you're not sure about, just answer naturally — the system will automatically search the web to ground your response with accurate information.`
+You have a browser_search tool. Episode summaries, plot details, contest outcomes, release dates, and trivia are NOT in your training data for recent episodes — actively USE browser search to look them up before answering.
+Accuracy rules (critical):
+- NEVER invent or guess episode titles, plots, challenges, eliminations, winners, or endings. Confidently made-up answers are the worst thing you can do.
+- The "Objectflix Catalog" in your context is the ONLY source of truth for which shows exist, official episode titles, and episode numbers/counts on this platform.
+- For anything beyond that (plots, results, dates), answer from web search results only. If search fails or finds nothing reliable, say honestly that you don't know — do not fill gaps with fiction.`
   };
 
   
@@ -597,13 +605,13 @@ You have built-in web search. If the user asks about episode summaries, plot det
         if (lib && lib.length) {
           const lines = lib.map((item) => {
             const acro = SHARED.acronymFor(item);
-            const epCount = item.episodes ? item.episodes.length : 0;
-            const epRange = item.episodes && item.episodes.length
-              ? ` (episodes ${item.episodes[0].episodeNumber}–${item.episodes[item.episodes.length - 1].episodeNumber})`
-              : '';
-            return `- ${item.title} [${acro}] — ${epCount} episodes${epRange}`;
+            if (!item.episodes || !item.episodes.length) {
+              return `- ${item.title} [${acro}] — 0 episodes`;
+            }
+            const epLines = item.episodes.map((ep) => `    ${ep.episodeNumber}. ${ep.title}${ep.released === false ? ' (upcoming)' : ''}`);
+            return `- ${item.title} [${acro}] — ${item.episodes.length} episodes:\n${epLines.join('\n')}`;
           });
-          catalogStr = `\nObjectflix Catalog (use ONLY this data for episode counts, show info, and acronyms):\n${lines.join('\n')}\n\n`;
+          catalogStr = `\nObjectflix Catalog (use ONLY this data for show names, official episode titles, and episode numbers/counts on this platform):\n${lines.join('\n')}\n\n`;
         }
       } catch (e) {          }
     }
