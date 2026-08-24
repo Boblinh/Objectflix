@@ -35,7 +35,14 @@ jobs:
       - name: Stage site files
         run: |
           mkdir -p _site
-          rsync -a --exclude '.git/' --exclude '_site/' ./ _site/
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '_site/' \
+            --exclude 'player-test.*' \
+            --exclude 'audio-diag.*' \
+            --exclude 'audio-monitor.*' \
+            --exclude 'probe-panner.html' \
+            ./ _site/
 
       - uses: actions/upload-pages-artifact@v3
         with:
