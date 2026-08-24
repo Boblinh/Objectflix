@@ -79,9 +79,10 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
         baseUrl: "https://api.groq.com/openai/v1",
         envKey: "GROQ_API_KEY",
         models: Object.freeze([
+          "openai/gpt-oss-120b",
+          "openai/gpt-oss-20b",
           "groq/compound",
           "groq/compound-mini",
-          "openai/gpt-oss-120b",
           "llama-3.3-70b-versatile",
           "llama-3.1-8b-instant",
         ]),

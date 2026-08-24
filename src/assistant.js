@@ -509,13 +509,21 @@ You have built-in web search. If the user asks about episode summaries, plot det
 
         try {
           console.log(`[AI] Trying ${model} on ${baseUrl} with key index ${keyNum}...`);
+          const body = { model, messages: apiMessages };
+          // Groq's gpt-oss models support a server-side browser search tool
+          // (powered by Exa). No tool_choice override: the model decides when
+          // a web lookup is actually needed instead of browsing every turn.
+          if (/groq\.com/i.test(baseUrl) && /^openai\/gpt-oss/i.test(model)) {
+            body.tools = [{ type: 'browser_search' }];
+            body.reasoning_effort = 'low';
+          }
           const res = await fetch(`${baseUrl}/chat/completions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey}`
             },
-            body: JSON.stringify({ model, messages: apiMessages })
+            body: JSON.stringify(body)
           });
 
           const data = await res.json();
