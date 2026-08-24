@@ -111,10 +111,10 @@
       genres: deriveGenres(show.title, show.id),
       description: show.description || '',
       backdrop: SHOWS_WITH_BACKDROPS.has(acronym)
-        ? `./assets/backdrops/${acronym}.png`
+        ? `./assets/backdrops/${acronym.toLowerCase()}.png`
         : window.createPlaceholderImage(show.title.toUpperCase(), 1600, 900, palette),
       poster: SHOWS_WITH_POSTERS.has(acronym)
-        ? `./assets/posters/${acronym}.png`
+        ? `./assets/posters/${acronym.toLowerCase()}.png`
         : window.createPlaceholderImage(show.title.toUpperCase(), 700, 1050, palette),
       logo: logoFor(show),
       progress: 0,
