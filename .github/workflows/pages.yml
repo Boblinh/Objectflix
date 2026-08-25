@@ -38,7 +38,8 @@ jobs:
           rsync -a \
             --exclude '.git/' \
             --exclude '_site/' \
-            --exclude 'player-test.*' \
+            --exclude 'player-test.html' \
+            --exclude 'player-test.js' \
             --exclude 'audio-diag.*' \
             --exclude 'audio-monitor.*' \
             --exclude 'probe-panner.html' \
