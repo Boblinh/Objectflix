@@ -2224,3 +2224,17 @@ h1 {
   margin-top: 12px;
   grid-column: 1 / -1;
 }
+
+.modal { z-index: 80; }
+
+.add-profile .profile-avatar {
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px dashed rgba(245, 245, 247, 0.45);
+  color: #a3a7b3;
+  box-sizing: border-box;
+}
+.add-profile:hover .profile-avatar,
+.add-profile:focus-visible .profile-avatar {
+  border-color: rgba(245, 245, 247, 0.9);
+  color: #f5f5f7;
+}
