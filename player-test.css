@@ -626,12 +626,40 @@ code {
   }
 
   .player-stage,
+  .player-panel,
   .objectflix-player {
     border-radius: 16px;
   }
 
   .player-controls {
+    padding: 46px 8px max(10px, env(safe-area-inset-bottom));
+  }
+
+  .watch-page .player-controls {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .watch-page .controls-row {
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .watch-page .controls-group {
+    min-width: 0;
+  }
+
+  .watch-page .player-control-button {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+    padding: 9px;
+  }
+
+  .watch-page .player-control-select {
+    max-width: min(36vw, 132px);
     padding-inline: 8px;
+    font-size: 0.75rem;
   }
 
   .volume-slider-wrap {
