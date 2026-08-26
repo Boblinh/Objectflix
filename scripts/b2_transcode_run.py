@@ -28,9 +28,13 @@ USE_WORKER_DOWNLOAD = os.environ.get("USE_WORKER_DOWNLOAD", "1") != "0"
 
 def http_download(bucket: str, key: str, dest: str) -> None:
     url = f"{MEDIA_BASE}/{bucket}/{key}"
-    request = urllib.request.Request(url, headers={"User-Agent": "objectflix-transcoder/1.0"})
-    with urllib.request.urlopen(request, timeout=300) as response, open(dest, "wb") as out:
-        shutil.copyfileobj(response, out)
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; objectflix-transcoder/1.0)"})
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response, open(dest, "wb") as out:
+            shutil.copyfileobj(response, out)
+    except urllib.error.HTTPError as exc:
+        body_head = exc.read(300).decode("utf-8", "replace").replace("\n", " ")
+        raise RuntimeError(f"{url} -> HTTP {exc.code}: {body_head}") from None
 
 
 def make_api(account_id: str):
