@@ -1,0 +1,68 @@
+name: Transcode AV1 -> H.264
+
+on:
+  workflow_dispatch:
+    inputs:
+      key:
+        description: "Optional: single B2 file key to transcode (empty = scan whole bucket)"
+        required: false
+        default: ""
+  repository_dispatch:
+    types: [transcode-request]
+
+concurrency:
+  group: transcode
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install b2sdk
+        run: pip install --quiet b2sdk
+
+      - name: Plan work list
+        id: plan
+        env:
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_BUCKET: ${{ vars.B2_BUCKET || 'objectflix-videos' }}
+          CHUNK_SIZE: "3"
+          SINGLE_KEY: ${{ github.event.inputs.key || github.event.client_payload.key || '' }}
+        run: python scripts/b2_transcode_plan.py
+
+  transcode:
+    needs: plan
+    if: ${{ needs.plan.outputs.count != '0' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install b2sdk
+        run: pip install --quiet b2sdk
+
+      - name: Transcode chunk
+        env:
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_BUCKET: ${{ vars.B2_BUCKET || 'objectflix-videos' }}
+          KEYS_JSON: ${{ toJSON(matrix.keys) }}
+        run: python scripts/b2_transcode_run.py

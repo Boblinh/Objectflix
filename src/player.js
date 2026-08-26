@@ -19,6 +19,41 @@ const JASSUB_CDN = "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist";
 
 const MEDIA_BUST = Date.now().toString(36);
 
+function supportsAV1() {
+  if (supportsAV1._result === undefined) {
+    const probe = document.createElement("video");
+    supportsAV1._result = [
+      'video/mp4; codecs="av01.0.05M.08"',
+      'video/mp4; codecs="av01.0.08M.08"',
+      'video/webm; codecs="av01.0.05M.08"',
+    ].some((type) => {
+      try {
+        return !!probe.canPlayType(type);
+      } catch {
+        return false;
+      }
+    });
+  }
+  return supportsAV1._result;
+}
+
+// Returns the .avc.mp4 twin URL when one exists upstream, else null.
+async function probeAvcTwin(url) {
+  try {
+    const candidate = new URL(url, window.location.href);
+    const stem = candidate.pathname.match(/^(.*)\.[a-z0-9]+$/i);
+    if (!stem || candidate.pathname.endsWith(".avc.mp4")) return null;
+    candidate.pathname = `${stem[1]}.avc.mp4`;
+    const response = await fetch(candidate.toString(), {
+      method: "GET",
+      headers: { Range: "bytes=0-0" },
+    });
+    return response.ok ? candidate.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export class ObjectflixPlayer {
   constructor({ video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, fakeDuration, audioMode, hrtfProfile, surroundIntensity, centerLevel, lfeLevel, audioPanel, audioPanelStatus, surroundIntensityValue, centerLevelValue, lfeLevelValue }) {
     this.elements = { video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, audioMode, hrtfProfile, surroundIntensity, centerLevel, lfeLevel, audioPanel, audioPanelStatus, surroundIntensityValue, centerLevelValue, lfeLevelValue };
@@ -92,9 +127,22 @@ export class ObjectflixPlayer {
     
     
     video.crossOrigin = "anonymous";
+    const loadToken = (this.state.loadToken = (this.state.loadToken || 0) + 1);
+    void this.startPlayback(src, subtitleUrl, loadToken);
+  }
+
+  async startPlayback(src, subtitleUrl, loadToken) {
+    const { video } = this.elements;
+
     let mediaSrc = src;
+    if (!supportsAV1()) {
+      const twin = await probeAvcTwin(src);
+      if (twin) mediaSrc = twin;
+    }
+    if (this.state.loadToken !== loadToken || this.state.destroyed) return;
+
     if (subtitleUrl) {
-      mediaSrc += (src.includes("?") ? "&" : "?") + "v=" + MEDIA_BUST;
+      mediaSrc += (mediaSrc.includes("?") ? "&" : "?") + "v=" + MEDIA_BUST;
     }
     video.src = mediaSrc;
     video.load();

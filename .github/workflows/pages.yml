@@ -46,7 +46,6 @@ jobs:
             --exclude 'player-test.html' \
             --exclude 'player-test.js' \
             --exclude 'audio-diag.*' \
-            --exclude 'audio-monitor.*' \
             --exclude 'probe-panner.html' \
             ./ _site/
 

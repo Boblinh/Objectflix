@@ -1,0 +1,123 @@
+"""Transcode a chunk of B2 video files to H.264/AAC twins.
+
+For each key in KEYS_JSON:
+  1. download the original to a temp dir
+  2. ffprobe it — skip if the video track is already H.264
+  3. ffmpeg -> <name>.avc.mp4 (yuv420p, faststart, AAC audio)
+  4. upload the twin back to the same bucket key path
+One bad file logs a warning and moves on; originals are never touched.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+from b2sdk.v2 import B2Api, InMemoryAccountInfo
+
+TWIN_SUFFIX = ".avc.mp4"
+
+
+def authorize():
+    info = InMemoryAccountInfo()
+    api = B2Api(info)
+    api.authorize_account(
+        "production",
+        os.environ["B2_APPLICATION_KEY_ID"],
+        os.environ["B2_APPLICATION_KEY"],
+    )
+    return api.get_bucket_by_name(os.environ["B2_BUCKET"])
+
+
+def video_codec(path: str) -> str:
+    result = subprocess.run(
+        [
+            "ffprobe", "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=codec_name",
+            "-of", "csv=p=0",
+            path,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip().lower()
+
+
+def transcode(src: str, dst: str) -> None:
+    subprocess.run(
+        [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+            "-i", src,
+            "-map", "0:v:0",
+            "-map", "0:a:0?",
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "20",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "160k",
+            "-movflags", "+faststart",
+            "-max_muxing_queue_size", "1024",
+            dst,
+        ],
+        check=True,
+    )
+
+
+def main() -> None:
+    keys = json.loads(os.environ["KEYS_JSON"])
+    bucket = authorize()
+
+    workdir = tempfile.mkdtemp(prefix="ofx-transcode-")
+    ok = failed = skipped = 0
+
+    try:
+        for key in keys:
+            stem = key.rsplit(".", 1)[0]
+            twin_key = stem + TWIN_SUFFIX
+            local_in = os.path.join(workdir, os.path.basename(key))
+            local_out = os.path.join(workdir, os.path.basename(twin_key))
+
+            try:
+                print(f"::group::{key}")
+                print("downloading…")
+                bucket.download_file_by_name(key).save_to(local_in)
+
+                codec = video_codec(local_in)
+                if codec in ("h264", "avc"):
+                    print(f"already H.264 ({codec}) — skipping")
+                    skipped += 1
+                    continue
+                print(f"source codec: {codec} -> transcoding")
+
+                transcode(local_in, local_out)
+
+                print(f"uploading {twin_key}…")
+                bucket.upload_local_file(
+                    local_file=local_out,
+                    file_name=twin_key,
+                )
+                ok += 1
+                print(f"done: {twin_key}")
+            except Exception as exc:  # noqa: BLE001 - keep chunk alive
+                failed += 1
+                print(f"::warning::FAILED {key}: {exc}")
+            finally:
+                for path in (local_in, local_out):
+                    if os.path.exists(path):
+                        os.remove(path)
+                print("::endgroup::")
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+    print(f"chunk summary: {ok} transcoded, {skipped} skipped (already H.264), {failed} failed")
+    # A fully failed chunk should surface in CI, partial failures stay green.
+    sys.exit(1 if ok == 0 and failed > 0 and skipped == 0 else 0)
+
+
+if __name__ == "__main__":
+    main()
