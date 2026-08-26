@@ -1,10 +1,10 @@
 """Transcode a chunk of B2 video files to H.264/AAC twins.
 
-For each key in KEYS_JSON:
+For each item {"bucket", "key"} in ITEMS_JSON:
   1. download the original to a temp dir
   2. ffprobe it — skip if the video track is already H.264
   3. ffmpeg -> <name>.avc.mp4 (yuv420p, faststart, AAC audio)
-  4. upload the twin back to the same bucket key path
+  4. upload the twin back into the same bucket
 One bad file logs a warning and moves on; originals are never touched.
 """
 
@@ -18,17 +18,6 @@ import tempfile
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 
 TWIN_SUFFIX = ".avc.mp4"
-
-
-def authorize():
-    info = InMemoryAccountInfo()
-    api = B2Api(info)
-    api.authorize_account(
-        "production",
-        os.environ["B2_APPLICATION_KEY_ID"],
-        os.environ["B2_APPLICATION_KEY"],
-    )
-    return api.get_bucket_by_name(os.environ["B2_BUCKET"])
 
 
 def video_codec(path: str) -> str:
@@ -69,14 +58,27 @@ def transcode(src: str, dst: str) -> None:
 
 
 def main() -> None:
-    keys = json.loads(os.environ["KEYS_JSON"])
-    bucket = authorize()
+    items = json.loads(os.environ["ITEMS_JSON"])
+    api = B2Api(InMemoryAccountInfo())
+    api.authorize_account(
+        "production",
+        os.environ["B2_APPLICATION_KEY_ID"],
+        os.environ["B2_APPLICATION_KEY"],
+    )
+    buckets = {}
+
+    def bucket_for(name: str):
+        if name not in buckets:
+            buckets[name] = api.get_bucket_by_name(name)
+        return buckets[name]
 
     workdir = tempfile.mkdtemp(prefix="ofx-transcode-")
     ok = failed = skipped = 0
 
     try:
-        for key in keys:
+        for item in items:
+            key = item["key"]
+            bucket = bucket_for(item["bucket"])
             stem = key.rsplit(".", 1)[0]
             twin_key = stem + TWIN_SUFFIX
             local_in = os.path.join(workdir, os.path.basename(key))
