@@ -526,11 +526,7 @@
       }
 
       if (!showId && showAcronym) {
-        const acro = showAcronym.toUpperCase();
-        const found = state.library.find((entry) => {
-          const a = SHARED.acronymFor(entry);
-          return a === acro || entry.title.toLowerCase().includes(showAcronym.toLowerCase());
-        });
+        const found = SHARED.findShow(state.library, showAcronym);
         if (!found) {
           renderShowNotFound(`Show "${showAcronym}" not found.`);
           return;

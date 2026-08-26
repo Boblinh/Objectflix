@@ -410,14 +410,11 @@ Accuracy rules (critical):
     },
     SWITCH(showAcronym, epNumber) {
       const w = window.OBJECTFLIX_WATCH;
-      const acronym = (showAcronym || '').toUpperCase();
+      const query = (showAcronym || '').trim();
 
       
-      if (w?.library) {
-        const item = w.library.find((entry) => {
-          const a = w.SHARED.acronymFor(entry);
-          return a === acronym || entry.title.toLowerCase().includes(acronym.toLowerCase());
-        });
+      if (w?.library && w?.SHARED?.findShow) {
+        const item = w.SHARED.findShow(w.library, query);
         if (!item) return false;
         if (epNumber) {
           const ep = item.episodes.find((e) => String(e.episodeNumber) === String(epNumber));
@@ -434,9 +431,9 @@ Accuracy rules (critical):
       const shows = JSON.parse(sessionStorage.getItem('objectflix_last_library') || 'null') || [];
       
       if (epNumber) {
-        window.location.href = `watch.html?show=${encodeURIComponent(acronym)}&ep=${epNumber}`;
+        window.location.href = `watch.html?show=${encodeURIComponent(query)}&ep=${epNumber}`;
       } else {
-        window.location.href = `watch.html?show=${encodeURIComponent(acronym)}`;
+        window.location.href = `watch.html?show=${encodeURIComponent(query)}`;
       }
       return true;
     }

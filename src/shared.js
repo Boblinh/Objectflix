@@ -72,7 +72,73 @@
     if (t.includes('bfdie')) return 'BFDIE';
     if (t.includes('bfdi')) return 'BFDI';
     if (t.includes('idfb')) return 'IDFB';
+    if (t.includes('inanimate insani') || t === 'ii') return 'II';
     return '';
+  }
+
+  function normalizeTokens(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  }
+
+  function levenshtein(a, b) {
+    const m = a.length;
+    const n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    let prev = new Array(n + 1);
+    let curr = new Array(n + 1);
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      curr[0] = i;
+      for (let j = 1; j <= n; j++) {
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      [prev, curr] = [curr, prev];
+    }
+    return prev[n];
+  }
+
+  function tokensRoughlyEqual(a, b) {
+    if (a === b) return true;
+    const min = Math.min(a.length, b.length);
+    if (min >= 5 && a.slice(0, min - 2) === b.slice(0, min - 2)) return true;
+    if (Math.abs(a.length - b.length) <= 2 && levenshtein(a, b) <= 2) return true;
+    return false;
+  }
+
+  function findShow(library, query) {
+    const q = String(query || '').trim();
+    if (!q || !Array.isArray(library)) return null;
+
+    const byId = library.find((entry) => entry.id === query);
+    if (byId) return byId;
+
+    const acro = q.toUpperCase();
+    const byAcro = library.find((entry) => acronymFor(entry) === acro);
+    if (byAcro) return byAcro;
+
+    const ql = q.toLowerCase();
+    const bySubstring = library.find((entry) => {
+      const t = entry.title.toLowerCase();
+      return t.includes(ql) || ql.includes(t);
+    });
+    if (bySubstring) return bySubstring;
+
+    const qTokens = normalizeTokens(q);
+    if (!qTokens.length) return null;
+    let best = null;
+    let bestScore = 0;
+    for (const entry of library) {
+      const tTokens = normalizeTokens(entry.title);
+      if (!tTokens.length) continue;
+      const matched = qTokens.filter((qt) => tTokens.some((tt) => tokensRoughlyEqual(qt, tt))).length;
+      const score = matched / qTokens.length;
+      if (score > bestScore) {
+        bestScore = score;
+        best = entry;
+      }
+    }
+    return bestScore >= 0.6 ? best : null;
   }
 
   const LOGO_FILES = {
@@ -436,6 +502,7 @@
     paletteFor,
     formatEpisodeMeta,
     acronymFor,
+    findShow,
     logoFor,
     buildCatalogItem,
     loadLibrary,
