@@ -9,7 +9,7 @@ const root = new URL("..", import.meta.url);
 const envPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), ".env");
 const outPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), "src", "env.js");
 
-const KEYS = ["GEMINI_API_KEY", "GROQ_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "ARG_SECRET"];
+const KEYS = ["GEMINI_API_KEY", "GROQ_API_KEY", "PROJECT_ARES_API_KEY", "CALLMISSED_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "ARG_SECRET"];
 
 const values = {};
 for (const key of KEYS) values[key] = "";

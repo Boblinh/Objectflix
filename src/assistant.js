@@ -2,6 +2,12 @@
 
 
 (() => {
+  // Debug logging is suppressed on GitHub Pages builds; kept for locally hosted
+  // instances (localhost / 127.0.0.1 / objectflix.com served from own machine).
+  const IS_GITHUB_PAGES = /(^|\.)github\.io$/i.test(window.location.hostname);
+  const debugLog = (...args) => { if (!IS_GITHUB_PAGES) console.log(...args); };
+  const debugWarn = (...args) => { if (!IS_GITHUB_PAGES) console.warn(...args); };
+
   const ASSISTANT_STATE_KEY = 'objectflix_assistant_active';
   const HISTORIES_KEY = 'objectflix_assistant_histories';
 
@@ -93,7 +99,7 @@
     const idx = getCurrentKeyIndex();
     const next = (idx + 1) % keys.length;
     setCurrentKeyIndex(next);
-    console.log(`[AI] Rotated to key index ${next} (of ${keys.length})`);
+    debugLog(`[AI] Rotated to key index ${next} (of ${keys.length})`);
     return keys[next];
   }
 
@@ -516,7 +522,7 @@ Accuracy rules (critical):
         if (deadKeys.has(keyNum)) { keyIdx++; continue; }
 
         try {
-          console.log(`[AI] Trying ${model} on ${baseUrl} with key index ${keyNum}...`);
+          debugLog(`[AI] Trying ${model} on ${baseUrl} with key index ${keyNum}...`);
           const body = { model, messages: apiMessages };
           // Groq's gpt-oss models support a server-side browser search tool
           // (powered by Exa). No tool_choice override: the model decides when
@@ -536,8 +542,8 @@ Accuracy rules (critical):
 
           const data = await res.json();
           if (res.ok && data.choices && data.choices[0]?.message?.content) {
-            console.log(`[AI] ${model} succeeded on ${baseUrl}`);
-            console.log(`[AI] Raw response:`, data);
+            debugLog(`[AI] ${model} succeeded on ${baseUrl}`);
+            debugLog(`[AI] Raw response:`, data);
             setKeyIndex(keyNum);
             return data.choices[0].message.content;
           }
@@ -545,25 +551,17 @@ Accuracy rules (critical):
           const status = res.status;
           const errMsg = data.error?.message || `HTTP ${status}`;
 
-          if (status === 429 || status === 503) {
-            console.warn(`[AI] ${model} rate-limited on ${baseUrl} key ${keyNum}: ${errMsg}`);
+          if (isRetryableError(status, errMsg)) {
+            debugWarn(`[AI] ${model} retryable error on ${baseUrl} key ${keyNum}: ${errMsg}`);
             deadKeys.add(keyNum);
             keyIdx++;
             modelKeyAttempts++;
             continue;
           }
 
-          if (status === 400 || status === 401 || status === 403) {
-            console.error(`[AI] Permanent error on ${model} (${baseUrl} key ${keyNum}, ${status}): ${errMsg}`);
-            deadKeys.add(keyNum);
-            keyIdx++;
-            modelKeyAttempts++;
-            continue;
-          }
-
-          console.warn(`[AI] ${model} failed on ${baseUrl}: ${status} ${errMsg}`);
+          console.error(`[AI] ${model} failed on ${baseUrl} key ${keyNum}: ${status} ${errMsg}`);
         } catch (netErr) {
-          console.warn(`[AI] ${model} network error on ${baseUrl}:`, netErr.message);
+          debugWarn(`[AI] ${model} network error on ${baseUrl}:`, netErr.message);
         }
 
         keyIdx++;
@@ -571,7 +569,84 @@ Accuracy rules (critical):
       }
 
       if (deadKeys.size >= keys.length) {
-        console.warn(`[AI] All keys exhausted on ${baseUrl}, trying next provider`);
+        debugWarn(`[AI] All keys exhausted on ${baseUrl}, trying next provider`);
+        break;
+      }
+    }
+    return null;
+  }
+
+  function isRetryableError(status, errMsg) {
+    if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) return true;
+    if (typeof errMsg === 'string' && /credit|billing|quota|plan|insufficient|payment/i.test(errMsg)) return true;
+    return false;
+  }
+
+  async function tryMessagesProtocol(apiMessages, baseUrl, keys, getKeyIndex, setKeyIndex, models) {
+    const modelList = Array.isArray(models) ? models : [models];
+    const deadKeys = new Set();
+    let keyIdx = getKeyIndex();
+
+    let systemText = '';
+    const messages = [];
+    for (const m of apiMessages) {
+      if (m.role === 'system') {
+        systemText = systemText ? `${systemText}\n\n${m.content}` : m.content;
+      } else {
+        messages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    for (let i = 0; i < modelList.length; i++) {
+      const model = modelList[i];
+
+      for (let attempt = 0; attempt < keys.length; attempt++) {
+        const apiKey = keys[keyIdx % keys.length];
+        const keyNum = keyIdx % keys.length;
+        if (deadKeys.has(keyNum)) { keyIdx++; continue; }
+
+        try {
+          debugLog(`[AI] Trying ${model} on ${baseUrl} (messages protocol) with key index ${keyNum}...`);
+          const body = { model, max_tokens: 4096, messages };
+          if (systemText) body.system = systemText;
+
+          const res = await fetch(`${baseUrl}/v1/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify(body),
+          });
+
+          const data = await res.json();
+          if (res.ok && data.content && data.content[0]?.text) {
+            debugLog(`[AI] ${model} succeeded on ${baseUrl}`);
+            setKeyIndex(keyNum);
+            return data.content[0].text;
+          }
+
+          const status = data.error?.status || res.status;
+          const errMsg = data.error?.message || `HTTP ${res.status}`;
+
+          if (isRetryableError(status, errMsg)) {
+            debugWarn(`[AI] ${model} retryable error on ${baseUrl} key ${keyNum}: ${errMsg}`);
+            deadKeys.add(keyNum);
+            keyIdx++;
+            continue;
+          }
+
+          debugWarn(`[AI] ${model} failed on ${baseUrl}: ${status} ${errMsg}`);
+        } catch (netErr) {
+          debugWarn(`[AI] ${model} network error on ${baseUrl}:`, netErr.message);
+        }
+
+        keyIdx++;
+      }
+
+      if (deadKeys.size >= keys.length) {
+        debugWarn(`[AI] All keys exhausted on ${baseUrl}, trying next provider`);
         break;
       }
     }
@@ -641,7 +716,7 @@ Accuracy rules (critical):
             const apiKey = allKeys[keyIdx % allKeys.length];
 
             try {
-              console.log(`[AI] Trying ${model} with key index ${keyIdx % allKeys.length}...`);
+              debugLog(`[AI] Trying ${model} with key index ${keyIdx % allKeys.length}...`);
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -653,8 +728,8 @@ Accuracy rules (critical):
 
               const data = await res.json();
               if (res.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                console.log(`[AI] ${model} succeeded`);
-                console.log(`[AI] Raw response:`, data);
+                debugLog(`[AI] ${model} succeeded`);
+                debugLog(`[AI] Raw response:`, data);
                 setCurrentKeyIndex(keyIdx % allKeys.length);
                 return data.candidates[0].content.parts[0].text;
               }
@@ -663,7 +738,7 @@ Accuracy rules (critical):
               const errMsg = data.error?.message || `HTTP ${status}`;
 
               if (status === 429 || status === 503) {
-                console.warn(`[AI] ${model} rate-limited on key ${keyIdx % allKeys.length}: ${errMsg}`);
+                debugWarn(`[AI] ${model} rate-limited on key ${keyIdx % allKeys.length}: ${errMsg}`);
                 keyIdx++;
                 modelKeyAttempts++;
                 continue;
@@ -676,9 +751,9 @@ Accuracy rules (critical):
                 continue;
               }
 
-              console.warn(`[AI] ${model} failed: ${status} ${errMsg}`);
+              debugWarn(`[AI] ${model} failed: ${status} ${errMsg}`);
             } catch (netErr) {
-              console.warn(`[AI] ${model} failed with network/timeout error:`, netErr.message);
+              debugWarn(`[AI] ${model} failed with network/timeout error:`, netErr.message);
             }
 
             keyIdx++;
@@ -686,7 +761,7 @@ Accuracy rules (critical):
           }
 
           if (modelKeyAttempts >= allKeys.length) {
-            console.warn(`[AI] All keys failed on ${model}, trying next model`);
+            debugWarn(`[AI] All keys failed on ${model}, trying next model`);
           }
         }
       } else {
@@ -701,22 +776,40 @@ Accuracy rules (critical):
 
       
       const fallbacks = window.OBJECTFLIX_CONFIG?.ai?.fallbacks || [];
+      const lastUserMsg = aiMessages.findLast((m) => m.role === 'user')?.content || '';
+      const wantsLuna = /\bgpt[\s-]*5\.?6[\s-]*luna\b/i.test(lastUserMsg) || /\bluna\b/i.test(lastUserMsg);
+
       for (const fb of fallbacks) {
         const fbKeys = getProviderKeys(fb);
         if (fbKeys.length === 0) {
-          console.log(`[AI] Skipping ${fb.name}: no API key configured`);
+          debugLog(`[AI] Skipping ${fb.name}: no API key configured`);
+          continue;
+        }
+        if (wantsLuna && fb.models && !fb.models.some((m) => /gpt[\s-]*5\.?6[\s-]*luna/i.test(m))) {
+          debugLog(`[AI] Skipping ${fb.name}: no gpt-5.6-luna support`);
           continue;
         }
         const apiMessages = [
           { role: 'system', content: `${systemPrompt}\n\n${contextStr}` },
           ...messages.map((m) => ({ role: m.role, content: m.content }))
         ];
-        const result = await tryOpenAICompatible(
-          apiMessages, fb.baseUrl, fbKeys,
-          () => getProviderKeyIndex(fb.id),
-          (i) => setProviderKeyIndex(fb.id, i),
-          fb.models
-        );
+
+        let result;
+        if (fb.protocol === 'messages') {
+          result = await tryMessagesProtocol(
+            apiMessages, fb.baseUrl, fbKeys,
+            () => getProviderKeyIndex(fb.id),
+            (i) => setProviderKeyIndex(fb.id, i),
+            fb.models
+          );
+        } else {
+          result = await tryOpenAICompatible(
+            apiMessages, fb.baseUrl, fbKeys,
+            () => getProviderKeyIndex(fb.id),
+            (i) => setProviderKeyIndex(fb.id, i),
+            fb.models
+          );
+        }
         if (result) return result;
       }
       return null;

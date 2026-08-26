@@ -10,6 +10,9 @@ src/env.js
 # Node
 node_modules/
 
+# Cloudflare Wrangler local state
+.wrangler/
+
 # Local test media (episodes are stored in B2, not the repo)
 assets/video/
 

@@ -90,6 +90,30 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
         ]),
       }),
       Object.freeze({
+        id: "ares",
+        name: "Project Ares",
+        baseUrl: "https://api.projectares.ai",
+        envKey: "PROJECT_ARES_API_KEY",
+        protocol: "messages",
+        models: Object.freeze([
+          "gpt-5.6-luna",
+          "gpt-5",
+          "claude-sonnet-4-20250514",
+          "ares-mock",
+        ]),
+      }),
+      Object.freeze({
+        id: "callmissed",
+        name: "CallMissed",
+        baseUrl: "https://api.callmissed.com/v1",
+        envKey: "CALLMISSED_API_KEY",
+        models: Object.freeze([
+          "gpt-5.6-luna",
+          "kimi-k2.5",
+          "glm-5",
+        ]),
+      }),
+      Object.freeze({
         id: "cerebras",
         name: "Cerebras",
         baseUrl: "https://api.cerebras.ai/v1",
