@@ -1,11 +1,13 @@
 """Transcode a chunk of B2 video files to H.264/AAC twins.
 
-For each item {"bucket", "key"} in ITEMS_JSON:
-  1. download the original to a temp dir
-  2. ffprobe it — skip if the video track is already H.264
-  3. ffmpeg -> <name>.avc.mp4 (yuv420p, faststart, AAC audio)
-  4. upload the twin back into the same bucket
-One bad file logs a warning and moves on; originals are never touched.
+ITEMS_JSON is a list of {"account", "bucket", "key"} items produced by the
+plan job. Account "1" uses B2_APPLICATION_KEY_ID/KEY, account "2" uses
+B2_APPLICATION_KEY_ID_2/B2_APPLICATION_KEY_2.
+
+Per item: download original -> ffprobe (skip if already H.264) ->
+ffmpeg to <name>.avc.mp4 (yuv420p, faststart, AAC) -> upload twin into
+the same bucket. One bad file logs a warning and moves on; originals are
+never touched.
 """
 
 import json
@@ -18,6 +20,19 @@ import tempfile
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 
 TWIN_SUFFIX = ".avc.mp4"
+
+
+def make_api(account_id: str):
+    if account_id == "2":
+        key_id = os.environ["B2_APPLICATION_KEY_ID_2"]
+        app_key = os.environ["B2_APPLICATION_KEY_2"]
+    else:
+        key_id = os.environ["B2_APPLICATION_KEY_ID"]
+        app_key = os.environ["B2_APPLICATION_KEY"]
+    info = InMemoryAccountInfo()
+    api = B2Api(info)
+    api.authorize_account("production", key_id, app_key)
+    return api
 
 
 def video_codec(path: str) -> str:
@@ -59,18 +74,15 @@ def transcode(src: str, dst: str) -> None:
 
 def main() -> None:
     items = json.loads(os.environ["ITEMS_JSON"])
-    api = B2Api(InMemoryAccountInfo())
-    api.authorize_account(
-        "production",
-        os.environ["B2_APPLICATION_KEY_ID"],
-        os.environ["B2_APPLICATION_KEY"],
-    )
+    apis = {}
     buckets = {}
 
-    def bucket_for(name: str):
-        if name not in buckets:
-            buckets[name] = api.get_bucket_by_name(name)
-        return buckets[name]
+    def bucket_for(account_id: str, name: str):
+        if account_id not in apis:
+            apis[account_id] = make_api(account_id)
+        if (account_id, name) not in buckets:
+            buckets[(account_id, name)] = apis[account_id].get_bucket_by_name(name)
+        return buckets[(account_id, name)]
 
     workdir = tempfile.mkdtemp(prefix="ofx-transcode-")
     ok = failed = skipped = 0
@@ -78,7 +90,8 @@ def main() -> None:
     try:
         for item in items:
             key = item["key"]
-            bucket = bucket_for(item["bucket"])
+            account_id = str(item.get("account", "1"))
+            bucket = bucket_for(account_id, item["bucket"])
             stem = key.rsplit(".", 1)[0]
             twin_key = stem + TWIN_SUFFIX
             local_in = os.path.join(workdir, os.path.basename(key))

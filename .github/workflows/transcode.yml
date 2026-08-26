@@ -35,7 +35,10 @@ jobs:
         env:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
-          B2_BUCKETS: ${{ vars.B2_BUCKETS || '' }}
+          B2_ACCOUNT_1_BUCKETS: ${{ vars.B2_ACCOUNT_1_BUCKETS || 'objectflix-videos' }}
+          B2_APPLICATION_KEY_ID_2: ${{ secrets.B2_APPLICATION_KEY_ID_2 }}
+          B2_APPLICATION_KEY_2: ${{ secrets.B2_APPLICATION_KEY_2 }}
+          B2_ACCOUNT_2_BUCKETS: ${{ vars.B2_ACCOUNT_2_BUCKETS || 'objectflix-videos-2' }}
           CHUNK_SIZE: "3"
           SINGLE_KEY: ${{ github.event.inputs.key || github.event.client_payload.key || '' }}
         run: python scripts/b2_transcode_plan.py
@@ -63,5 +66,7 @@ jobs:
         env:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_APPLICATION_KEY_ID_2: ${{ secrets.B2_APPLICATION_KEY_ID_2 }}
+          B2_APPLICATION_KEY_2: ${{ secrets.B2_APPLICATION_KEY_2 }}
           ITEMS_JSON: ${{ toJSON(matrix.items) }}
         run: python scripts/b2_transcode_run.py
