@@ -24,6 +24,9 @@ TWIN_SUFFIX = ".avc.mp4"
 
 MEDIA_BASE = os.environ.get("MEDIA_BASE", "").rstrip("/")
 USE_WORKER_DOWNLOAD = os.environ.get("USE_WORKER_DOWNLOAD", "1") != "0"
+# Direct B2 downloads count against the account's daily bandwidth cap.
+# Keep this off unless you have raised the cap / added a payment method.
+ALLOW_DIRECT_DOWNLOAD = os.environ.get("ALLOW_DIRECT_DOWNLOAD", "0") == "1"
 
 
 def http_download(bucket: str, key: str, dest: str) -> None:
@@ -123,8 +126,14 @@ def main() -> None:
                     except Exception as exc:  # noqa: BLE001
                         print(f"::warning::worker download failed ({exc}); falling back to direct B2")
                 if not downloaded:
-                    print("downloading direct from B2…")
-                    bucket.download_file_by_name(key).save_to(local_in)
+                    if ALLOW_DIRECT_DOWNLOAD:
+                        print("downloading direct from B2…")
+                        bucket.download_file_by_name(key).save_to(local_in)
+                    else:
+                        raise RuntimeError(
+                            "worker download failed and direct-B2 fallback is disabled "
+                            "(ALLOW_DIRECT_DOWNLOAD != 1) to protect the daily bandwidth cap"
+                        )
 
                 codec = video_codec(local_in)
                 if codec in ("h264", "avc"):

@@ -9,6 +9,10 @@ on:
         default: ""
   repository_dispatch:
     types: [transcode-request]
+  # Cap-friendly backlog drain: runs are resumable (twins are skipped),
+  # so each pass makes progress without exceeding B2's daily bandwidth cap.
+  schedule:
+    - cron: "23 */6 * * *"
 
 concurrency:
   group: transcode
