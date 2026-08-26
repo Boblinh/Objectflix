@@ -16,10 +16,21 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.request
 
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 
 TWIN_SUFFIX = ".avc.mp4"
+
+MEDIA_BASE = os.environ.get("MEDIA_BASE", "").rstrip("/")
+USE_WORKER_DOWNLOAD = os.environ.get("USE_WORKER_DOWNLOAD", "1") != "0"
+
+
+def http_download(bucket: str, key: str, dest: str) -> None:
+    url = f"{MEDIA_BASE}/{bucket}/{key}"
+    request = urllib.request.Request(url, headers={"User-Agent": "objectflix-transcoder/1.0"})
+    with urllib.request.urlopen(request, timeout=300) as response, open(dest, "wb") as out:
+        shutil.copyfileobj(response, out)
 
 
 def make_api(account_id: str):
@@ -99,8 +110,17 @@ def main() -> None:
 
             try:
                 print(f"::group::{key}")
-                print("downloading…")
-                bucket.download_file_by_name(key).save_to(local_in)
+                downloaded = False
+                if USE_WORKER_DOWNLOAD and MEDIA_BASE:
+                    try:
+                        print("downloading via Cloudflare Worker…")
+                        http_download(item["bucket"], key, local_in)
+                        downloaded = True
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"::warning::worker download failed ({exc}); falling back to direct B2")
+                if not downloaded:
+                    print("downloading direct from B2…")
+                    bucket.download_file_by_name(key).save_to(local_in)
 
                 codec = video_codec(local_in)
                 if codec in ("h264", "avc"):

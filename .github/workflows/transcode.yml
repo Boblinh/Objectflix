@@ -74,5 +74,7 @@ jobs:
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
           B2_APPLICATION_KEY_ID_2: ${{ secrets.B2_APPLICATION_KEY_ID_2 }}
           B2_APPLICATION_KEY_2: ${{ secrets.B2_APPLICATION_KEY_2 }}
+          MEDIA_BASE: ${{ vars.MEDIA_BASE || 'https://objectflix-api.boblinh.workers.dev/media' }}
+          USE_WORKER_DOWNLOAD: ${{ vars.USE_WORKER_DOWNLOAD || '1' }}
           ITEMS_JSON: ${{ toJSON(matrix.items) }}
         run: python scripts/b2_transcode_run.py
