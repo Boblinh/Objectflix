@@ -148,7 +148,20 @@ async function serveMedia(request, env, ctx, url, origin) {
     headers: upstreamHeaders,
   });
   if (!upstream.ok && upstream.status !== 206) {
-    return json({ error: `Upstream ${upstream.status}` }, upstream.status === 404 ? 404 : 502, origin);
+    // Surface B2's own error code (e.g. download_cap_exceeded) instead of a bare status.
+    let detail = "";
+    try {
+      const body = await upstream.text();
+      const parsed = JSON.parse(body);
+      detail = parsed.code ? `${parsed.code}: ${parsed.message || ""}` : body.slice(0, 300);
+    } catch {
+      detail = "";
+    }
+    return json(
+      { error: `Upstream ${upstream.status}${detail ? ` — ${detail}` : ""}` },
+      upstream.status === 404 ? 404 : 502,
+      origin
+    );
   }
 
   const headers = new Headers();

@@ -144,7 +144,15 @@ def main() -> None:
                 print(f"done: {twin_key}")
             except Exception as exc:  # noqa: BLE001 - keep chunk alive
                 failed += 1
-                print(f"::warning::FAILED {key}: {exc}")
+                message = str(exc)
+                print(f"::warning::FAILED {key}: {message}")
+                if "cap_exceeded" in message or "download_cap" in message:
+                    print(
+                        "::error::B2 download cap is exhausted for this account. "
+                        "Raise/remove the cap in Backblaze Caps & Alerts or wait for the UTC reset, "
+                        "then re-run the workflow. Stopping this chunk early — remaining files would fail identically."
+                    )
+                    sys.exit(2)
             finally:
                 for path in (local_in, local_out):
                     if os.path.exists(path):
