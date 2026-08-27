@@ -22,8 +22,8 @@ function json(data, status, origin) {
 
 async function authorize(env) {
   const body = new URLSearchParams({
-    account_id: env.B2_APPLICATION_KEY_ID,
-    application_key: env.B2_APPLICATION_KEY,
+    account_id: env.B2_APPLICATION_KEY_ID_OLD,
+    application_key: env.B2_APPLICATION_KEY_OLD,
   });
   const res = await fetch(B2_AUTHORIZE_URL, {
     method: "POST",
@@ -75,12 +75,12 @@ function isAuthorized(request, env) {
 // GET /media/<key>            legacy: default (account 1) bucket
 //
 // Buckets may live on two Backblaze accounts:
-//   account 1: B2_APPLICATION_KEY_ID/_KEY        -> B2_BUCKET_NAME
+//   account 1: B2_APPLICATION_KEY_ID_OLD/_KEY_OLD  -> B2_BUCKET_NAME
 //   account 2: B2_APPLICATION_KEY_ID_2/_KEY_2    -> B2_BUCKET_NAME_2
 
 const MEDIA_ACCOUNT_CONFIG = [
-  { id: "1", keyId: "B2_APPLICATION_KEY_ID", appKey: "B2_APPLICATION_KEY", bucket: "B2_BUCKET_NAME" },
-  { id: "2", keyId: "B2_APPLICATION_KEY_ID_2", appKey: "B2_APPLICATION_KEY_2", bucket: "B2_BUCKET_NAME_2" },
+  { id: "1", keyId: "B2_APPLICATION_KEY_ID_OLD", appKey: "B2_APPLICATION_KEY_OLD", bucket: "B2_BUCKET_NAME" },
+  { id: "2", keyId: "B2_APPLICATION_KEY_ID", appKey: "B2_APPLICATION_KEY", bucket: "B2_BUCKET_NAME_2" },
 ];
 
 const mediaAuthCache = {};
@@ -113,7 +113,7 @@ function resolveMediaAccount(env, bucket) {
   for (const cfg of MEDIA_ACCOUNT_CONFIG) {
     if (bucket && env[cfg.bucket] === bucket && env[cfg.keyId] && env[cfg.appKey]) return cfg.id;
   }
-  if ((!bucket || bucket === env.B2_BUCKET_NAME) && env.B2_APPLICATION_KEY_ID && env.B2_APPLICATION_KEY) return "1";
+  if ((!bucket || bucket === env.B2_BUCKET_NAME) && env.B2_APPLICATION_KEY_ID_OLD && env.B2_APPLICATION_KEY_OLD) return "1";
   return null;
 }
 
