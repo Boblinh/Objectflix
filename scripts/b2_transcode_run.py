@@ -30,7 +30,9 @@ ALLOW_DIRECT_DOWNLOAD = os.environ.get("ALLOW_DIRECT_DOWNLOAD", "0") == "1"
 
 
 def http_download(bucket: str, key: str, dest: str) -> None:
-    url = f"{MEDIA_BASE}/{bucket}/{key}"
+    # Use legacy /media/<key> format — the Worker resolves bucket 1 by
+    # default and the explicit-bucket route has an auth routing bug.
+    url = f"{MEDIA_BASE}/{key}"
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; objectflix-transcoder/1.0)"})
     try:
         with urllib.request.urlopen(request, timeout=300) as response, open(dest, "wb") as out:
