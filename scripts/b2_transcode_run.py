@@ -176,6 +176,16 @@ def main() -> None:
                 if upload_ok:
                     ok += 1
                     print(f"done: {twin_key}")
+                    # Clean up: delete the original AV1 file from the bucket it came from
+                    original_bucket_name = item.get("bucket")
+                    original_account_id = item.get("account", "1")
+                    try:
+                        orig_bucket = bucket_for(original_account_id, original_bucket_name)
+                        print(f"deleting original {key} from {original_bucket_name}…")
+                        orig_bucket.delete_file_by_name(key)
+                        print(f"deleted original {key}")
+                    except Exception as del_exc:
+                        print(f"::warning::Could not delete original {key}: {del_exc}")
             except Exception as exc:  # noqa: BLE001 - keep chunk alive
                 failed += 1
                 message = str(exc)
