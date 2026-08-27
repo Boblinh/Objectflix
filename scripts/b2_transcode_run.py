@@ -147,12 +147,35 @@ def main() -> None:
                 transcode(local_in, local_out)
 
                 print(f"uploading {twin_key}…")
-                bucket.upload_local_file(
-                    local_file=local_out,
-                    file_name=twin_key,
-                )
-                ok += 1
-                print(f"done: {twin_key}")
+                upload_ok = False
+                # First try the bucket the item specifies
+                try:
+                    bucket.upload_local_file(
+                        local_file=local_out,
+                        file_name=twin_key,
+                    )
+                    upload_ok = True
+                except Exception as primary_exc:
+                    print(f"::warning::Upload to {bucket.name} failed ({primary_exc}); trying fallback bucket…")
+                    # Fallback: try the other account's bucket with the same name
+                    current_account = str(item.get("account", "1"))
+                    other_account = "2" if current_account == "1" else "1"
+                    other_bucket_name = item.get("bucket")
+                    try:
+                        other_bucket = bucket_for(other_account, other_bucket_name)
+                        other_bucket.upload_local_file(
+                            local_file=local_out,
+                            file_name=twin_key,
+                        )
+                        upload_ok = True
+                        print(f"::info::Upload succeeded on fallback bucket {other_bucket.name}")
+                    except Exception as fallback_exc:
+                        # Re-raise the original error so outer handler catches it
+                        raise primary_exc from None
+
+                if upload_ok:
+                    ok += 1
+                    print(f"done: {twin_key}")
             except Exception as exc:  # noqa: BLE001 - keep chunk alive
                 failed += 1
                 message = str(exc)
