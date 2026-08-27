@@ -329,6 +329,7 @@
     window.OBJECTFLIX_COMMUNITY?.openEpisodeRequest?.({
       title: state.item?.title || '',
       episodeNumber: String(state.episode?.episodeNumber ?? ''),
+      episodeTitle: state.episode?.title || '',
     });
   }
 

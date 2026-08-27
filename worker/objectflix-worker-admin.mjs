@@ -76,11 +76,11 @@ function isAuthorized(request, env) {
 //
 // Buckets may live on two Backblaze accounts:
 //   account 1: B2_APPLICATION_KEY_ID_OLD/_KEY_OLD  -> B2_BUCKET_NAME
-//   account 2: B2_APPLICATION_KEY_ID_2/_KEY_2    -> B2_BUCKET_NAME_2
+//   account 2: B2_APPLICATION_KEY_ID/_KEY          -> B2_BUCKET_NAME_NEW
 
 const MEDIA_ACCOUNT_CONFIG = [
   { id: "1", keyId: "B2_APPLICATION_KEY_ID_OLD", appKey: "B2_APPLICATION_KEY_OLD", bucket: "B2_BUCKET_NAME" },
-  { id: "2", keyId: "B2_APPLICATION_KEY_ID", appKey: "B2_APPLICATION_KEY", bucket: "B2_BUCKET_NAME_2" },
+  { id: "2", keyId: "B2_APPLICATION_KEY_ID", appKey: "B2_APPLICATION_KEY", bucket: "B2_BUCKET_NAME_NEW" },
 ];
 
 const mediaAuthCache = {};
@@ -119,7 +119,7 @@ function resolveMediaAccount(env, bucket) {
 
 async function serveMedia(request, env, ctx, url, origin) {
   const segments = url.pathname.slice("/media/".length).split("/").map(decodeURIComponent);
-  const configured = [env.B2_BUCKET_NAME, env.B2_BUCKET_NAME_2].filter(Boolean);
+  const configured = [env.B2_BUCKET_NAME, env.B2_BUCKET_NAME_NEW].filter(Boolean);
 
   let bucket = "";
   if (segments.length > 1 && configured.includes(segments[0])) {

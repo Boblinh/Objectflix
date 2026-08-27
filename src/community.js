@@ -273,6 +273,10 @@
   function requestEpisodeForm(prefill = {}) {
     const library = Array.isArray(window.OBJECTFLIX_LIBRARY) ? window.OBJECTFLIX_LIBRARY : [];
     const options = library.map((item) => `<option value="${escapeHtml(item.title)}"></option>`).join("");
+    const episodeValue = [prefill.episodeNumber, prefill.episodeTitle]
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .join(": ");
     return `
       <form id="communityForm" class="community-form" data-form-type="episode">
         <datalist id="communityShowOptions">${options}</datalist>
@@ -280,7 +284,7 @@
           <input class="community-input" name="title" required maxlength="120" list="communityShowOptions" placeholder="e.g. Battle for BFDI" value="${escapeHtml(prefill.title || "")}" />
         </label>
         <label class="community-label">Episode number or title
-          <input class="community-input" name="episodeNumber" required maxlength="120" placeholder="e.g. 6 or &quot;The Big Finale&quot;" value="${escapeHtml(prefill.episodeNumber || "")}" />
+          <input class="community-input" name="episodeNumber" required maxlength="120" placeholder="e.g. 6 or &quot;The Big Finale&quot;" value="${escapeHtml(episodeValue)}" />
         </label>
         <label class="community-label">Anything else? <span class="community-hint">(optional)</span>
           <textarea class="community-textarea" name="notes" maxlength="1000" placeholder="Extra details that could help us find it…"></textarea>
