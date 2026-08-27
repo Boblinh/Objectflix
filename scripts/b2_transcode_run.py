@@ -182,7 +182,15 @@ def main() -> None:
                     try:
                         orig_bucket = bucket_for(original_account_id, original_bucket_name)
                         print(f"deleting original {key} from {original_bucket_name}…")
-                        orig_bucket.delete_file_by_name(key)
+                        # Find the file version to get its fileId
+                        file_id = None
+                        for version, _folder in orig_bucket.ls(key):
+                            if version.file_name == key:
+                                file_id = version.file_id
+                                break
+                        if file_id is None:
+                            raise FileNotFoundError(f"File {key} not found in bucket {original_bucket_name}")
+                        orig_bucket.delete_file_version(file_id, key)
                         print(f"deleted original {key}")
                     except Exception as del_exc:
                         print(f"::warning::Could not delete original {key}: {del_exc}")
