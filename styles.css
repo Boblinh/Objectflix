@@ -1576,8 +1576,8 @@ h1 {
 .auth-card {
   position: relative;
   z-index: 1;
-  width: min(440px, 100%);
-  padding: 40px;
+  width: min(520px, 90vw);
+  padding: 48px 40px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: #131318;
