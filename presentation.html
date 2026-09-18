@@ -1,0 +1,2457 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08080b" />
+    <meta
+      name="description"
+      content="Bài thuyết trình dự án cuối kỳ Objectflix - nền tảng phát trực tuyến dành cho object show."
+    />
+    <title>Objectflix | Bài thuyết trình dự án cuối kỳ</title>
+
+    <style>
+      @font-face {
+        font-family: "Shag Lounge";
+        src: url("./assets/fonts/Shag-Lounge.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #08080b;
+        --surface: rgba(22, 22, 28, 0.85);
+        --surface-strong: rgba(29, 29, 36, 0.95);
+        --text: #f7f7f9;
+        --muted: #aaaab5;
+        --accent: #e50914;
+        --accent-light: #ff5964;
+        --line: rgba(255, 255, 255, 0.11);
+        --green: #57df8b;
+        --amber: #ffb54a;
+        --blue: #68b7ff;
+        --violet: #ac83ff;
+        --slide-pad: clamp(1.25rem, 5vw, 5.5rem);
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+
+      body {
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 10%, rgba(229, 9, 20, 0.11), transparent 26rem),
+          radial-gradient(circle at 86% 82%, rgba(76, 61, 162, 0.1), transparent 28rem),
+          var(--bg);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button {
+        color: inherit;
+        font: inherit;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible,
+      a:focus-visible {
+        outline: 3px solid rgba(255, 89, 100, 0.9);
+        outline-offset: 4px;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .presentation {
+        position: relative;
+        height: 100svh;
+        isolation: isolate;
+      }
+
+      .presentation::before {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background-image: url("./assets/backdrops/tpot.png");
+        background-position: center;
+        background-size: cover;
+        opacity: 0.035;
+        filter: saturate(0.4);
+        content: "";
+      }
+
+      .presentation::after {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask-image: linear-gradient(to bottom, black, transparent 85%);
+        content: "";
+      }
+
+      .topbar {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 68px;
+        padding: 0 clamp(1rem, 3.6vw, 3.5rem);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        background: linear-gradient(
+          180deg,
+          rgba(5, 5, 8, 0.93),
+          rgba(5, 5, 8, 0.58)
+        );
+        backdrop-filter: blur(18px);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.95rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+      }
+
+      .brand__mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 9px;
+        background: linear-gradient(145deg, var(--accent-light), #a90008);
+        box-shadow: 0 0 25px rgba(229, 9, 20, 0.42);
+        font-family: "Shag Lounge", Inter, sans-serif;
+        font-size: 1.25rem;
+        letter-spacing: 0;
+      }
+
+      .topbar__center {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .topbar__right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .demo-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid rgba(229, 9, 20, 0.5);
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.05em;
+        text-decoration: none;
+        box-shadow: 0 4px 18px rgba(229, 9, 20, 0.3);
+        transition:
+          transform 180ms ease,
+          background 180ms ease,
+          box-shadow 180ms ease;
+      }
+
+      .demo-btn:hover {
+        transform: translateY(-2px);
+        background: #ff1e2a;
+        box-shadow: 0 6px 22px rgba(229, 9, 20, 0.45);
+      }
+
+      .slides {
+        position: relative;
+        height: 100%;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        align-items: center;
+        min-height: 100%;
+        padding:
+          calc(68px + clamp(1rem, 3.5vh, 2.8rem))
+          var(--slide-pad)
+          calc(82px + clamp(1rem, 3vh, 2rem));
+        visibility: hidden;
+        overflow: hidden auto;
+        opacity: 0;
+        transform: translateX(7%) scale(0.985);
+        transition:
+          opacity 420ms ease,
+          transform 650ms var(--ease),
+          visibility 0s 650ms;
+      }
+
+      .slide.is-active {
+        z-index: 2;
+        visibility: visible;
+        opacity: 1;
+        transform: none;
+        transition:
+          opacity 460ms ease,
+          transform 650ms var(--ease),
+          visibility 0s;
+      }
+
+      .slide.was-active {
+        visibility: visible;
+        opacity: 0;
+        transform: translateX(-7%) scale(0.985);
+      }
+
+      .slide__inner {
+        width: min(1180px, 100%);
+        margin: auto;
+      }
+
+      .slide__inner--wide {
+        width: min(1280px, 100%);
+      }
+
+      .slide__inner--center {
+        text-align: center;
+      }
+
+      .slide-number {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 0.6rem;
+        color: var(--accent-light);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .slide-number::before {
+        width: 2.5rem;
+        height: 2px;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--accent);
+        content: "";
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        text-wrap: balance;
+      }
+
+      h2 {
+        margin-bottom: clamp(1rem, 2.5vh, 2rem);
+        font-size: clamp(1.85rem, 3.8vw, 3.8rem);
+        line-height: 1.05;
+        letter-spacing: -0.055em;
+      }
+
+      h3 {
+        margin-bottom: 0.4rem;
+        font-size: clamp(0.98rem, 1.45vw, 1.25rem);
+      }
+
+      p {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .accent {
+        color: var(--accent-light);
+      }
+
+      .lead {
+        max-width: 760px;
+        margin-bottom: 1.25rem;
+        font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+      }
+
+      .eyebrow {
+        margin-bottom: 0.7rem;
+        color: var(--accent-light);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+
+      .glass-card {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background:
+          linear-gradient(
+            145deg,
+            rgba(34, 34, 42, 0.85),
+            rgba(15, 15, 20, 0.78)
+          );
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(14px);
+      }
+
+      .glass-card::before {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background: linear-gradient(
+          115deg,
+          rgba(255, 255, 255, 0.06),
+          transparent 34%
+        );
+        content: "";
+      }
+
+      .icon {
+        display: inline-grid;
+        width: 2.5rem;
+        height: 2.5rem;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: rgba(229, 9, 20, 0.12);
+        color: var(--accent-light);
+      }
+
+      .icon svg {
+        width: 1.2rem;
+        height: 1.2rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .title-slide {
+        background:
+          linear-gradient(
+            90deg,
+            rgba(8, 8, 11, 0.99) 5%,
+            rgba(8, 8, 11, 0.87) 46%,
+            rgba(8, 8, 11, 0.34)
+          ),
+          linear-gradient(0deg, var(--bg), transparent 45%),
+          url("./assets/backdrops/bfdi.png") center 28% / cover;
+      }
+
+      .title-content {
+        max-width: 850px;
+      }
+
+      .title-logo {
+        position: relative;
+        display: inline-block;
+        margin: 0 0 0.3rem;
+        font-family: "Shag Lounge", Inter, sans-serif;
+        font-size: clamp(4rem, 11vw, 9.5rem);
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: -0.055em;
+        text-shadow:
+          0 0 34px rgba(229, 9, 20, 0.3),
+          0 8px 50px #000;
+      }
+
+      .title-logo::after {
+        position: absolute;
+        right: 0.04em;
+        bottom: -0.12em;
+        width: 42%;
+        height: 0.05em;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 20px rgba(229, 9, 20, 0.8);
+        content: "";
+      }
+
+      .title-kicker {
+        margin: 0.9rem 0 1.3rem;
+        color: #fff;
+        font-size: clamp(1.2rem, 2.3vw, 1.85rem);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+      }
+
+      .title-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.8rem;
+        color: var(--muted);
+      }
+
+      .term-pill {
+        padding: 0.55rem 0.9rem;
+        border: 1px solid rgba(255, 89, 100, 0.34);
+        border-radius: 999px;
+        background: rgba(229, 9, 20, 0.13);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .intro-grid,
+      .challenge-grid,
+      .ai-layout,
+      .cloud-layout {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: clamp(1.2rem, 3.5vw, 3.5rem);
+        align-items: center;
+      }
+
+      .intro-card {
+        min-height: 310px;
+        padding: clamp(1.2rem, 2.5vw, 2rem);
+        overflow: hidden;
+      }
+
+      .intro-card::after {
+        position: absolute;
+        right: -10%;
+        bottom: -24%;
+        width: 68%;
+        aspect-ratio: 1;
+        border: 1px solid rgba(229, 9, 20, 0.24);
+        border-radius: 50%;
+        box-shadow: 0 0 70px rgba(229, 9, 20, 0.14) inset;
+        content: "";
+      }
+
+      .play-orbit {
+        position: absolute;
+        right: 12%;
+        bottom: 13%;
+        display: grid;
+        width: 86px;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 48px rgba(229, 9, 20, 0.52);
+        font-size: 1.8rem;
+      }
+
+      .feature-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-top: 1.2rem;
+      }
+
+      .feature-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-height: 46px;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+        font-size: 0.84rem;
+        font-weight: 650;
+      }
+
+      .feature-chip::before {
+        width: 6px;
+        height: 6px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--accent-light);
+        box-shadow: 0 0 10px var(--accent);
+        content: "";
+      }
+
+      .tech-table {
+        display: grid;
+        grid-template-columns: 0.8fr 1.4fr;
+        overflow: hidden;
+      }
+
+      .tech-table > div {
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        padding: 0.75rem 1.2rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tech-table > div:nth-last-child(-n + 2) {
+        border-bottom: 0;
+      }
+
+      .tech-table__head {
+        min-height: 44px !important;
+        background: rgba(229, 9, 20, 0.13);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .tech-name {
+        gap: 0.7rem;
+        border-right: 1px solid var(--line);
+        font-weight: 800;
+      }
+
+      .tech-name span {
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border-radius: 7px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--accent-light);
+        font-size: 0.7rem;
+      }
+
+      .tech-purpose {
+        color: var(--muted);
+      }
+
+      .note-strip {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding: 0.9rem 1.1rem;
+        border-left: 3px solid var(--accent);
+        border-radius: 0 12px 12px 0;
+        background: rgba(229, 9, 20, 0.07);
+        color: #dedee3;
+        line-height: 1.45;
+        font-size: 0.9rem;
+      }
+
+      .timeline {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        padding-top: 2rem;
+      }
+
+      .timeline::before {
+        position: absolute;
+        top: 0.65rem;
+        right: 10%;
+        left: 10%;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          var(--accent),
+          var(--amber),
+          var(--blue),
+          var(--green)
+        );
+        opacity: 0.55;
+        content: "";
+      }
+
+      .phase {
+        position: relative;
+        min-height: 235px;
+        padding: 1.2rem;
+      }
+
+      .phase::before {
+        position: absolute;
+        top: -1.85rem;
+        left: 50%;
+        width: 14px;
+        height: 14px;
+        border: 4px solid var(--bg);
+        border-radius: 50%;
+        background: var(--phase-color, var(--accent));
+        box-shadow: 0 0 18px var(--phase-color, var(--accent));
+        content: "";
+        transform: translateX(-50%);
+      }
+
+      .phase__number {
+        display: block;
+        margin-bottom: 0.8rem;
+        color: var(--phase-color, var(--accent-light));
+        font-size: 0.74rem;
+        font-weight: 850;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .phase ul,
+      .simple-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .phase li,
+      .simple-list li {
+        position: relative;
+        margin-top: 0.55rem;
+        padding-left: 1rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+      }
+
+      .phase li::before,
+      .simple-list li::before {
+        position: absolute;
+        top: 0.54em;
+        left: 0;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--phase-color, var(--accent-light));
+        content: "";
+      }
+
+      .page-cards {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.9rem;
+      }
+
+      .page-card {
+        position: relative;
+        display: flex;
+        min-height: 270px;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.1rem;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background-position: center;
+        background-size: cover;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+        transition:
+          transform 250ms var(--ease),
+          border-color 250ms ease;
+      }
+
+      .page-card:hover {
+        z-index: 2;
+        border-color: rgba(255, 89, 100, 0.5);
+        transform: translateY(-8px) scale(1.02);
+      }
+
+      .page-card::before {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          rgba(8, 8, 11, 0.04),
+          rgba(8, 8, 11, 0.95) 84%
+        );
+        content: "";
+      }
+
+      .page-card > * {
+        position: relative;
+      }
+
+      .page-card .icon {
+        margin-bottom: auto;
+        background: rgba(8, 8, 11, 0.68);
+        backdrop-filter: blur(8px);
+      }
+
+      .page-card p {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+
+      .page-card:nth-child(1) {
+        background-image: url("./assets/backdrops/tpot.png");
+      }
+
+      .page-card:nth-child(2) {
+        background-image: url("./assets/backdrops/bfdia.png");
+      }
+
+      .page-card:nth-child(3) {
+        background-image: url("./assets/backdrops/bfb.png");
+      }
+
+      .page-card:nth-child(4) {
+        background-image: url("./assets/backdrops/idfb.png");
+      }
+
+      .page-card:nth-child(5) {
+        background-image: linear-gradient(145deg, #3b1719, #101014);
+      }
+
+      .ai-layout {
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 2rem;
+      }
+
+      .assistants-stack {
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .assistant-card {
+        padding: 1.15rem;
+        border-left: 4px solid var(--persona-color);
+      }
+
+      .assistant-card__head {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .assistant-avatar {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--persona-bg);
+        box-shadow: 0 0 20px color-mix(
+          in srgb,
+          var(--persona-color),
+          transparent 65%
+        );
+        font-size: 1.3rem;
+      }
+
+      .assistant-card p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #dedee3;
+      }
+
+      .assistant-card strong {
+        color: var(--persona-color);
+      }
+
+      .ai-chat-box {
+        padding: 1.3rem;
+      }
+
+      .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.9rem;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent-light);
+      }
+
+      .chat-bubble {
+        margin-bottom: 0.7rem;
+        padding: 0.75rem 0.9rem;
+        border-radius: 12px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+
+      .chat-bubble--user {
+        margin-left: 2rem;
+        background: rgba(255, 255, 255, 0.07);
+        color: #f7f7f9;
+        border-top-right-radius: 4px;
+      }
+
+      .chat-bubble--firey {
+        margin-right: 2rem;
+        background: rgba(255, 116, 72, 0.14);
+        border: 1px solid rgba(255, 116, 72, 0.28);
+        color: #ffb8a4;
+        border-top-left-radius: 4px;
+      }
+
+      .chat-bubble--leafy {
+        margin-right: 2rem;
+        background: rgba(87, 223, 139, 0.12);
+        border: 1px solid rgba(87, 223, 139, 0.26);
+        color: #9cebbf;
+        border-top-left-radius: 4px;
+      }
+
+      .context-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.9rem;
+      }
+
+      .context-badge {
+        padding: 0.35rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 600;
+      }
+
+      .context-badge strong {
+        color: #fff;
+      }
+
+      .challenge-grid {
+        align-items: stretch;
+      }
+
+      .challenge-panel {
+        padding: clamp(1.2rem, 2.5vw, 1.8rem);
+      }
+
+      .challenge-panel--solution {
+        border-color: rgba(87, 223, 139, 0.2);
+        background: linear-gradient(
+          145deg,
+          rgba(24, 53, 39, 0.52),
+          rgba(15, 18, 18, 0.78)
+        );
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .panel-title .icon--green {
+        background: rgba(87, 223, 139, 0.1);
+        color: var(--green);
+      }
+
+      .challenge-panel .simple-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.2rem 1rem;
+      }
+
+      .challenge-panel--solution .simple-list li::before {
+        background: var(--green);
+      }
+
+      .future-layout {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: clamp(1.2rem, 3.5vw, 3.5rem);
+        align-items: center;
+      }
+
+      .future-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .future-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 56px;
+        padding: 0.75rem 0.95rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+
+      .future-item span:first-child {
+        color: var(--accent-light);
+        font-size: 1.15rem;
+      }
+
+      .future-visual {
+        position: relative;
+        display: grid;
+        min-height: 290px;
+        place-items: center;
+      }
+
+      .future-ring {
+        position: absolute;
+        width: min(240px, 70%);
+        aspect-ratio: 1;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 50%;
+        box-shadow: 0 0 55px rgba(229, 9, 20, 0.1) inset;
+        animation: rotate 18s linear infinite;
+      }
+
+      .future-ring::before,
+      .future-ring::after {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 16px var(--accent);
+        content: "";
+      }
+
+      .future-ring::before {
+        top: 12%;
+        left: 12%;
+      }
+
+      .future-ring::after {
+        right: 4%;
+        bottom: 28%;
+        background: var(--blue);
+        box-shadow: 0 0 16px var(--blue);
+      }
+
+      .future-core {
+        z-index: 1;
+        display: grid;
+        width: 125px;
+        aspect-ratio: 1;
+        place-items: center;
+        border-radius: 32px;
+        background: linear-gradient(145deg, var(--accent-light), #a60008);
+        box-shadow: 0 0 60px rgba(229, 9, 20, 0.4);
+        font-family: "Shag Lounge", Inter, sans-serif;
+        font-size: 4rem;
+      }
+
+      .skills {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.65rem;
+        max-width: 880px;
+        margin: 0 auto 1.6rem;
+      }
+
+      .skill-pill {
+        padding: 0.65rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: #dfdfe5;
+        font-size: 0.86rem;
+        font-weight: 650;
+      }
+
+      .quote-card {
+        max-width: 880px;
+        margin: auto;
+        padding: clamp(1.3rem, 2.5vw, 2.2rem);
+        border-color: rgba(229, 9, 20, 0.25);
+        font-size: clamp(1rem, 1.8vw, 1.35rem);
+        font-weight: 600;
+        line-height: 1.5;
+      }
+
+      .quote-card::after {
+        position: absolute;
+        top: -0.8rem;
+        left: 1.2rem;
+        color: var(--accent);
+        font-family: Georgia, serif;
+        font-size: 4rem;
+        line-height: 1;
+        content: "“";
+      }
+
+      .qa-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+        max-width: 940px;
+        margin: auto;
+      }
+
+      .qa-card {
+        display: flex;
+        min-height: 115px;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.1rem 1.3rem;
+        text-align: left;
+        transition:
+          border-color 220ms ease,
+          transform 220ms var(--ease),
+          background 220ms ease;
+      }
+
+      .qa-card:hover {
+        border-color: rgba(255, 89, 100, 0.42);
+        background: linear-gradient(
+          145deg,
+          rgba(55, 25, 29, 0.82),
+          rgba(15, 15, 20, 0.8)
+        );
+        transform: translateY(-4px);
+      }
+
+      .qa-card__number {
+        color: rgba(255, 255, 255, 0.19);
+        font-size: 2.2rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .qa-card p {
+        margin: 0;
+        color: #f1f1f4;
+        font-size: clamp(0.92rem, 1.5vw, 1.1rem);
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .cloud-layout {
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 2rem;
+      }
+
+      .cloud-services {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      .cloud-service {
+        min-height: 115px;
+        padding: 1rem;
+      }
+
+      .cloud-service .service-icon {
+        display: block;
+        margin-bottom: 0.45rem;
+        font-size: 1.35rem;
+      }
+
+      .cloud-service h3 {
+        margin-bottom: 0.25rem;
+      }
+
+      .cloud-service p {
+        margin: 0;
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+
+      .architecture {
+        padding: clamp(1.1rem, 2.5vw, 1.8rem);
+      }
+
+      .architecture__legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-bottom: 1rem;
+      }
+
+      .legend-badge {
+        padding: 0.35rem 0.65rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .legend-badge--current {
+        border-color: rgba(87, 223, 139, 0.25);
+        color: var(--green);
+      }
+
+      .legend-badge--future {
+        border-color: rgba(255, 181, 74, 0.25);
+        color: var(--amber);
+      }
+
+      .arch-flow-v {
+        display: grid;
+        gap: 0.5rem;
+        max-width: 380px;
+        margin: 0 auto;
+        text-align: center;
+      }
+
+      .arch-box {
+        padding: 0.8rem 1rem;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .arch-box--primary {
+        border-color: rgba(229, 9, 20, 0.4);
+        background: rgba(229, 9, 20, 0.12);
+        color: #fff;
+      }
+
+      .arch-arrow {
+        color: var(--accent-light);
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .arch-note {
+        margin: 1rem 0 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .controls {
+        position: fixed;
+        right: clamp(1rem, 3.6vw, 3.5rem);
+        bottom: 20px;
+        left: clamp(1rem, 3.6vw, 3.5rem);
+        z-index: 40;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .progress-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        min-width: 0;
+      }
+
+      .counter {
+        min-width: 3.4rem;
+        color: var(--muted);
+        font-size: 0.77rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+      }
+
+      .counter strong {
+        color: #fff;
+      }
+
+      .progress-track {
+        width: min(220px, 20vw);
+        height: 3px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.13);
+      }
+
+      .progress-bar {
+        width: 9.09%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--accent-light));
+        box-shadow: 0 0 12px rgba(229, 9, 20, 0.6);
+        transition: width 500ms var(--ease);
+      }
+
+      .slide-dots {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+      }
+
+      .slide-dot {
+        width: 7px;
+        height: 7px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+        transition:
+          width 220ms var(--ease),
+          background 220ms ease;
+      }
+
+      .slide-dot.is-active {
+        width: 24px;
+        background: var(--accent-light);
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
+      }
+
+      .nav-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.55rem;
+      }
+
+      .nav-button {
+        display: inline-flex;
+        min-width: 100px;
+        min-height: 41px;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(20, 20, 26, 0.82);
+        font-size: 0.78rem;
+        font-weight: 750;
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          background 180ms ease;
+      }
+
+      .nav-button:hover:not(:disabled) {
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+      }
+
+      .nav-button--next {
+        border-color: rgba(229, 9, 20, 0.5);
+        background: var(--accent);
+        box-shadow: 0 8px 25px rgba(229, 9, 20, 0.24);
+      }
+
+      .nav-button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .hint {
+        position: fixed;
+        top: 78px;
+        right: clamp(1rem, 3.6vw, 3.5rem);
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.35);
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+      }
+
+      .is-active .reveal {
+        animation: reveal 650ms var(--ease) both;
+      }
+
+      .is-active .reveal:nth-child(2) {
+        animation-delay: 70ms;
+      }
+
+      .is-active .reveal:nth-child(3) {
+        animation-delay: 130ms;
+      }
+
+      .is-active .reveal:nth-child(4) {
+        animation-delay: 190ms;
+      }
+
+      .is-active .reveal:nth-child(5) {
+        animation-delay: 250ms;
+      }
+
+      @keyframes reveal {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes rotate {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 900px) {
+        .slide {
+          align-items: start;
+        }
+
+        .intro-grid,
+        .ai-layout,
+        .cloud-layout,
+        .future-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .intro-card {
+          min-height: 210px;
+        }
+
+        .timeline {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          padding-top: 0;
+        }
+
+        .timeline::before,
+        .phase::before {
+          display: none;
+        }
+
+        .phase {
+          min-height: 0;
+        }
+
+        .page-cards {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .page-card {
+          min-height: 200px;
+        }
+
+        .future-visual {
+          display: none;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          height: 56px;
+        }
+
+        .topbar__center,
+        .hint,
+        .slide-dots,
+        .nav-button span {
+          display: none;
+        }
+
+        .brand {
+          font-size: 0.8rem;
+        }
+
+        .brand__mark {
+          width: 28px;
+          height: 28px;
+        }
+
+        .demo-btn {
+          padding: 0.4rem 0.75rem;
+          font-size: 0.72rem;
+        }
+
+        .slide {
+          padding-top: calc(56px + 1rem);
+          padding-bottom: 78px;
+        }
+
+        h2 {
+          margin-bottom: 0.9rem;
+          font-size: clamp(1.75rem, 9.5vw, 2.5rem);
+        }
+
+        .lead {
+          font-size: 0.9rem;
+        }
+
+        .title-logo {
+          font-size: clamp(3rem, 18vw, 4.8rem);
+        }
+
+        .title-meta {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .feature-list,
+        .assistants-stack,
+        .challenge-panel .simple-list,
+        .future-list,
+        .qa-grid,
+        .cloud-services {
+          grid-template-columns: 1fr;
+        }
+
+        .feature-chip {
+          min-height: 42px;
+        }
+
+        .tech-table > div {
+          min-height: 48px;
+          padding: 0.6rem;
+          font-size: 0.76rem;
+        }
+
+        .tech-name span {
+          display: none;
+        }
+
+        .timeline {
+          grid-template-columns: 1fr;
+        }
+
+        .phase {
+          padding: 0.9rem 1rem;
+        }
+
+        .phase ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0 0.6rem;
+        }
+
+        .page-cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .page-card {
+          min-height: 160px;
+          padding: 0.8rem;
+        }
+
+        .page-card:last-child {
+          grid-column: 1 / -1;
+          min-height: 120px;
+        }
+
+        .assistant-avatar {
+          width: 38px;
+          height: 38px;
+        }
+
+        .ai-chat-box,
+        .challenge-panel {
+          padding: 0.9rem;
+        }
+
+        .qa-card {
+          min-height: 85px;
+        }
+
+        .cloud-service {
+          min-height: 0;
+        }
+
+        .architecture {
+          padding: 0.9rem;
+        }
+
+        .controls {
+          grid-template-columns: 1fr auto;
+          bottom: 14px;
+        }
+
+        .nav-button {
+          min-width: 42px;
+          width: 42px;
+          padding: 0;
+        }
+
+        .progress-track {
+          width: min(180px, 35vw);
+        }
+      }
+
+      @media (max-height: 720px) and (min-width: 641px) {
+        .slide {
+          padding-top: 76px;
+          padding-bottom: 68px;
+        }
+
+        h2 {
+          margin-bottom: 0.9rem;
+          font-size: clamp(1.8rem, 3.5vw, 3rem);
+        }
+
+        .slide-number {
+          margin-bottom: 0.4rem;
+        }
+
+        .page-card,
+        .phase {
+          min-height: 200px;
+        }
+
+        .intro-card,
+        .future-visual {
+          min-height: 240px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="presentation" aria-label="Bài thuyết trình Objectflix">
+      <header class="topbar">
+        <div class="brand" aria-label="Objectflix">
+          <span class="brand__mark">O</span>
+          <span>OBJECTFLIX</span>
+        </div>
+
+        <div class="topbar__right">
+          <a class="demo-btn" href="auth.html">▶ Trải nghiệm Objectflix</a>
+        </div>
+      </header>
+
+      <div class="hint" aria-hidden="true">
+        Dùng phím ← → để chuyển slide
+      </div>
+
+      <div
+        class="slides"
+        id="slides"
+        aria-live="polite"
+        aria-atomic="false"
+      >
+        <!-- 1. Trang bìa -->
+        <section
+          class="slide title-slide is-active"
+          data-title="Trang bìa"
+          aria-hidden="false"
+        >
+          <div class="slide__inner title-content">
+            <p class="eyebrow reveal">Bài thuyết trình dự án cuối kỳ</p>
+
+            <h1 class="title-logo reveal">OBJECTFLIX</h1>
+
+            <p class="title-kicker reveal">
+              Nền tảng phát trực tuyến dành cho Object Show
+            </p>
+
+            <div class="title-meta reveal">
+              <span class="term-pill">Final Term Project</span>
+              <span>Được xây dựng bằng HTML, CSS &amp; JavaScript</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Giới thiệu dự án -->
+        <section
+          class="slide"
+          data-title="Giới thiệu dự án"
+          aria-hidden="true"
+        >
+          <div class="slide__inner intro-grid">
+            <div class="reveal">
+              <span class="slide-number">01 · Giới thiệu dự án</span>
+
+              <h2>
+                Objectflix là <span class="accent">gì?</span>
+              </h2>
+
+              <p class="lead">
+                Objectflix là website phát trực tuyến được thiết kế riêng cho
+                object show, mang trải nghiệm hiện đại lấy cảm hứng từ các nền
+                tảng streaming lớn như Netflix vào thế giới nội dung object
+                show.
+              </p>
+            </div>
+
+            <div class="glass-card intro-card reveal">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6.5h16v11H4z" />
+                  <path d="m10 9 5 3-5 3z" />
+                </svg>
+              </span>
+
+              <h3 style="margin-top: 0.9rem;">
+                Mục tiêu &amp; Tính năng chính
+              </h3>
+
+              <div class="feature-list">
+                <div class="feature-chip">Duyệt object show</div>
+                <div class="feature-chip">Giao diện xem tập</div>
+                <div class="feature-chip">Khám phá nội dung</div>
+                <div class="feature-chip">Trang chủ streaming</div>
+                <div class="feature-chip">Trợ lý AI thông minh</div>
+                <div class="feature-chip">Nhận biết ngữ cảnh</div>
+                <div class="feature-chip">Giao diện responsive</div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Công nghệ sử dụng -->
+        <section
+          class="slide"
+          data-title="Công nghệ sử dụng"
+          aria-hidden="true"
+        >
+          <div class="slide__inner">
+            <span class="slide-number reveal">02 · Công nghệ</span>
+
+            <h2 class="reveal">
+              Công nghệ <span class="accent">đã sử dụng</span>
+            </h2>
+
+            <div
+              class="glass-card tech-table reveal"
+              role="table"
+              aria-label="Bảng công nghệ"
+            >
+              <div class="tech-table__head tech-name" role="columnheader">
+                Công nghệ
+              </div>
+
+              <div class="tech-table__head" role="columnheader">
+                Mục đích
+              </div>
+
+              <div class="tech-name" role="cell">
+                <span>H</span>HTML
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Xây dựng cấu trúc website
+              </div>
+
+              <div class="tech-name" role="cell">
+                <span>C</span>CSS
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Thiết kế giao diện và responsive layout
+              </div>
+
+              <div class="tech-name" role="cell">
+                <span>JS</span>JavaScript
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Xử lý logic, sự kiện và tương tác
+              </div>
+
+              <div class="tech-name" role="cell">
+                <span>CF</span>Cloudflare Workers
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Backend serverless và xử lý API
+              </div>
+
+              <div class="tech-name" role="cell">
+                <span>AI</span>AI API
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Hệ thống trợ lý ảo Objectflix
+              </div>
+            </div>
+
+            <div class="note-strip reveal">
+              <span aria-hidden="true">✦</span>
+
+              <span>
+                Được xây dựng từ đầu với HTML, CSS và JavaScript thuần, kết nối
+                API để xử lý dữ liệu và các chức năng động của Objectflix.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. Quá trình phát triển -->
+        <section
+          class="slide"
+          data-title="Quá trình phát triển"
+          aria-hidden="true"
+        >
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">03 · Tiến trình</span>
+
+            <h2 class="reveal">
+              Quá trình <span class="accent">phát triển</span>
+            </h2>
+
+            <div class="timeline reveal">
+              <article
+                class="glass-card phase"
+                style="--phase-color: #ff5964;"
+              >
+                <span class="phase__number">Giai đoạn 01</span>
+
+                <h3>Ý tưởng</h3>
+
+                <ul>
+                  <li>Lên kế hoạch Objectflix</li>
+                  <li>Thiết kế giao diện streaming</li>
+                  <li>Xác định cấu trúc trang</li>
+                </ul>
+              </article>
+
+              <article
+                class="glass-card phase"
+                style="--phase-color: #ffb54a;"
+              >
+                <span class="phase__number">Giai đoạn 02</span>
+
+                <h3>Frontend</h3>
+
+                <ul>
+                  <li>Xây dựng bằng HTML &amp; CSS</li>
+                  <li>Làm trang chủ &amp; show</li>
+                  <li>Phát triển trang xem video</li>
+                </ul>
+              </article>
+
+              <article
+                class="glass-card phase"
+                style="--phase-color: #68b7ff;"
+              >
+                <span class="phase__number">Giai đoạn 03</span>
+
+                <h3>Backend / API</h3>
+
+                <ul>
+                  <li>Lập trình logic JavaScript</li>
+                  <li>Kết nối Cloudflare Workers API</li>
+                  <li>Xử lý dữ liệu show &amp; tập</li>
+                </ul>
+              </article>
+
+              <article
+                class="glass-card phase"
+                style="--phase-color: #57df8b;"
+              >
+                <span class="phase__number">Giai đoạn 04</span>
+
+                <h3>AI Assistant</h3>
+
+                <ul>
+                  <li>Tích hợp Firey &amp; Leafy</li>
+                  <li>Cải thiện UI/UX &amp; responsive</li>
+                  <li>Kiểm thử &amp; tối ưu website</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Website Pages -->
+        <section
+          class="slide"
+          data-title="Các trang chính"
+          aria-hidden="true"
+        >
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">04 · Cấu trúc website</span>
+
+            <h2 class="reveal">
+              Các trang <span class="accent">chính</span>
+            </h2>
+
+            <div class="page-cards reveal">
+              <article class="page-card">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M3 11.5 12 4l9 7.5" />
+                    <path d="M5.5 10v10h13V10" />
+                  </svg>
+                </span>
+
+                <h3>Trang chủ</h3>
+                <p>Nội dung nổi bật và các hàng đề xuất.</p>
+              </article>
+
+              <article class="page-card">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <path d="m10 9 5 3-5 3z" />
+                  </svg>
+                </span>
+
+                <h3>Show / Tập</h3>
+                <p>Thông tin show và danh sách tập.</p>
+              </article>
+
+              <article class="page-card">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M3 6h18v12H3z" />
+                    <path d="m10 9 5 3-5 3z" />
+                  </svg>
+                </span>
+
+                <h3>Trang xem</h3>
+                <p>Trải nghiệm phát và theo dõi nội dung.</p>
+              </article>
+
+              <article class="page-card">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="6" />
+                    <path d="m16 16 4 4" />
+                  </svg>
+                </span>
+
+                <h3>Khám phá</h3>
+                <p>Tìm và khám phá object show.</p>
+              </article>
+
+              <article class="page-card">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      d="M6 17.5 3 20v-5.5A7.5 7.5 0 0 1 10.5 7h3A7.5 7.5 0 0 1 21 14.5v0a2.5 2.5 0 0 1-2.5 2.5H6.7z"
+                    />
+                    <path d="M9 12h.01M15 12h.01" />
+                  </svg>
+                </span>
+
+                <h3>AI Assistant</h3>
+                <p>Trợ lý có cá tính và hiểu ngữ cảnh.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. AI Assistant System -->
+        <section
+          class="slide"
+          data-title="Hệ thống AI assistant"
+          aria-hidden="true"
+        >
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">05 · Trí tuệ nhân tạo</span>
+
+            <h2 class="reveal">
+              Objectflix <span class="accent">AI Assistant</span>
+            </h2>
+
+            <div class="ai-layout">
+              <div class="assistants-stack reveal">
+                <article
+                  class="glass-card assistant-card"
+                  style="--persona-color: #ff7448; --persona-bg: linear-gradient(145deg, #ff7a24, #b9141d);"
+                >
+                  <div class="assistant-card__head">
+                    <div class="assistant-avatar" aria-hidden="true">
+                      🔥
+                    </div>
+
+                    <div>
+                      <h3>Firey</h3>
+                      <strong>Năng động &amp; cạnh tranh</strong>
+                    </div>
+                  </div>
+
+                  <p>
+                    Cá tính hỗn loạn, nhiệt huyết, thích trực diện và thúc giục
+                    em xem ngay.
+                  </p>
+                </article>
+
+                <article
+                  class="glass-card assistant-card"
+                  style="--persona-color: #57df8b; --persona-bg: linear-gradient(145deg, #5ce78f, #117a3d);"
+                >
+                  <div class="assistant-card__head">
+                    <div class="assistant-avatar" aria-hidden="true">
+                      🍃
+                    </div>
+
+                    <div>
+                      <h3>Leafy</h3>
+                      <strong>Thân thiện &amp; đồng cảm</strong>
+                    </div>
+                  </div>
+
+                  <p>
+                    Bình tĩnh, ấm áp, luôn sẵn sàng gợi ý những tập phim cozy
+                    để thư giãn.
+                  </p>
+                </article>
+              </div>
+
+              <div class="glass-card ai-chat-box reveal">
+                <div class="chat-header">
+                  <span>Ngữ cảnh &amp; Phản hồi</span>
+                  <span>Context-Aware AI</span>
+                </div>
+
+                <div class="chat-bubble chat-bubble--user">
+                  "Tôi đang xem gì thế này?"
+                </div>
+
+                <div class="chat-bubble chat-bubble--firey">
+                  <strong>Firey:</strong>
+                  Cậu đang xem <strong>TPOT 5</strong>! Đã qua 04:12 rồi đấy,
+                  xem tiếp phần cao trào đi chứ!
+                </div>
+
+                <div class="chat-bubble chat-bubble--leafy">
+                  <strong>Leafy:</strong>
+                  Cậu đang xem <strong>TPOT 5</strong> (được khoảng 14%). Cố
+                  lên nhé, tớ ở đây cổ vũ cậu nè!
+                </div>
+
+                <div class="context-pills">
+                  <span class="context-badge">
+                    current_page: <strong>Watch</strong>
+                  </span>
+
+                  <span class="context-badge">
+                    currently_playing: <strong>TPOT 5</strong>
+                  </span>
+
+                  <span class="context-badge">
+                    watch_progress: <strong>14%</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. Thách thức -->
+        <section class="slide" data-title="Thách thức" aria-hidden="true">
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">
+              06 · Bài toán &amp; giải pháp
+            </span>
+
+            <h2 class="reveal">
+              Những <span class="accent">thách thức</span>
+            </h2>
+
+            <div class="challenge-grid reveal">
+              <article class="glass-card challenge-panel">
+                <div class="panel-title">
+                  <span class="icon" aria-hidden="true">!</span>
+                  <h3>Vấn đề gặp phải</h3>
+                </div>
+
+                <ul class="simple-list">
+                  <li>Quản lý nhiều trang website</li>
+                  <li>Kết nối frontend với API</li>
+                  <li>Xây dựng AI assistant ổn định</li>
+                  <li>Giữ giao diện responsive</li>
+                  <li>Debug lỗi backend/API</li>
+                  <li>Sắp xếp nội dung động</li>
+                </ul>
+              </article>
+
+              <article
+                class="glass-card challenge-panel challenge-panel--solution"
+              >
+                <div class="panel-title">
+                  <span class="icon icon--green" aria-hidden="true">✓</span>
+                  <h3>Cách giải quyết</h3>
+                </div>
+
+                <ul class="simple-list">
+                  <li>Chia dự án thành hệ thống nhỏ</li>
+                  <li>Dùng JavaScript cho chức năng động</li>
+                  <li>Tách logic riêng cho từng assistant</li>
+                  <li>Dùng Cloudflare Workers làm backend</li>
+                  <li>Kiểm thử và sửa từng bước</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <!-- 8. Kế hoạch tương lai -->
+        <section
+          class="slide"
+          data-title="Kế hoạch tương lai"
+          aria-hidden="true"
+        >
+          <div class="slide__inner future-layout">
+            <div>
+              <span class="slide-number reveal">07 · Bước tiếp theo</span>
+
+              <h2 class="reveal">
+                Kế hoạch <span class="accent">tương lai</span>
+              </h2>
+
+              <div class="future-list reveal">
+                <div class="future-item">
+                  <span>◎</span>
+                  <span>Tài khoản và hồ sơ người dùng</span>
+                </div>
+
+                <div class="future-item">
+                  <span>♡</span>
+                  <span>Yêu thích / danh sách xem</span>
+                </div>
+
+                <div class="future-item">
+                  <span>⌕</span>
+                  <span>Tìm kiếm nâng cao</span>
+                </div>
+
+                <div class="future-item">
+                  <span>＋</span>
+                  <span>Thêm nhiều object show</span>
+                </div>
+
+                <div class="future-item">
+                  <span>▯</span>
+                  <span>Trải nghiệm mobile tối ưu</span>
+                </div>
+
+                <div class="future-item">
+                  <span>✦</span>
+                  <span>Tương tác AI nâng cao</span>
+                </div>
+
+                <div class="future-item">
+                  <span>↻</span>
+                  <span>Đồng bộ tiến độ xem tập</span>
+                </div>
+
+                <div class="future-item">
+                  <span>⌁</span>
+                  <span>Mở rộng hạ tầng backend</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="future-visual reveal" aria-hidden="true">
+              <div class="future-ring"></div>
+              <div class="future-core">O</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. Kết luận -->
+        <section class="slide" data-title="Kết luận" aria-hidden="true">
+          <div class="slide__inner slide__inner--center">
+            <span class="slide-number reveal">08 · Kết luận</span>
+
+            <h2 class="reveal">
+              Những gì em <span class="accent">đã học được</span>
+            </h2>
+
+            <div class="skills reveal">
+              <span class="skill-pill">HTML &amp; Semantic HTML</span>
+              <span class="skill-pill">CSS &amp; Responsive Design</span>
+              <span class="skill-pill">JavaScript DOM &amp; State</span>
+              <span class="skill-pill">API Integration</span>
+              <span class="skill-pill">Cloudflare Workers Backend</span>
+              <span class="skill-pill">Problem-solving</span>
+            </div>
+
+            <blockquote class="glass-card quote-card reveal">
+              Xây dựng Objectflix giúp em hiểu rõ cách kết hợp thiết kế
+              frontend hiện đại, xử lý sự kiện JavaScript, tích hợp API và AI
+              thành một sản phẩm web hoàn chỉnh.
+            </blockquote>
+          </div>
+        </section>
+
+        <!-- 10. Hỏi và đáp -->
+        <section class="slide" data-title="Hỏi và đáp" aria-hidden="true">
+          <div class="slide__inner slide__inner--center">
+            <span class="slide-number reveal">09 · Trao đổi</span>
+
+            <h2 class="reveal">
+              Câu hỏi &amp; <span class="accent">trả lời</span>
+            </h2>
+
+            <div class="qa-grid reveal">
+            </div>
+          </div>
+        </section>
+
+        <!-- 11. Cloudflare Technical Backup -->
+        <section
+          class="slide"
+          data-title="Cloudflare - slide dự phòng"
+          aria-hidden="true"
+        >
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">
+              10 · Tham khảo kỹ thuật
+            </span>
+
+            <h2 class="reveal">
+              Kiến trúc <span class="accent">Cloudflare</span>
+            </h2>
+
+            <div class="cloud-layout">
+              <div class="reveal">
+                <p class="lead">
+                  Cloudflare cung cấp hạ tầng để chạy code serverless và xử lý
+                  các yêu cầu API của Objectflix.
+                </p>
+
+                <div class="cloud-services">
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">☁️</span>
+                    <h3>Cloudflare</h3>
+                    <p>Hạ tầng mạng và dịch vụ edge</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">⚙️</span>
+                    <h3>Workers</h3>
+                    <p>Chạy backend JavaScript serverless</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">🗄️</span>
+                    <h3>D1 · Tương lai</h3>
+                    <p>SQL Database cho dữ liệu có cấu trúc</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">📦</span>
+                    <h3>R2 · Tương lai</h3>
+                    <p>Lưu trữ object và media file</p>
+                  </article>
+                </div>
+              </div>
+
+              <div
+                class="glass-card architecture reveal"
+                aria-label="Sơ đồ kiến trúc Objectflix"
+              >
+
+                <div class="arch-flow-v">
+                  <div class="arch-box">
+                    Người dùng (Browser)
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box">
+                    Objectflix Frontend (HTML/CSS/JS)
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box">
+                    API Request
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box arch-box--primary">
+                    Cloudflare Workers
+                    <br />
+                    (Backend / Serverless)
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box">
+                    Backend Services / AI API
+                  </div>
+                </div>
+
+                <p class="arch-note">
+                  Workers hiện xử lý các yêu cầu API của Objectflix. D1 và R2
+                  là hướng mở rộng trong tương lai cho cơ sở dữ liệu và lưu trữ
+                  media.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <nav
+        class="controls"
+        aria-label="Điều khiển bài thuyết trình"
+      >
+        <div class="progress-wrap">
+          <span class="counter">
+            <strong id="currentSlide">01</strong>
+            /
+            <span id="totalSlides">11</span>
+          </span>
+
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+        </div>
+
+        <div
+          class="slide-dots"
+          id="slideDots"
+          aria-label="Chọn slide"
+        ></div>
+
+        <div class="nav-buttons">
+          <button
+            class="nav-button"
+            id="previousButton"
+            type="button"
+            aria-label="Slide trước"
+          >
+            ← <span>Trước</span>
+          </button>
+
+          <button
+            class="nav-button nav-button--next"
+            id="nextButton"
+            type="button"
+            aria-label="Slide tiếp theo"
+          >
+            <span>Tiếp</span> →
+          </button>
+        </div>
+      </nav>
+    </main>
+
+    <script>
+      (() => {
+        const slides = Array.from(document.querySelectorAll(".slide"));
+        const previousButton = document.getElementById("previousButton");
+        const nextButton = document.getElementById("nextButton");
+        const currentSlideLabel =
+          document.getElementById("currentSlide");
+        const totalSlidesLabel =
+          document.getElementById("totalSlides");
+        const progressBar =
+          document.getElementById("progressBar");
+        const dotsContainer =
+          document.getElementById("slideDots");
+
+        let currentIndex = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        totalSlidesLabel.textContent = String(slides.length).padStart(
+          2,
+          "0"
+        );
+
+        const dots = slides.map((slide, index) => {
+          const dot = document.createElement("button");
+
+          dot.className = "slide-dot";
+          dot.type = "button";
+          dot.setAttribute(
+            "aria-label",
+            `Đến slide ${index + 1}: ${slide.dataset.title}`
+          );
+
+          dot.addEventListener("click", () => {
+            showSlide(index);
+          });
+
+          dotsContainer.appendChild(dot);
+
+          return dot;
+        });
+
+        function showSlide(nextIndex) {
+          const boundedIndex = Math.max(
+            0,
+            Math.min(nextIndex, slides.length - 1)
+          );
+
+          if (boundedIndex === currentIndex) {
+            return;
+          }
+
+          const oldIndex = currentIndex;
+          const oldSlide = slides[oldIndex];
+
+          oldSlide.classList.remove("is-active");
+          oldSlide.classList.toggle(
+            "was-active",
+            boundedIndex > oldIndex
+          );
+          oldSlide.setAttribute("aria-hidden", "true");
+
+          currentIndex = boundedIndex;
+
+          slides.forEach((slide, index) => {
+            if (index !== currentIndex) {
+              slide.classList.remove("was-active");
+            }
+          });
+
+          const activeSlide = slides[currentIndex];
+
+          activeSlide.classList.add("is-active");
+          activeSlide.setAttribute("aria-hidden", "false");
+          activeSlide.scrollTop = 0;
+
+          updateControls();
+
+          document.title =
+            `${activeSlide.dataset.title} | Objectflix`;
+        }
+
+        function updateControls() {
+          currentSlideLabel.textContent = String(
+            currentIndex + 1
+          ).padStart(2, "0");
+
+          progressBar.style.width =
+            `${((currentIndex + 1) / slides.length) * 100}%`;
+
+          previousButton.disabled = currentIndex === 0;
+          nextButton.disabled =
+            currentIndex === slides.length - 1;
+
+          dots.forEach((dot, index) => {
+            const isActive = index === currentIndex;
+
+            dot.classList.toggle("is-active", isActive);
+
+            if (isActive) {
+              dot.setAttribute("aria-current", "step");
+            } else {
+              dot.removeAttribute("aria-current");
+            }
+          });
+        }
+
+        previousButton.addEventListener("click", () => {
+          showSlide(currentIndex - 1);
+        });
+
+        nextButton.addEventListener("click", () => {
+          showSlide(currentIndex + 1);
+        });
+
+        document.addEventListener("keydown", (event) => {
+          const target = event.target;
+
+          if (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLSelectElement ||
+            target instanceof HTMLButtonElement ||
+            target instanceof HTMLAnchorElement
+          ) {
+            return;
+          }
+
+          if (
+            event.key === "ArrowRight" ||
+            event.key === "PageDown" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
+            showSlide(currentIndex + 1);
+            return;
+          }
+
+          if (
+            event.key === "ArrowLeft" ||
+            event.key === "PageUp"
+          ) {
+            event.preventDefault();
+            showSlide(currentIndex - 1);
+            return;
+          }
+
+          if (event.key === "Home") {
+            event.preventDefault();
+            showSlide(0);
+            return;
+          }
+
+          if (event.key === "End") {
+            event.preventDefault();
+            showSlide(slides.length - 1);
+          }
+        });
+
+        document.addEventListener(
+          "touchstart",
+          (event) => {
+            const touch = event.changedTouches[0];
+
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+          },
+          { passive: true }
+        );
+
+        document.addEventListener(
+          "touchend",
+          (event) => {
+            const touch = event.changedTouches[0];
+
+            const distanceX = touch.clientX - touchStartX;
+            const distanceY = touch.clientY - touchStartY;
+
+            if (
+              Math.abs(distanceX) < 55 ||
+              Math.abs(distanceX) < Math.abs(distanceY)
+            ) {
+              return;
+            }
+
+            showSlide(
+              currentIndex + (distanceX < 0 ? 1 : -1)
+            );
+          },
+          { passive: true }
+        );
+
+        updateControls();
+      })();
+    </script>
+  </body>
+</html>

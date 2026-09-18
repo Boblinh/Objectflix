@@ -473,6 +473,21 @@
 
     document.title = `${currentEpisode.title} — Objectflix TV`;
 
+    const warning = window.OBJECTFLIX_WARNING;
+    if (warning) {
+      dom.loading.classList.add('is-hidden');
+      const shown = warning.guard(currentItem, {
+        onContinue: () => {
+          dom.loading.classList.remove('is-hidden');
+          initPlayer();
+        },
+        onCancel: () => {
+          window.location.href = 'tv.html';
+        },
+      });
+      if (shown) return;
+    }
+
     initPlayer();
   }
 

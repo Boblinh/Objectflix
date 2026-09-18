@@ -1104,6 +1104,12 @@ h1 {
   overflow: hidden;
 }
 
+.result-card img {
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  width: 100%;
+}
+
 .result-card__content,
 .recommend-card__content,
 .episode-card__content {

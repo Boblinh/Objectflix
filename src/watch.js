@@ -15,6 +15,7 @@
     player: null,
     library: [],
     secretEpisodes: new Map(),
+    booted: false,
   };
 
   
@@ -99,9 +100,27 @@
   
   
 
+  function guardContent(item, proceed) {
+    const warning = window.OBJECTFLIX_WARNING;
+    if (!warning) {
+      proceed();
+      return;
+    }
+    const shown = warning.guard(item, {
+      onContinue: proceed,
+      onCancel: () => {
+        if (state.booted) return;
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = 'browse.html';
+      },
+    });
+    if (!shown) proceed();
+  }
+
   function renderWatch() {
     const item = state.item;
     const episode = state.episode;
+    state.booted = true;
 
     if (state.player) {
       state.player.destroy();
@@ -455,27 +474,31 @@
     if (!item) return;
     const episode = item.episodes.find((ep) => ep.id === episodeId);
     if (!episode) return;
-    if (episode.released === false) {
-      SHARED.showUnreleasedNoticeModal(episode);
-      return;
-    }
-    state.item = item;
-    state.episode = episode;
-    updateUrl(item.id, episode.id);
-    renderWatch();
-    window.scrollTo({ top: 0 });
+    guardContent(item, () => {
+      if (episode.released === false) {
+        SHARED.showUnreleasedNoticeModal(episode);
+        return;
+      }
+      state.item = item;
+      state.episode = episode;
+      updateUrl(item.id, episode.id);
+      renderWatch();
+      window.scrollTo({ top: 0 });
+    });
   }
 
   function playTitle(id) {
     const item = state.library.find((entry) => entry.id === id);
     if (!item) return;
-    const episode = item.episodes[0] || null;
-    if (!episode) return;
-    state.item = item;
-    state.episode = episode;
-    updateUrl(item.id, episode.id);
-    renderWatch();
-    window.scrollTo({ top: 0 });
+    guardContent(item, () => {
+      const episode = item.episodes[0] || null;
+      if (!episode) return;
+      state.item = item;
+      state.episode = episode;
+      updateUrl(item.id, episode.id);
+      renderWatch();
+      window.scrollTo({ top: 0 });
+    });
   }
 
 
@@ -554,7 +577,9 @@
       }
 
       state.episode = resolveEpisode(state.item, episodeId);
-      renderWatch();
+      guardContent(state.item, () => {
+        renderWatch();
+      });
     })();
   }
 

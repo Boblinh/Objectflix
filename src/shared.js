@@ -30,7 +30,18 @@
     return `${88 + (stableHash(id) % 11)}% Match`;
   }
 
+  const SHOW_AGE_RATINGS = {
+    "10000000-0000-4000-8000-000000000001": "TV-Y7-FV", 
+    "10000000-0000-4000-8000-000000000002": "TV-PG",    
+    "10000000-0000-4000-8000-000000000003": "TV-PG",    
+    "10000000-0000-4000-8000-000000000004": "TV-PG",    
+    "10000000-0000-4000-8000-000000000005": "TV-PG",    
+    "10000000-0000-4000-8000-000000000006": "TV-Y7-FV", 
+    "10000000-0000-4000-8000-000000000007": "TV-PG-V",    
+  };
+
   function deriveRating(id) {
+    if (SHOW_AGE_RATINGS[id]) return SHOW_AGE_RATINGS[id];
     const ratings = ['TV-Y7', 'TV-PG', 'TV-14', 'TV'];
     return ratings[stableHash(id) % ratings.length];
   }
@@ -223,6 +234,8 @@
     injectUpcomingEpisodes(results);
 
     
+    appendResearchSlate(results);
+
     results.sort((a, b) => {
       const titleA = a.title.toLowerCase();
       const titleB = b.title.toLowerCase();
@@ -445,6 +458,69 @@
         show.episodes.sort((a, b) => Number(a.episodeNumber) - Number(b.episodeNumber));
       }
     }
+  }
+
+  const RESEARCH_SLATE = [
+    {
+      id: '20000000-0000-4000-8000-000000000101',
+      title: 'ONE',
+      description: 'Eighteen contestants are pulled from their lives into The Plane \u2014 an endless, empty void \u2014 and forced to compete in a gameshow run by an unseen host. Every elimination sends someone deeper into the darkness. A fan-favorite blend of drama and psychological horror.',
+    },
+    {
+      id: '20000000-0000-4000-8000-000000000102',
+      title: 'The Nightly Manor',
+      description: 'A murder mystery horror series: a group of objects arrives at a sprawling manor where someone \u2014 or something \u2014 keeps killing off the guests. Rustling shadows, buried secrets, and a grief-stricken suspect behind every door.',
+    },
+    {
+      id: '20000000-0000-4000-8000-000000000103',
+      title: 'Object Terror',
+      description: 'A dystopian game show where losing doesn\u2019t just mean going home \u2014 it means a graphic, bloody death on camera. Notoriously edgy, with heavy violence, gore, profanity, and crude humor.',
+    },
+    {
+      id: '20000000-0000-4000-8000-000000000104',
+      title: 'TRIPWIRE',
+      description: 'A Canadian sci-fi thriller in which a stranded group is trapped inside a simulated game run by a superintelligent AI. A slow-burn descent into psychological horror.',
+    },
+  ];
+
+  function appendResearchSlate(results) {
+    for (const seed of RESEARCH_SLATE) {
+      if (results.some((item) => item.id === seed.id)) continue;
+      const palette = paletteFor(seed.id);
+      const record = window.OBJECTFLIX_WARNING?.recordFor?.({ id: seed.id, title: seed.title });
+      const upcoming = {
+        id: `${seed.id}~e1`,
+        seasonId: `${seed.id}~s1`,
+        showId: seed.id,
+        episodeNumber: 1,
+        title: 'Coming soon',
+        description: 'Not released in the Objectflix archive yet.',
+        videoUrl: null,
+        released: false,
+        releaseDate: 'TBD',
+        duration: 'Upcoming',
+      };
+      results.push({
+        id: seed.id,
+        title: seed.title,
+        type: 'Series',
+        year: '—',
+        rating: record ? `${record.age}+` : deriveRating(seed.id),
+        duration: 'Series',
+        match: deriveMatch(seed.id),
+        genres: deriveGenres(seed.title, seed.id),
+        description: seed.description,
+        backdrop: window.createPlaceholderImage(seed.title.toUpperCase(), 1600, 900, palette),
+        poster: window.createPlaceholderImage(seed.title.toUpperCase(), 700, 1050, palette),
+        logo: window.createPlaceholderImage(seed.title.toUpperCase(), 700, 1050, palette),
+        progress: 0,
+        category: 'shows',
+        featured: false,
+        seasons: [{ id: `${seed.id}~s1`, showId: seed.id, title: 'Season 1', episodeCount: 1 }],
+        episodes: [upcoming],
+      });
+    }
+    return results;
   }
 
   // Returns true when the episode's video is actually playable: either the URL
