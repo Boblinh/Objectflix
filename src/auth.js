@@ -5,6 +5,9 @@
 
 
 const ENV = window.__OBJECTFLIX_ENV__ || {};
+const CONFIG = window.OBJECTFLIX_CONFIG || {};
+const GOOGLE_CLIENT_ID = ENV.GOOGLE_CLIENT_ID || '';
+const GOOGLE_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/google`;
 const DISCORD_CONFIG = {
   clientId: ENV.DISCORD_CLIENT_ID || 'PASTE_DISCORD_CLIENT_ID',
   clientSecret: ENV.DISCORD_CLIENT_SECRET || '',
@@ -31,8 +34,9 @@ export const Auth = {
 
   init() {
     this.bindEvents();
-    window.Auth = this; 
+    window.Auth = this;
     this.handleDiscordCallback();
+    this.handleGoogleCallback();
   },
 
   bindEvents() {
@@ -41,9 +45,10 @@ export const Auth = {
     this.elements.authToggleModeBtn.addEventListener('click', () => this.setMode(this.state.mode === 'signin' ? 'signup' : 'signin'));
     this.elements.form.addEventListener('submit', (e) => this.handleSubmit(e));
     
-    document.getElementById('authCloseBtn').addEventListener('click', () => this.close());
+    document.getElementById('authCloseBtn')?.addEventListener('click', () => this.close());
     document.getElementById('gateAuthButton')?.addEventListener('click', () => this.open());
     document.getElementById('loginDiscordBtn').addEventListener('click', () => this.handleDiscordLogin());
+    document.getElementById('loginGoogleBtn')?.addEventListener('click', () => this.handleGoogleLogin());
   },
 
   setMode(mode) {
@@ -59,7 +64,7 @@ export const Auth = {
   },
 
   open() {
-    this.elements.gate.classList.remove('is-hidden');
+    this.elements.gate?.classList.remove('is-hidden');
   },
 
   close() {
@@ -68,7 +73,7 @@ export const Auth = {
       alert('You must sign in to continue.');
       return;
     }
-    this.elements.gate.classList.add('is-hidden');
+    this.elements.gate?.classList.add('is-hidden');
   },
 
   async handleSubmit(e) {
@@ -103,8 +108,9 @@ export const Auth = {
       users[email] = { password };
       localStorage.setItem('objectflix_users', JSON.stringify(users));
       localStorage.setItem('onboarding_needed', 'true');
-      alert('Account created! Please sign in.');
-      this.setMode('signin');
+      this.state.user = { email };
+      localStorage.setItem('objectflix_current_user', JSON.stringify(this.state.user));
+      window.location.assign('./index.html');
     } else {
       const users = JSON.parse(localStorage.getItem('objectflix_users') || '{}');
       if (users[email] && users[email].password === password) {
@@ -112,10 +118,70 @@ export const Auth = {
         localStorage.setItem('objectflix_current_user', JSON.stringify(this.state.user));
         alert('Signed in successfully!');
         this.close();
-        location.reload();
+        window.location.assign('./index.html');
       } else {
         this.showError('Invalid email or password.');
       }
+    }
+  },
+
+  handleGoogleLogin() {
+    if (!GOOGLE_CLIENT_ID) {
+      this.showError('Google login is not configured. Add a Google Client ID first.');
+      return;
+    }
+
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('objectflix_google_oauth_state', state);
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      redirect_uri: window.location.origin + window.location.pathname,
+      response_type: 'code',
+      scope: 'openid email profile',
+      state,
+      prompt: 'select_account',
+    });
+
+    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  },
+
+  async handleGoogleCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    if (!code && !error) return;
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    const expectedState = sessionStorage.getItem('objectflix_google_oauth_state');
+    sessionStorage.removeItem('objectflix_google_oauth_state');
+
+    if (error || !code || !state || state !== expectedState) {
+      this.showError('Google sign-in was cancelled or could not be verified.');
+      return;
+    }
+
+    const alertEl = document.getElementById('authAlert');
+    alertEl.textContent = 'Completing Google sign-in...';
+    alertEl.classList.remove('is-hidden');
+
+    try {
+      const res = await fetch(GOOGLE_AUTH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          redirectUri: window.location.origin + window.location.pathname,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Google sign-in failed.');
+      localStorage.setItem('objectflix_current_user', JSON.stringify(data.session));
+      window.location.assign('./index.html');
+    } catch (err) {
+      console.error('Google sign-in failed:', err);
+      this.showError(err.message || 'Google sign-in failed. Please try again.');
     }
   },
 
@@ -138,6 +204,8 @@ export const Auth = {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const error = params.get('error');
+
+    if (params.has('state')) return;
 
     if (error) {
       this.showError('Discord sign-in was cancelled.');
