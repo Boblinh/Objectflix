@@ -8,9 +8,9 @@ const ENV = window.__OBJECTFLIX_ENV__ || {};
 const CONFIG = window.OBJECTFLIX_CONFIG || {};
 const GOOGLE_CLIENT_ID = ENV.GOOGLE_CLIENT_ID || '';
 const GOOGLE_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/google`;
+const DISCORD_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/discord`;
 const DISCORD_CONFIG = {
   clientId: ENV.DISCORD_CLIENT_ID || 'PASTE_DISCORD_CLIENT_ID',
-  clientSecret: ENV.DISCORD_CLIENT_SECRET || '',
   redirectUri: window.location.origin + window.location.pathname,
 };
 
@@ -33,8 +33,13 @@ export const Auth = {
   },
 
   init() {
-    this.bindEvents();
     window.Auth = this;
+    if (!this.elements.form) return;
+    const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+    if (['membership.html', 'movie-nights.html', 'movie-night-admin.html'].includes(returnTo)) sessionStorage.setItem('objectflix_auth_return', returnTo);
+    if (new URLSearchParams(window.location.search).has('verify')) document.getElementById('authVerificationNote')?.classList.remove('is-hidden');
+    this.bindEvents();
+    this.setMode(new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'signin');
     this.handleDiscordCallback();
     this.handleGoogleCallback();
   },
@@ -49,6 +54,23 @@ export const Auth = {
     document.getElementById('gateAuthButton')?.addEventListener('click', () => this.open());
     document.getElementById('loginDiscordBtn').addEventListener('click', () => this.handleDiscordLogin());
     document.getElementById('loginGoogleBtn')?.addEventListener('click', () => this.handleGoogleLogin());
+    document.getElementById('authTogglePassword')?.addEventListener('click', (event) => {
+      const input = document.getElementById('authPassword');
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      event.currentTarget.textContent = visible ? 'Hide' : 'Show';
+      event.currentTarget.setAttribute('aria-pressed', String(visible));
+      event.currentTarget.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+    });
+    [this.elements.tabSignIn, this.elements.tabSignUp].forEach((tab) => {
+      tab.addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const signIn = event.key === 'Home' || (event.key !== 'End' && this.state.mode === 'signup');
+        this.setMode(signIn ? 'signin' : 'signup');
+        (signIn ? this.elements.tabSignIn : this.elements.tabSignUp).focus();
+      });
+    });
   },
 
   setMode(mode) {
@@ -57,8 +79,16 @@ export const Auth = {
     this.elements.tabSignUp.classList.toggle('is-active', mode === 'signup');
     this.elements.nameFieldGroup.classList.toggle('is-hidden', mode === 'signin');
     this.elements.confirmPasswordFieldGroup.classList.toggle('is-hidden', mode === 'signin');
-    this.elements.authTitle.textContent = mode === 'signin' ? 'Sign In' : 'Sign Up';
-    this.elements.authBtnText.textContent = mode === 'signin' ? 'Sign In' : 'Sign Up';
+    this.elements.tabSignIn.setAttribute('aria-selected', String(mode === 'signin'));
+    this.elements.tabSignUp.setAttribute('aria-selected', String(mode === 'signup'));
+    this.elements.tabSignIn.tabIndex = mode === 'signin' ? 0 : -1;
+    this.elements.tabSignUp.tabIndex = mode === 'signup' ? 0 : -1;
+    document.getElementById('authFormPanel')?.setAttribute('aria-labelledby', mode === 'signin' ? 'tabSignIn' : 'tabSignUp');
+    document.getElementById('authPassword').autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
+    document.getElementById('authSubtitle').textContent = mode === 'signin' ? 'Sign in and pick up the fun right where you left it.' : 'Make a little space for yourself in the object universe.';
+    document.getElementById('authAlert').classList.add('is-hidden');
+    this.elements.authTitle.textContent = mode === 'signin' ? 'Hey, you. Welcome in.' : 'Your kind of people.';
+    this.elements.authBtnText.textContent = mode === 'signin' ? 'Let me in' : 'Make yourself at home';
     this.elements.authToggleText.textContent = mode === 'signin' ? 'New to Objectflix?' : 'Already have an account?';
     this.elements.authToggleModeBtn.textContent = mode === 'signin' ? 'Sign up now' : 'Sign in';
   },
@@ -74,6 +104,17 @@ export const Auth = {
       return;
     }
     this.elements.gate?.classList.add('is-hidden');
+  },
+
+  finishLogin(user, credentials) {
+    sessionStorage.removeItem('objectflix_verified_session');
+    if (credentials?.accessToken && credentials?.expiresAt) {
+      sessionStorage.setItem('objectflix_verified_session', JSON.stringify({ accessToken: credentials.accessToken, expiresAt: credentials.expiresAt, userId: `${user.provider}:${user.id}` }));
+    }
+    localStorage.setItem('objectflix_current_user', JSON.stringify(user));
+    const returnTo = sessionStorage.getItem('objectflix_auth_return');
+    sessionStorage.removeItem('objectflix_auth_return');
+    window.location.assign(['membership.html', 'movie-nights.html', 'movie-night-admin.html'].includes(returnTo) ? `./${returnTo}` : './index.html');
   },
 
   async handleSubmit(e) {
@@ -109,16 +150,12 @@ export const Auth = {
       localStorage.setItem('objectflix_users', JSON.stringify(users));
       localStorage.setItem('onboarding_needed', 'true');
       this.state.user = { email };
-      localStorage.setItem('objectflix_current_user', JSON.stringify(this.state.user));
-      window.location.assign('./index.html');
+      this.finishLogin(this.state.user);
     } else {
       const users = JSON.parse(localStorage.getItem('objectflix_users') || '{}');
       if (users[email] && users[email].password === password) {
         this.state.user = { email };
-        localStorage.setItem('objectflix_current_user', JSON.stringify(this.state.user));
-        alert('Signed in successfully!');
-        this.close();
-        window.location.assign('./index.html');
+        this.finishLogin(this.state.user);
       } else {
         this.showError('Invalid email or password.');
       }
@@ -177,8 +214,7 @@ export const Auth = {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Google sign-in failed.');
-      localStorage.setItem('objectflix_current_user', JSON.stringify(data.session));
-      window.location.assign('./index.html');
+      this.finishLogin(data.session, data);
     } catch (err) {
       console.error('Google sign-in failed:', err);
       this.showError(err.message || 'Google sign-in failed. Please try again.');
@@ -188,90 +224,64 @@ export const Auth = {
   handleDiscordLogin() {
     const { clientId, redirectUri } = DISCORD_CONFIG;
     if (!clientId || clientId.startsWith('PASTE_')) {
-      this.showError('Discord login is not configured yet. Open src/auth.js and add your Discord Client ID and Secret.');
+      this.showError('Discord login is not configured yet. Add your Discord Client ID first.');
       return;
     }
+
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('objectflix_discord_oauth_state', state);
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'code',
       redirect_uri: redirectUri,
       scope: 'identify email',
+      state,
+      prompt: 'consent',
     });
-    window.location.href = `https://discord.com/oauth2/authorize?${params.toString()}`;
+
+    window.location.assign(`https://discord.com/oauth2/authorize?${params.toString()}`);
   },
 
   async handleDiscordCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    const state = params.get('state');
     const error = params.get('error');
 
-    if (params.has('state')) return;
+    if (state === sessionStorage.getItem('objectflix_google_oauth_state')) return;
+    if (!code && !error) return;
+    if (!state && !error) return;
+    window.history.replaceState({}, document.title, window.location.pathname);
 
-    if (error) {
-      this.showError('Discord sign-in was cancelled.');
-      window.history.replaceState({}, document.title, window.location.pathname);
+    const expectedState = sessionStorage.getItem('objectflix_discord_oauth_state');
+    sessionStorage.removeItem('objectflix_discord_oauth_state');
+
+    if (error || !code || state !== expectedState) {
+      this.showError('Discord sign-in was cancelled or could not be verified.');
       return;
     }
-    if (!code) return;
 
     const alertEl = document.getElementById('authAlert');
     alertEl.textContent = 'Completing Discord sign-in...';
     alertEl.classList.remove('is-hidden');
-    document.getElementById('authBtnText').textContent = 'Connecting...';
 
     try {
-      const token = await this.exchangeDiscordCode(code);
-      const user = await this.fetchDiscordUser(token);
-      this.completeDiscordLogin(user);
+      const res = await fetch(DISCORD_AUTH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          redirectUri: DISCORD_CONFIG.redirectUri,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Discord sign-in failed.');
+
+      this.finishLogin(data.session, data);
     } catch (err) {
       console.error('Discord sign-in failed:', err);
-      this.showError('Discord sign-in failed. Please try again.');
-      window.history.replaceState({}, document.title, window.location.pathname);
+      this.showError(err.message || 'Discord sign-in failed. Please try again.');
     }
-  },
-
-  async exchangeDiscordCode(code) {
-    const { clientId, clientSecret, redirectUri } = DISCORD_CONFIG;
-    const body = new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-    });
-    const res = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    });
-    if (!res.ok) throw new Error(`Token exchange failed (${res.status})`);
-    const data = await res.json();
-    return data.access_token;
-  },
-
-  async fetchDiscordUser(token) {
-    const res = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Discord user fetch failed (${res.status})`);
-    return res.json();
-  },
-
-  completeDiscordLogin(user) {
-    const email = user.email || `${user.username}@discord.local`;
-    const session = {
-      provider: 'discord',
-      id: user.id,
-      email,
-      username: user.username,
-      displayName: user.global_name || user.username,
-      avatar: user.avatar || null,
-    };
-    localStorage.setItem('objectflix_current_user', JSON.stringify(session));
-    
-    window.history.replaceState({}, document.title, window.location.pathname);
-    alert(`Signed in as ${session.displayName}!`);
-    location.reload();
   },
 
   showError(message) {

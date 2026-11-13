@@ -1,15 +1,17 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 
 
 
 
 const root = new URL("..", import.meta.url);
-const envPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), ".env");
-const outPath = join(root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), "src", "env.js");
+const envPath = join(fileURLToPath(root), ".env");
+const outPath = join(fileURLToPath(root), "src", "env.js");
 
-const KEYS = ["GEMINI_API_KEY", "GROQ_API_KEY", "PROJECT_ARES_API_KEY", "CALLMISSED_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "DISCORD_CLIENT_ID", "DISCORD_CLIENT_SECRET", "ARG_SECRET"];
+// Billing and OAuth server secrets must never enter this public bundle.
+const KEYS = ["GEMINI_API_KEY", "GROQ_API_KEY", "PROJECT_ARES_API_KEY", "CALLMISSED_API_KEY", "CEREBRAS_API_KEY", "MISTRAL_API_KEY", "DISCORD_CLIENT_ID", "GOOGLE_CLIENT_ID", "OBJECTFLIX_API_BASE_URL", "OBJECTFLIX_AI_PROVIDER", "ARG_SECRET"];
 
 const values = {};
 for (const key of KEYS) values[key] = "";

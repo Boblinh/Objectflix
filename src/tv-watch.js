@@ -152,16 +152,6 @@
       messageTitle: dom.messageTitle,
       messageText: dom.messageText,
       fakeDuration: currentEpisode.fakeDuration || null,
-      audioMode: null,
-      hrtfProfile: null,
-      surroundIntensity: null,
-      centerLevel: null,
-      lfeLevel: null,
-      audioPanel: null,
-      audioPanelStatus: null,
-      surroundIntensityValue: null,
-      centerLevelValue: null,
-      lfeLevelValue: null,
     });
 
     

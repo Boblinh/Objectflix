@@ -3,27 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f0f10" />
+    <meta name="theme-color" content="#f8f7f3" />
     <meta
       name="description"
       content="Browse the Objectflix library of object shows."
     />
-    <title>Browse — Objectflix</title>
+    <title>Your clubhouse — Objectflix</title>
+    <link rel="icon" href="./assets/ui/objectflix-mark.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./player-test.css" />
     <link rel="stylesheet" href="./content-warning.css" />
+    <link rel="stylesheet" href="./ui.css" />
   </head>
-  <body>
+  <body class="objectflix-v2 browse-page">
     <a class="skip-link" href="#main-content">Skip to content</a>
 
     <div class="page-shell">
       <div class="app" id="appRoot">
+        <aside class="club-sidebar" aria-label="The Objectflix clubhouse">
+          <a class="logo" href="browse.html" data-view="home" aria-label="Objectflix home">
+            <img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="40" height="40" />
+            <span class="logo__text">objectflix<span class="brand-dot">.</span></span>
+          </a>
+          <p class="sidebar-label">YOUR LITTLE UNIVERSE</p>
+          <nav class="sidebar-nav" aria-label="Primary">
+            <button class="nav-link is-active" data-view="home" type="button" aria-current="page"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#home"></use></svg> For you <span class="nav-active-dot" aria-hidden="true"></span></button>
+            <button class="nav-link" data-view="shows" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#compass"></use></svg> All shows</button>
+            <button class="nav-link" data-view="movies" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#film"></use></svg> Movies</button>
+            <button class="nav-link" data-view="originals" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg> Originals</button>
+            <button class="nav-link" data-view="my-list" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#bookmark"></use></svg> My list <span class="list-count" data-list-count>0</span></button>
+            <button class="nav-link" data-view="history" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#film"></use></svg> Watch history</button>
+          </nav>
+          <div class="sidebar-divider"></div>
+          <p class="sidebar-label">BETTER TOGETHER</p>
+          <nav class="sidebar-nav sidebar-nav--community" aria-label="Community">
+            <a class="community-link" href="./movie-nights.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#tv"></use></svg> Movie Nights</a>
+            <a class="community-link" href="./membership.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg> <span data-membership-label>Membership</span></a>
+            <button class="community-link" data-community-action="request-show" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#plus"></use></svg> Request a show</button>
+            <button class="community-link" data-community-action="request-episode" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#film"></use></svg> Request an episode</button>
+            <button class="community-link" data-community-action="feedback" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#message"></use></svg> Share a little feedback</button>
+          </nav>
+          <a class="sidebar-tv" href="./tv.html">
+            <span class="sidebar-tv__icon"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#tv"></use></svg><span aria-hidden="true">✳</span></span>
+            <strong>Big screen.<br />Bigger personalities.</strong>
+            <span>Try TV mode <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-up-right"></use></svg></span>
+          </a>
+          <div class="sidebar-signoff"><span class="version-tag">v2</span><span>A fresh frame. Same fandom.</span></div>
+        </aside>
+
         <header class="navbar" id="top">
           <div class="navbar__left">
             <button class="icon-button mobile-only" id="menuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Toggle navigation">
@@ -31,40 +64,34 @@
               <span></span>
               <span></span>
             </button>
-            <a class="logo" href="browse.html" data-view="home" aria-label="Objectflix home">
-              <span class="logo__mark">O</span>
-              <span class="logo__text">OBJECTFLIX</span>
+            <a class="logo mobile-brand" href="browse.html" data-view="home" aria-label="Objectflix home">
+              <img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="36" height="36" />
+              <span class="logo__text">objectflix<span class="brand-dot">.</span></span>
             </a>
-            <nav class="navbar__nav desktop-nav" aria-label="Primary">
-              <button class="nav-link is-active" data-view="home" type="button" aria-current="page">Home</button>
-              <button class="nav-link" data-view="shows" type="button">TV Shows</button>
-              <button class="nav-link" data-view="movies" type="button">Movies</button>
-              <button class="nav-link" data-view="originals" type="button">Originals</button>
-              <button class="nav-link" data-view="my-list" type="button">My List</button>
-            </nav>
+            <span class="navbar-greeting">Hey, <strong id="profileGreeting">friend</strong> <span aria-hidden="true">✳</span></span>
           </div>
 
           <div class="navbar__right">
-            <nav class="community-links" aria-label="Community">
-              <button class="community-link" data-community-action="request-show" type="button">Request Show</button>
-              <button class="community-link" data-community-action="request-episode" type="button">Request Episode</button>
-              <button class="community-link community-link--accent" data-community-action="feedback" type="button">Feedback</button>
-            </nav>
+            <button class="nav-search" id="searchNavButton" type="button" aria-label="Search the library"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#search"></use></svg><span>Find your next favorite...</span><kbd aria-hidden="true">/</kbd></button>
+            <button class="surprise-button" data-action="surprise" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#shuffle"></use></svg><span>Surprise me</span></button>
             <a class="admin-link is-hidden" id="adminLink" href="admin.html">Admin</a>
-            <button class="icon-circle" id="searchNavButton" type="button" aria-label="Open search">⌕</button>
-            <button class="icon-circle" type="button" aria-label="View notifications">◌</button>
             <button class="avatar-button" id="avatarButton" type="button" aria-label="Current profile"></button>
           </div>
 
           <nav class="mobile-menu is-hidden" id="mobileMenu" aria-label="Mobile navigation">
-            <button class="nav-link is-active" data-view="home" type="button" aria-current="page">Home</button>
-            <button class="nav-link" data-view="shows" type="button">TV Shows</button>
+            <button class="nav-link is-active" data-view="home" type="button" aria-current="page">For you</button>
+            <button class="nav-link" data-view="shows" type="button">All shows</button>
             <button class="nav-link" data-view="movies" type="button">Movies</button>
             <button class="nav-link" data-view="originals" type="button">Originals</button>
-            <button class="nav-link" data-view="my-list" type="button">My List</button>
+            <button class="nav-link" data-view="my-list" type="button">My list <span class="list-count" data-list-count>0</span></button>
+            <button class="nav-link" data-view="search" type="button">Search</button>
+            <button class="nav-link" data-view="history" type="button">Watch history</button>
+            <a class="nav-link" href="./movie-nights.html">Movie Nights</a>
+            <a class="nav-link" href="./membership.html">Membership</a>
             <button class="community-link" data-community-action="request-show" type="button">Request a Show</button>
             <button class="community-link" data-community-action="request-episode" type="button">Request an Episode</button>
             <button class="community-link community-link--accent" data-community-action="feedback" type="button">Send Feedback</button>
+            <a class="nav-link" href="./tv.html">TV mode ↗</a>
           </nav>
         </header>
 
@@ -74,26 +101,28 @@
           <section class="view" id="searchView" aria-label="Search page">
             <div class="section section--search">
               <div class="search-hero">
-                <p class="eyebrow">DISCOVER SOMETHING NEW</p>
-                <h2>Search the Objectflix library</h2>
+                <span class="search-hero__spark" aria-hidden="true">✳</span>
+                <p class="eyebrow">FOLLOW YOUR CURIOSITY</p>
+                <h1>A little search.<br />A whole new obsession<span class="brand-dot">.</span></h1>
+                <p>Your next favorite is in here somewhere.</p>
                 <label class="search-bar" for="searchInput">
                   <span class="sr-only">Search the Objectflix library</span>
-                  <span aria-hidden="true">⌕</span>
-                  <input id="searchInput" type="search" placeholder="Search shows, movies, creators, or genres" autocomplete="off" />
+                  <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#search"></use></svg>
+                  <input id="searchInput" type="search" placeholder="Shows, stories, or a favorite genre..." autocomplete="off" />
                 </label>
                 <div class="filter-row" id="searchFilters" role="group" aria-label="Search filters"></div>
               </div>
 
               <div class="search-block">
                 <div class="section-heading">
-                  <h3>Trending Searches</h3>
+                  <h2>A few places to start</h2>
                 </div>
                 <div class="chip-row" id="trendingSearches"></div>
               </div>
 
               <div class="search-block">
                 <div class="section-heading">
-                  <h3>Results</h3>
+                  <h2>Look what we found</h2>
                   <p id="searchSummary" aria-live="polite">Browse featured picks and curated categories.</p>
                 </div>
                 <div class="results-grid" id="searchResults"></div>
@@ -103,20 +132,14 @@
         </main>
 
         <footer class="footer">
-          <div class="footer__links">
-            <a href="#" data-community-action="request-show">Request a Show</a>
-            <a href="#" data-community-action="request-episode">Request an Episode</a>
-            <a href="#" data-community-action="feedback">Send Feedback</a>
-            <a href="#">About</a>
-            <a href="#">Help Center</a>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
-          </div>
-          <p>Objectflix UI concept — built for frontend phase one.</p>
+          <div><span class="footer-wordmark">objectflix<span class="brand-dot">.</span></span><p>Small objects. Big stories. A whole lot of heart.</p></div>
+          <div class="footer__links"><button type="button" data-community-action="request-show">Missing a show?</button><button type="button" data-community-action="feedback">Say hello <span aria-hidden="true">↗</span></button><a href="./tv.html">TV mode</a></div>
+          <span class="footer-signoff">FAN-MADE, WITH LOVE ♡</span>
         </footer>
       </div>
     </div>
+
+    <div class="browse-toast" id="browseToast" role="status" aria-live="polite"></div>
 
     <div class="modal is-hidden" id="detailsModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal__backdrop" data-close-modal="true"></div>
@@ -130,6 +153,8 @@
     <script src="./src/config.js"></script>
     <script src="./src/api.js"></script>
     <script src="./data.js"></script>
+    <script src="./src/history.js"></script>
+    <script src="./src/membership-client.js"></script>
     <script src="./src/shared.js"></script>
     <script src="./src/content-warning.js"></script>
     <script src="./src/community.js"></script>

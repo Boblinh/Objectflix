@@ -5,6 +5,8 @@
   "type": "module",
   "description": "Objectflix — the (fan-made) home of Battle for Dream Island.",
   "scripts": {
-    "gen-env": "node scripts/gen-env.js"
+    "gen-env": "node scripts/gen-env.js",
+    "dev": "node scripts/dev.js",
+    "test": "npm --prefix worker test"
   }
 }

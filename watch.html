@@ -3,31 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f0f10" />
+    <meta name="theme-color" content="#f8f7f3" />
     <meta name="description" content="Watch object shows on Objectflix." />
     <title>Watch — Objectflix</title>
+    <link rel="icon" href="./assets/ui/objectflix-mark.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./player-test.css" />
     <link rel="stylesheet" href="./content-warning.css" />
+    <link rel="stylesheet" href="./ui.css" />
   </head>
-  <body class="watch-page">
+  <body class="objectflix-v2 watch-page">
     <a class="skip-link" href="#main-content">Skip to player</a>
 
     <header class="navbar">
       <div class="navbar__left">
         <a class="logo" href="browse.html" aria-label="Back to Objectflix browse">
-          <span class="logo__mark">O</span>
-          <span class="logo__text">OBJECTFLIX</span>
+          <img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="38" height="38" />
+          <span class="logo__text">objectflix<span class="brand-dot">.</span></span>
         </a>
+        <span class="watch-nav-label">GET COMFY. THE GOOD PART'S STARTING.</span>
       </div>
       <div class="navbar__right">
-        <a class="back-link" href="browse.html">Back to Browse</a>
+        <a class="back-link" href="browse.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-left"></use></svg> Back to the clubhouse</a>
       </div>
     </header>
 
@@ -36,7 +39,7 @@
     </main>
 
     <footer class="footer">
-      <p>Objectflix UI concept — built for frontend phase one.</p>
+      <p>Small objects. Big stories. A fan-made home for a wonderfully weird universe.</p>
     </footer>
 
     <script type="importmap">
@@ -55,6 +58,8 @@
     <script src="./src/config.js"></script>
     <script src="./src/api.js"></script>
     <script src="./data.js"></script>
+    <script src="./src/history.js"></script>
+    <script src="./src/membership-client.js"></script>
 <script src="./src/shared.js"></script>
 <script src="./src/content-warning.js"></script>
 <script src="./src/community.js"></script>

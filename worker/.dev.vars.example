@@ -1,0 +1,30 @@
+# Local Worker configuration only. Never export this file to the browser.
+APP_URL=http://localhost:5173/
+STRIPE_MODE=test
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+# Optional during a webhook signing-secret rotation:
+STRIPE_WEBHOOK_SECRET_PREVIOUS=
+
+# Three distinct, active, fixed-price, one-month recurring Stripe Prices.
+# No prices have been assumed or created by this implementation.
+STRIPE_PRICE_ANNOUNCERS_PICK=
+STRIPE_PRICE_FAN_FAVORITE=
+STRIPE_PRICE_GRAND_CHAMPION=
+STRIPE_PORTAL_CONFIGURATION_ID=
+
+# Reuse the existing providers. Register APP_URL/auth.html as the redirect URI.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+
+# Server-verified provider IDs, never emails or frontend roles.
+MEMBERSHIP_ADMIN_USER_IDS_JSON=[]
+# Example: {"animated_decorations":{"enabled":false},"profile_frames":{"minPlan":"fan-favorite"}}
+MEMBERSHIP_PERKS_JSON={}
+
+# Azure OpenAI Responses API (server-side only; no OpenAI SDK dependency).
+AZURE_OPENAI_API_KEY=
+AZURE_OPENAI_ENDPOINT=https://boblinh-resource.services.ai.azure.com/openai/v1/responses
+AZURE_OPENAI_DEPLOYMENT=gpt-5-mini

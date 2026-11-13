@@ -56,12 +56,12 @@
   }
 
   const SHOW_PALETTES = [
-    ['#241216', '#17181b', '#7b1f2d'],
-    ['#0f2237', '#13151a', '#376f9d'],
-    ['#143223', '#15181a', '#3f996c'],
-    ['#1b1634', '#111217', '#6a53c8'],
-    ['#3d140f', '#17181b', '#b14c33'],
-    ['#33250d', '#17181b', '#7d5a1c'],
+    ['#f4d5c3', '#fbe8dc', '#d9a283'],
+    ['#d8e6e8', '#ebf2f0', '#8fb4b7'],
+    ['#dde8d1', '#edf3e3', '#9db786'],
+    ['#e4daed', '#f1eaf6', '#b19cc7'],
+    ['#f4d8dc', '#f9e9eb', '#d3a0ad'],
+    ['#eee2bb', '#f8f1d8', '#c7b576'],
   ];
 
   function paletteFor(id) {
@@ -75,14 +75,24 @@
   
   
   function acronymFor(show) {
+    const knownIds = {
+      '10000000-0000-4000-8000-000000000001': 'BFDI',
+      '10000000-0000-4000-8000-000000000002': 'BFDIA',
+      '10000000-0000-4000-8000-000000000003': 'BFB',
+      '10000000-0000-4000-8000-000000000004': 'TPOT',
+      '10000000-0000-4000-8000-000000000005': 'IDFB',
+      '10000000-0000-4000-8000-000000000006': 'BFDIE',
+      '10000000-0000-4000-8000-000000000007': 'II',
+    };
+    if (knownIds[show.id]) return knownIds[show.id];
     const t = (show.title || '').toLowerCase();
     if (t.includes('power of two') || t.includes('tpot')) return 'TPOT';
     if (t.includes('bfdia') || t.includes('dream island again')) return 'BFDIA';
-    if (t.includes('battle for bfb') || t === 'bfb' || t.includes('bfb (')) return 'BFB';
-    if (t.includes('battle for bfdi') || t === 'bfdi') return 'BFDI';
-    if (t.includes('bfdie')) return 'BFDIE';
+    if (t.includes('battle for bfb') || t.includes('battle for bfdi') || t === 'bfb' || t.includes('bfb (')) return 'BFB';
+    if (t.includes('bfdie') || t.includes('dream island elsewhere')) return 'BFDIE';
+    if (t.includes('battle for dream island') || t === 'bfdi') return 'BFDI';
     if (t.includes('bfdi')) return 'BFDI';
-    if (t.includes('idfb')) return 'IDFB';
+    if (t.includes('idfb') || t === 'dnalsi maerd rof elttab') return 'IDFB';
     if (t.includes('inanimate insani') || t === 'ii') return 'II';
     return '';
   }
@@ -236,6 +246,15 @@
     
     appendResearchSlate(results);
 
+    const history = window.OBJECTFLIX_HISTORY?.entries() || [];
+    for (const item of results) {
+      const recent = history.find((entry) => entry.showId === item.id);
+      if (recent && recent.duration > 0 && recent.position / recent.duration < 0.95) {
+        item.progress = Math.min(1, Math.max(0, recent.position / recent.duration));
+        item.resumeEpisodeId = recent.episodeId;
+      }
+    }
+
     results.sort((a, b) => {
       const titleA = a.title.toLowerCase();
       const titleB = b.title.toLowerCase();
@@ -276,13 +295,15 @@
 
   function createAvatarImage(profile) {
     const colors = {
-      'profile-avatar--gradient-a': ['#7b1f2d', '#e64553'],
-      'profile-avatar--gradient-b': ['#203a8d', '#48a6ff'],
-      'profile-avatar--gradient-c': ['#295846', '#6ddb9d'],
-      'profile-avatar--gradient-d': ['#5e3a0d', '#f0ad4e'],
+      'profile-avatar--gradient-a': '#f5bb99',
+      'profile-avatar--gradient-b': '#d6c5e9',
+      'profile-avatar--gradient-c': '#c9deb9',
+      'profile-avatar--gradient-d': '#f1dda0',
     };
-    const palette = colors[profile.className] || ['#7b1f2d', '#e64553'];
-    return window.createPlaceholderImage(profile.avatar, 200, 200, palette);
+    const color = colors[profile.className] || colors['profile-avatar--gradient-a'];
+    const letter = String(profile.avatar || profile.name?.[0] || 'O').slice(0, 1).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="25" fill="${color}"/><text x="50" y="60" font-family="Arial, sans-serif" font-size="57" font-weight="700" fill="#394330" text-anchor="middle">${letter}</text><path d="M35 73q15 16 30 0" stroke="#394330" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   }
 
   

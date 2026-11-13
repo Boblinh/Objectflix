@@ -1282,6 +1282,57 @@
         letter-spacing: 0.06em;
       }
 
+      .laser {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        transition: opacity 160ms ease;
+      }
+
+      .laser.is-active {
+        opacity: 1;
+      }
+
+      body.laser-on,
+      body.laser-on * {
+        cursor: none !important;
+      }
+
+      .laser__dot {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 120, 130, 1) 0%,
+          rgba(255, 59, 77, 0.9) 42%,
+          rgba(255, 59, 77, 0) 72%
+        );
+        box-shadow: 0 0 22px 6px rgba(255, 59, 77, 0.55);
+        will-change: transform;
+      }
+
+      .laser__halo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 89, 100, 0.16),
+          rgba(255, 89, 100, 0) 68%
+        );
+        will-change: transform;
+      }
+
       .is-active .reveal {
         animation: reveal 650ms var(--ease) both;
       }
@@ -1311,6 +1362,12 @@
         to {
           opacity: 1;
           transform: translateY(0);
+        }
+      }
+
+      @keyframes blink {
+        to {
+          opacity: 0;
         }
       }
 
@@ -1554,7 +1611,7 @@
       </header>
 
       <div class="hint" aria-hidden="true">
-        Dùng phím ← → để chuyển slide
+        Dùng phím ← → để chuyển slide · nhấn L để bật/tắt laser chỉ
       </div>
 
       <div
@@ -1585,7 +1642,54 @@
           </div>
         </section>
 
-        <!-- 2. Giới thiệu dự án -->
+        <!-- 2. Giới thiệu bản thân -->
+        <section
+          class="slide"
+          data-title="Giới thiệu bản thân"
+          aria-hidden="true"
+        >
+          <div class="slide__inner intro-grid">
+            <div class="reveal">
+              <span class="slide-number">01 · Giới thiệu bản thân</span>
+
+              <h2>
+                Xin chào, em là
+                <span class="accent">Doãn Quang Khánh</span>
+              </h2>
+
+              <p class="lead">
+                Em sẽ trình bày về dự án Objectflix của mình. Trước tiên,
+                một chút thông tin về bản thân em:
+              </p>
+            </div>
+
+            <div class="glass-card intro-card reveal">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                </svg>
+              </span>
+
+              <h3 style="margin-top: 0.9rem;">Thông tin cá nhân</h3>
+
+              <ul class="simple-list" style="margin-bottom: 0;">
+                <li><b>Trường:</b> THCS Nghĩa Tân</li>
+                <li><b>Tuổi:</b> 12</li>
+              </ul>
+
+              <h3 style="margin: 1.15rem 0 0.6rem;">Sở thích</h3>
+
+              <div class="feature-list">
+                <span class="feature-chip">Lập trình</span>
+                <span class="feature-chip">Chơi game</span>
+                <span class="feature-chip">Học tiếng Anh</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. Giới thiệu dự án -->
         <section
           class="slide"
           data-title="Giới thiệu dự án"
@@ -1593,7 +1697,7 @@
         >
           <div class="slide__inner intro-grid">
             <div class="reveal">
-              <span class="slide-number">01 · Giới thiệu dự án</span>
+              <span class="slide-number">02 · Giới thiệu dự án</span>
 
               <h2>
                 Objectflix là <span class="accent">gì?</span>
@@ -1640,7 +1744,7 @@
           aria-hidden="true"
         >
           <div class="slide__inner">
-            <span class="slide-number reveal">02 · Công nghệ</span>
+            <span class="slide-number reveal">03 · Công nghệ</span>
 
             <h2 class="reveal">
               Công nghệ <span class="accent">đã sử dụng</span>
@@ -1692,6 +1796,14 @@
               </div>
 
               <div class="tech-name" role="cell">
+                <span>GH</span>GitHub / Git
+              </div>
+
+              <div class="tech-purpose" role="cell">
+                Quản lý mã nguồn và kiểm soát phiên bản
+              </div>
+
+              <div class="tech-name" role="cell">
                 <span>AI</span>AI API
               </div>
 
@@ -1718,7 +1830,7 @@
           aria-hidden="true"
         >
           <div class="slide__inner slide__inner--wide">
-            <span class="slide-number reveal">03 · Tiến trình</span>
+            <span class="slide-number reveal">04 · Tiến trình</span>
 
             <h2 class="reveal">
               Quá trình <span class="accent">phát triển</span>
@@ -1795,7 +1907,7 @@
           aria-hidden="true"
         >
           <div class="slide__inner slide__inner--wide">
-            <span class="slide-number reveal">04 · Cấu trúc website</span>
+            <span class="slide-number reveal">05 · Cấu trúc website</span>
 
             <h2 class="reveal">
               Các trang <span class="accent">chính</span>
@@ -1874,7 +1986,7 @@
           aria-hidden="true"
         >
           <div class="slide__inner slide__inner--wide">
-            <span class="slide-number reveal">05 · Trí tuệ nhân tạo</span>
+            <span class="slide-number reveal">06 · Trí tuệ nhân tạo</span>
 
             <h2 class="reveal">
               Objectflix <span class="accent">AI Assistant</span>
@@ -1969,7 +2081,7 @@
         <section class="slide" data-title="Thách thức" aria-hidden="true">
           <div class="slide__inner slide__inner--wide">
             <span class="slide-number reveal">
-              06 · Bài toán &amp; giải pháp
+              07 · Bài toán &amp; giải pháp
             </span>
 
             <h2 class="reveal">
@@ -2021,7 +2133,7 @@
         >
           <div class="slide__inner future-layout">
             <div>
-              <span class="slide-number reveal">07 · Bước tiếp theo</span>
+              <span class="slide-number reveal">08 · Bước tiếp theo</span>
 
               <h2 class="reveal">
                 Kế hoạch <span class="accent">tương lai</span>
@@ -2080,7 +2192,7 @@
         <!-- 9. Kết luận -->
         <section class="slide" data-title="Kết luận" aria-hidden="true">
           <div class="slide__inner slide__inner--center">
-            <span class="slide-number reveal">08 · Kết luận</span>
+            <span class="slide-number reveal">09 · Kết luận</span>
 
             <h2 class="reveal">
               Những gì em <span class="accent">đã học được</span>
@@ -2106,7 +2218,7 @@
         <!-- 10. Hỏi và đáp -->
         <section class="slide" data-title="Hỏi và đáp" aria-hidden="true">
           <div class="slide__inner slide__inner--center">
-            <span class="slide-number reveal">09 · Trao đổi</span>
+            <span class="slide-number reveal">10 · Trao đổi</span>
 
             <h2 class="reveal">
               Câu hỏi &amp; <span class="accent">trả lời</span>
@@ -2120,16 +2232,16 @@
         <!-- 11. Cloudflare Technical Backup -->
         <section
           class="slide"
-          data-title="Cloudflare - slide dự phòng"
+          data-title="Giới thiệu về Cloudflare"
           aria-hidden="true"
         >
           <div class="slide__inner slide__inner--wide">
             <span class="slide-number reveal">
-              10 · Tham khảo kỹ thuật
+              11 · Tham khảo kỹ thuật
             </span>
 
             <h2 class="reveal">
-              Kiến trúc <span class="accent">Cloudflare</span>
+            <span class="accent">Cloudflare</span> là gì?
             </h2>
 
             <div class="cloud-layout">
@@ -2212,6 +2324,97 @@
             </div>
           </div>
         </section>
+
+        <!-- 12. Backblaze Technical Backup -->
+        <section
+          class="slide"
+          data-title="Giới thiệu về Backblaze"
+          aria-hidden="true"
+        >
+          <div class="slide__inner slide__inner--wide">
+            <span class="slide-number reveal">
+              12 · Tham khảo kỹ thuật
+            </span>
+
+            <h2 class="reveal">
+              <span class="accent">Backblaze</span> là gì?
+            </h2>
+
+            <div class="cloud-layout">
+              <div class="reveal">
+                <p class="lead">
+                  Backblaze B2 lưu trữ các tệp video và phụ đề của Objectflix,
+                  đồng thời cung cấp tệp gốc cho Cloudflare Worker phục vụ.
+                </p>
+
+                <div class="cloud-services">
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">☁️</span>
+                    <h3>Backblaze B2</h3>
+                    <p>Dịch vụ lưu trữ object tương thích S3</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">📦</span>
+                    <h3>Video Files</h3>
+                    <p>Lưu các tệp MP4 và bản fallback</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">💾</span>
+                    <h3>Buckets</h3>
+                    <p>Tách bucket chính và bucket dự phòng</p>
+                  </article>
+
+                  <article class="glass-card cloud-service">
+                    <span class="service-icon">🔐</span>
+                    <h3>Signed URLs</h3>
+                    <p>Quyền truy cập media được bảo vệ</p>
+                  </article>
+                </div>
+              </div>
+
+              <div
+                class="glass-card architecture reveal"
+                aria-label="Sơ đồ luồng media Backblaze"
+              >
+                <div class="arch-flow-v">
+                  <div class="arch-box">
+                    Người dùng (Browser)
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box">
+                    Objectflix Frontend
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box arch-box--primary">
+                    Cloudflare Worker
+                    <br />
+                    (Media Proxy / API)
+                  </div>
+
+                  <div class="arch-arrow">↓</div>
+
+                  <div class="arch-box">
+                    Backblaze B2
+                    <br />
+                    (Buckets · Video · Subtitles)
+                  </div>
+                </div>
+
+                <p class="arch-note">
+                  Worker xác thực yêu cầu, tìm bucket phù hợp và truyền media
+                  về trình duyệt. Nếu bucket chính gặp lỗi, hệ thống có thể
+                  chuyển sang bucket dự phòng.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <nav
@@ -2222,7 +2425,7 @@
           <span class="counter">
             <strong id="currentSlide">01</strong>
             /
-            <span id="totalSlides">11</span>
+            <span id="totalSlides">13</span>
           </span>
 
           <div class="progress-track" aria-hidden="true">
@@ -2272,6 +2475,58 @@
         const dotsContainer =
           document.getElementById("slideDots");
 
+        const laser = document.createElement("div");
+        const laserDot = document.createElement("div");
+        const laserHalo = document.createElement("div");
+
+        laser.className = "laser";
+        laserDot.className = "laser__dot";
+        laserHalo.className = "laser__halo";
+
+        laser.append(laserDot, laserHalo);
+        document.body.appendChild(laser);
+
+        let laserEnabled = false;
+        let laserX = window.innerWidth / 2;
+        let laserY = window.innerHeight / 2;
+        let laserFrame = 0;
+
+        function updateLaser(x, y) {
+          if (!laserEnabled) {
+            return;
+          }
+
+          cancelAnimationFrame(laserFrame);
+
+          laserFrame = requestAnimationFrame(() => {
+            laserDot.style.transform =
+              `translate3d(${x - 8}px, ${y - 8}px, 0)`;
+            laserHalo.style.transform =
+              `translate3d(${x - 60}px, ${y - 60}px, 0)`;
+          });
+        }
+
+        function toggleLaser() {
+          laserEnabled = !laserEnabled;
+
+          laser.classList.toggle("is-active", laserEnabled);
+          document.body.classList.toggle("laser-on", laserEnabled);
+
+          if (laserEnabled) {
+            updateLaser(laserX, laserY);
+          }
+        }
+
+        document.addEventListener(
+          "mousemove",
+          (event) => {
+            laserX = event.clientX;
+            laserY = event.clientY;
+            updateLaser(laserX, laserY);
+          },
+          { passive: true }
+        );
+
         let currentIndex = 0;
         let touchStartX = 0;
         let touchStartY = 0;
@@ -2299,6 +2554,139 @@
 
           return dot;
         });
+
+        const noTypeFadeSlides = [
+          "Công nghệ sử dụng",
+          "Kế hoạch tương lai"
+        ];
+
+        function applyCharDelays(slide) {
+          const words = slide.querySelectorAll(".word");
+          const groups = [];
+          let current = [];
+          let previousParent = null;
+
+          words.forEach((word) => {
+            if (previousParent && word.parentNode !== previousParent) {
+              groups.push(current);
+              current = [];
+            }
+
+            current.push(word);
+            previousParent = word.parentNode;
+          });
+
+          if (current.length) {
+            groups.push(current);
+          }
+
+          groups.forEach((group) => {
+            let charCount = 0;
+
+            group.forEach((word) => {
+              charCount += word.querySelectorAll(".char").length;
+            });
+
+            const step = Math.min(140, Math.max(12, 1200 / charCount));
+            let offset = 0;
+
+            group.forEach((word) => {
+              word.querySelectorAll(".char").forEach((char) => {
+                char.style.setProperty("--d", `${260 + offset}ms`);
+                offset += step;
+              });
+            });
+          });
+        }
+
+        function typeFade(slide) {
+          if (
+            slide.classList.contains("title-slide") ||
+            noTypeFadeSlides.includes(slide.dataset.title)
+          ) {
+            return;
+          }
+
+          if (slide.dataset.typed) {
+            const chars = slide.querySelectorAll(".char");
+
+            chars.forEach((char) => {
+              char.style.animation = "none";
+              char.style.opacity = "0";
+            });
+
+            applyCharDelays(slide);
+
+            chars.forEach((char) => {
+              void char.offsetWidth;
+              char.style.animation = "";
+            });
+
+            return;
+          }
+
+          slide.dataset.typed = "true";
+          slide.classList.add("typed");
+
+          const walker = document.createTreeWalker(
+            slide,
+            NodeFilter.SHOW_TEXT,
+            {
+              acceptNode(node) {
+                return node.nodeValue && node.nodeValue.trim()
+                  ? NodeFilter.FILTER_ACCEPT
+                  : NodeFilter.FILTER_REJECT;
+              }
+            }
+          );
+
+          const textNodes = [];
+          while (walker.nextNode()) {
+            textNodes.push(walker.currentNode);
+          }
+
+          textNodes.forEach((node) => {
+            const parent = node.parentNode;
+            const isFirst = parent.firstChild === node;
+            const isLast = parent.lastChild === node;
+            const value = node.nodeValue;
+            const prefix =
+              !isFirst && /^\s/.test(value) ? " " : "";
+            const suffix =
+              !isLast && /\s$/.test(value) ? " " : "";
+            const fragment = document.createDocumentFragment();
+
+            if (prefix) {
+              fragment.appendChild(document.createTextNode(" "));
+            }
+
+            value.trim().split(/\s+/).forEach((token) => {
+              if (fragment.childNodes.length && !/^\s$/.test(fragment.lastChild.nodeValue)) {
+                fragment.appendChild(document.createTextNode(" "));
+              }
+
+              const word = document.createElement("span");
+              word.className = "word";
+
+              for (const ch of token) {
+                const c = document.createElement("span");
+                c.className = "char";
+                c.textContent = ch;
+                word.appendChild(c);
+              }
+
+              fragment.appendChild(word);
+            });
+
+            if (suffix) {
+              fragment.appendChild(document.createTextNode(" "));
+            }
+
+            node.parentNode.replaceChild(fragment, node);
+          });
+
+          applyCharDelays(slide);
+        }
 
         function showSlide(nextIndex) {
           const boundedIndex = Math.max(
@@ -2374,6 +2762,11 @@
         });
 
         document.addEventListener("keydown", (event) => {
+          if (event.key === "l" || event.key === "L") {
+            toggleLaser();
+            return;
+          }
+
           const target = event.target;
 
           if (

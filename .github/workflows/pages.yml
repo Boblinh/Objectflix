@@ -45,8 +45,6 @@ jobs:
             --exclude '_site/' \
             --exclude 'player-test.html' \
             --exclude 'player-test.js' \
-            --exclude 'audio-diag.*' \
-            --exclude 'probe-panner.html' \
             ./ _site/
 
       - uses: actions/upload-pages-artifact@v3

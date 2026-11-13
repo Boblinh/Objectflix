@@ -30,9 +30,16 @@
   let dynamicProfiles = [];
   let editingProfile = null;
   let selectedClass = AVATAR_CLASSES[0];
+  let lastFocusedElement = null;
+
+  const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
   function currentUser() {
-    return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
+    try {
+      return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
+    } catch {
+      return null;
+    }
   }
 
   // Stable identity for server-side storage: Discord users key by their
@@ -65,10 +72,11 @@
     const addBtn = profilesToRender.length >= MAX_PROFILES
       ? ''
       : `<button class="add-profile" type="button" id="addProfileBtn" aria-label="Add profile">
-          <div class="profile-avatar">+</div>
-          <div class="profile-name">Add Profile</div>
+          <div class="profile-avatar" aria-hidden="true">+</div>
+          <div class="profile-name">A new character</div>
         </button>`;
     elements.profileGrid.innerHTML = cards + addBtn;
+    window.OBJECTFLIX_MEMBERSHIP?.applyAppearance();
 
     document.getElementById('addProfileBtn')?.addEventListener('click', () => openModal(null));
 
@@ -83,11 +91,11 @@
   function renderProfileCard(profile) {
     return `
       <div class="profile-card-wrap">
-        <button class="profile-card" type="button" data-profile-id="${profile.id}" aria-label="Choose profile ${profile.name}">
-          <div class="profile-avatar ${profile.className}">${profile.avatar}</div>
-          <div class="profile-name">${profile.name}</div>
+        <button class="profile-card" type="button" data-profile-id="${escapeHTML(profile.id)}" aria-label="Choose profile ${escapeHTML(profile.name)}">
+          <div class="profile-avatar ${AVATAR_CLASSES.includes(profile.className) ? profile.className : AVATAR_CLASSES[0]}"><span class="profile-avatar__letter">${escapeHTML(profile.avatar)}</span><span class="profile-avatar__smile" aria-hidden="true"></span></div>
+          <div class="profile-name">${escapeHTML(profile.name)}</div>
         </button>
-        <button class="profile-edit" type="button" data-edit-profile-id="${profile.id}" aria-label="Edit profile ${profile.name}">&#9998;</button>
+        <button class="profile-edit" type="button" data-edit-profile-id="${escapeHTML(profile.id)}" aria-label="Edit profile ${escapeHTML(profile.name)}">&#9998;</button>
       </div>
     `;
   }
@@ -104,6 +112,7 @@
   }
 
   function openModal(profile) {
+    lastFocusedElement = document.activeElement;
     editingProfile = profile;
     selectedClass = profile?.className || AVATAR_CLASSES[0];
     elements.modalTitle.textContent = profile ? 'Edit Profile' : 'Add Profile';
@@ -121,12 +130,13 @@
   function closeModal() {
     elements.modal.classList.add('is-hidden');
     editingProfile = null;
+    if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
   }
 
   function renderSwatches() {
     elements.swatchRow.innerHTML = AVATAR_CLASSES.map((className) => `
       <button type="button" class="avatar-swatch ${className} ${className === selectedClass ? 'is-selected' : ''}"
-        data-class-name="${className}" aria-label="Avatar color"></button>
+        data-class-name="${className}" aria-label="${['Peach', 'Lilac', 'Mint', 'Sunshine'][AVATAR_CLASSES.indexOf(className)]} avatar" aria-pressed="${className === selectedClass}"></button>
     `).join('');
   }
 
@@ -194,7 +204,7 @@
   function bindEvents() {
     document.addEventListener('click', (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
+      if (!(target instanceof Element)) return;
 
       const swatch = target.closest('[data-class-name]');
       if (swatch) {
@@ -223,8 +233,21 @@
     elements.deleteBtn.addEventListener('click', handleDelete);
     document.getElementById('profileModalBackdrop').addEventListener('click', closeModal);
 
-    document.getElementById('manageProfilesButton')?.addEventListener('click', () => {
-      elements.profileGrid.classList.toggle('is-managing');
+    document.getElementById('manageProfilesButton')?.addEventListener('click', (event) => {
+      const managing = elements.profileGrid.classList.toggle('is-managing');
+      event.currentTarget.setAttribute('aria-pressed', String(managing));
+      event.currentTarget.textContent = managing ? 'Done editing' : 'Manage profiles';
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (elements.modal.classList.contains('is-hidden')) return;
+      if (event.key === 'Escape') closeModal();
+      if (event.key !== 'Tab') return;
+      const focusable = [...elements.modal.querySelectorAll('button, input')].filter((element) => !element.disabled && element.getClientRects().length);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     });
 
     elements.nameInput.addEventListener('input', () => {
@@ -241,10 +264,11 @@
   async function init() {
     const user = currentUser();
     if (!user) {
-      window.Auth.open();
       return;
     }
 
+    document.getElementById('welcomeLanding').classList.add('is-hidden');
+    document.querySelector('.welcome-nav__explore').classList.add('is-hidden');
     const account = accountKey(user);
     bindEvents();
 

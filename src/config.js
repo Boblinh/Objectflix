@@ -3,7 +3,7 @@
 
 window.OBJECTFLIX_CONFIG = Object.freeze({
   
-  apiBaseUrl: "https://objectflix-api.boblinh.workers.dev",
+  apiBaseUrl: window.__OBJECTFLIX_ENV__?.OBJECTFLIX_API_BASE_URL || "https://objectflix-api.boblinh.workers.dev",
 
   
   
@@ -56,7 +56,7 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
   }),
 
   ai: Object.freeze({
-    provider: "gemini",
+    provider: window.__OBJECTFLIX_ENV__?.OBJECTFLIX_AI_PROVIDER || "gemini",
     apiKey: (window.__OBJECTFLIX_ENV__ && window.__OBJECTFLIX_ENV__.GEMINI_API_KEY) || "",
     apiKeys: Object.freeze(
       ((window.__OBJECTFLIX_ENV__ && window.__OBJECTFLIX_ENV__.GEMINI_API_KEY) || "")
@@ -75,6 +75,13 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     
     
     fallbacks: Object.freeze([
+      Object.freeze({
+        id: "azure",
+        name: "Azure OpenAI",
+        protocol: "azure-responses",
+        serverSide: true,
+        models: Object.freeze(["gpt-5-mini"]),
+      }),
       Object.freeze({
         id: "groq",
         name: "Groq",
@@ -147,6 +154,13 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
       TPOT: "tpot",
       BFDIE: "bfdie",
       "Inanimate Insanity": "ii",
+      "Battle for Dream Island": "bfdi",
+      "Battle for Dream Island Again": "bfdia",
+      "Battle for BFDI": "bfb",
+      "Battle for Dream Island: The Power of Two": "tpot",
+      "Battle for Dream Island Elsewhere": "bfdie",
+      "dnalsI maerD rof elttaB": "idfb",
+      IDFB: "idfb",
     }),
   }),
 

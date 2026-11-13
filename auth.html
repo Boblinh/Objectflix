@@ -3,45 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f0f10" />
+    <meta name="theme-color" content="#f8f7f3" />
     <meta name="description" content="Sign in or sign up for Objectflix." />
     <title>Sign In — Objectflix</title>
+    <link rel="icon" href="./assets/ui/objectflix-mark.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./ui.css" />
   </head>
-  <body class="auth-page">
+  <body class="objectflix-v2 auth-page">
+    <a class="skip-link" href="#auth-title">Skip to sign in</a>
 
-    <a href="./index.html" class="auth-page__logo" aria-label="Objectflix home">
-      <span class="auth-brand__mark">O</span>
-      <span class="auth-brand__text">OBJECTFLIX</span>
+    <a href="./index.html" class="auth-page__logo logo" aria-label="Objectflix home">
+      <img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="40" height="40" />
+      <span class="logo__text">objectflix<span class="brand-dot">.</span></span>
+      <span class="version-tag">v2</span>
     </a>
+    <a class="auth-back text-link" href="./index.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-left"></use></svg> Back to the good stuff</a>
 
-    <div class="auth-page__panel">
-      <h1 id="auth-title" class="auth-card__title">Sign In</h1>
-      <p class="auth-card__subtitle" id="authSubtitle">Welcome back! Please enter your details or sign in with social accounts.</p>
+    <main class="auth-layout">
+      <section class="auth-story" aria-labelledby="auth-story-title">
+        <p class="eyebrow">EVERYONE'S A MAIN CHARACTER HERE</p>
+        <h2 id="auth-story-title">A little weird.<br />A lot to <span class="scribble-word">love.</span></h2>
+        <p>Your favorite faces. Your own little space.<br />Your next “just one more episode.”</p>
+        <img class="auth-story__art" src="./assets/ui/clubhouse.svg" alt="A cheerful television welcoming you to the clubhouse" width="580" height="460" />
+        <span class="auth-story__note">SMALL OBJECTS. BIG STORIES. BIGGER HEART. ♡</span>
+      </section>
+      <section class="auth-page__panel" aria-labelledby="auth-title">
+      <p class="eyebrow">YOUR SEAT IS SAVED</p>
+      <h1 id="auth-title" class="auth-card__title" tabindex="-1">Hey, you. Welcome in.</h1>
+      <p class="auth-card__subtitle" id="authSubtitle">Sign in and pick up the fun right where you left it.</p>
+      <p class="auth-verification-note is-hidden" id="authVerificationNote">For memberships and Movie Nights, continue with <strong>Google or Discord</strong> below. This verifies your account securely.</p>
 
-      <div class="auth-tabs" role="tablist">
-        <button class="auth-tab is-active" id="tabSignIn" type="button" role="tab" aria-selected="true">Sign In</button>
-        <button class="auth-tab" id="tabSignUp" type="button" role="tab" aria-selected="false">Sign Up</button>
+      <div class="auth-tabs" role="tablist" aria-label="Account options">
+        <button class="auth-tab is-active" id="tabSignIn" type="button" role="tab" aria-selected="true" aria-controls="authFormPanel">Sign in</button>
+        <button class="auth-tab" id="tabSignUp" type="button" role="tab" aria-selected="false" aria-controls="authFormPanel" tabindex="-1">Join the club</button>
       </div>
 
+      <div id="authFormPanel" role="tabpanel" aria-labelledby="tabSignIn">
       <div class="auth-alert is-hidden" id="authAlert" role="alert"></div>
 
       <form class="auth-form" id="authForm" novalidate>
         <div class="auth-field is-hidden" id="nameFieldGroup">
           <label for="authName" class="auth-label">Full Name</label>
           <div class="auth-input-wrapper">
-            <span class="auth-input-icon">&#x1F464;</span>
-            <input class="auth-input" id="authName" type="text" placeholder="John Doe" autocomplete="name" />
+            <span class="auth-input-icon"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#user"></use></svg></span>
+            <input class="auth-input" id="authName" type="text" placeholder="What should we call you?" autocomplete="name" />
           </div>
         </div>
 
         <div class="auth-field">
           <label for="authEmail" class="auth-label">Email Address</label>
           <div class="auth-input-wrapper">
-            <span class="auth-input-icon">&#x2709;</span>
+            <span class="auth-input-icon"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#mail"></use></svg></span>
             <input class="auth-input" id="authEmail" type="email" placeholder="name@example.com" autocomplete="email" required />
           </div>
         </div>
@@ -49,35 +65,28 @@
         <div class="auth-field">
           <label for="authPassword" class="auth-label">Password</label>
           <div class="auth-input-wrapper">
-            <span class="auth-input-icon">&#x1F512;</span>
+            <span class="auth-input-icon"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#lock"></use></svg></span>
             <input class="auth-input" id="authPassword" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password" required />
-            <button type="button" class="auth-toggle-password" id="authTogglePassword" aria-label="Toggle password visibility">&#x1F441;</button>
+            <button type="button" class="auth-toggle-password" id="authTogglePassword" aria-label="Show password" aria-pressed="false">Show</button>
           </div>
         </div>
 
         <div class="auth-field is-hidden" id="confirmPasswordFieldGroup">
           <label for="authConfirmPassword" class="auth-label">Confirm Password</label>
           <div class="auth-input-wrapper">
-            <span class="auth-input-icon">&#x1F512;</span>
+            <span class="auth-input-icon"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#lock"></use></svg></span>
             <input class="auth-input" id="authConfirmPassword" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="new-password" />
           </div>
         </div>
 
-        <div class="auth-options" id="authOptionsRow">
-          <label class="auth-checkbox-label">
-            <input type="checkbox" id="authRemember" checked />
-            <span>Remember me</span>
-          </label>
-          <a href="#" class="auth-link" id="forgotPasswordLink">Forgot password?</a>
-        </div>
-
         <button type="submit" class="button button--primary auth-submit-btn" id="authSubmitBtn">
-          <span class="auth-btn-text" id="authBtnText">Sign In</span>
+          <span class="auth-btn-text" id="authBtnText">Let me in</span><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg>
         </button>
       </form>
+      </div>
 
       <div class="auth-divider">
-        <span>OR CONTINUE WITH</span>
+        <span>OR BRING YOUR OTHER SELF</span>
       </div>
 
       <div class="auth-social-group">
@@ -103,7 +112,9 @@
         <span id="authToggleText">New to Objectflix?</span>
         <button type="button" class="auth-toggle-link" id="authToggleModeBtn">Sign up now</button>
       </div>
-    </div>
+      <p class="auth-fan-note">A fan-made home for your favorite little universe.</p>
+      </section>
+    </main>
 
     <script src="./src/env.js"></script>
     <script src="./src/config.js"></script>

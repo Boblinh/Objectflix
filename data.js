@@ -2,22 +2,34 @@
   
   
 
-  const createPlaceholderImage = (title, width = 1280, height = 720, palette = ['#241216', '#17181b', '#7b1f2d']) => {
+  const createPlaceholderImage = (title, width = 1280, height = 720, palette = ['#e5dcef', '#f6f1fa', '#a18bb7']) => {
     const [a, b, c] = palette;
+    const escapeXML = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
+    const portrait = height > width;
+    const fontSize = width * (portrait ? 0.086 : 0.065);
+    const maxChars = portrait ? 16 : 25;
+    const lines = [];
+    for (const word of String(title).split(/\s+/)) {
+      if (!lines.length || `${lines[lines.length - 1]} ${word}`.length > maxChars) lines.push(word);
+      else lines[lines.length - 1] += ` ${word}`;
+    }
+    const unit = Math.min(width, height);
+    const cx = width * (portrait ? 0.5 : 0.77);
+    const cy = height * (portrait ? 0.38 : 0.5);
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <defs>
-          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="${a}"/>
-            <stop offset="48%" stop-color="${b}"/>
-            <stop offset="100%" stop-color="${c}"/>
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#bg)"/>
-        <circle cx="${width * 0.82}" cy="${height * 0.24}" r="${height * 0.15}" fill="#ffffff15"/>
-        <circle cx="${width * 0.18}" cy="${height * 0.74}" r="${height * 0.19}" fill="#e5091420"/>
-        <text x="7%" y="78%" fill="#f5f5f7" font-family="Inter, Arial, sans-serif" font-size="${Math.max(width * 0.055, 28)}" font-weight="800">${title}</text>
-        <text x="7%" y="86%" fill="#a3a7b3" font-family="Inter, Arial, sans-serif" font-size="${Math.max(width * 0.02, 14)}" font-weight="600">OBJECTFLIX PLACEHOLDER ART</text>
+        <rect width="100%" height="100%" fill="${a}"/>
+        <circle cx="${width * 0.1}" cy="${height * 0.04}" r="${unit * 0.48}" fill="${b}"/>
+        <circle cx="${width * 0.98}" cy="${height * 0.98}" r="${unit * 0.48}" fill="${c}" opacity=".28"/>
+        <g transform="translate(${cx} ${cy}) rotate(-12)">
+          <rect x="${-unit * 0.24}" y="${-unit * 0.23}" width="${unit * 0.48}" height="${unit * 0.46}" rx="${unit * 0.14}" fill="${c}"/>
+          <ellipse cx="${-unit * 0.09}" cy="${-unit * 0.04}" rx="${unit * 0.018}" ry="${unit * 0.032}" fill="#30372a"/>
+          <ellipse cx="${unit * 0.09}" cy="${-unit * 0.04}" rx="${unit * 0.018}" ry="${unit * 0.032}" fill="#30372a"/>
+          <path d="M${-unit * 0.09} ${unit * 0.075} Q0 ${unit * 0.2} ${unit * 0.09} ${unit * 0.075}" stroke="#30372a" stroke-width="${unit * 0.013}" stroke-linecap="round" fill="none"/>
+        </g>
+        <text x="8%" y="${height * 0.1}" fill="#536048" font-family="Arial, sans-serif" font-size="${unit * 0.022}" letter-spacing="${unit * 0.004}">AN OBJECTFLIX DISCOVERY</text>
+        <text x="8%" y="${height * (portrait ? 0.7 : 0.65)}" fill="#30372a" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="800" letter-spacing="-2">${lines.slice(0, 4).map((line, index) => `<tspan x="8%" dy="${index ? fontSize * 1.06 : 0}">${escapeXML(line)}</tspan>`).join('')}</text>
+        <text x="8%" y="94%" fill="#596b4c" font-family="Arial, sans-serif" font-size="${unit * 0.019}" letter-spacing="${unit * 0.002}">A LITTLE WORLD OF ITS OWN. ↗</text>
       </svg>
     `;
 

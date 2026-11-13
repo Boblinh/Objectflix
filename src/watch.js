@@ -278,11 +278,6 @@
             </div>
 
             <div class="controls-group">
-              <select class="player-control-select player-control-select--small" id="watchAudioMode" title="Audio Mode">
-                <option value="original">Original</option>
-                <option value="stereo">Stereo</option>
-                <option value="virtual">Virtual 7.1</option>
-              </select>
               <select class="player-control-select" id="watchSubtitleSelect" title="Select Subtitles">
                 <option value="">Off</option>
               </select>
@@ -292,33 +287,6 @@
                 <svg class="icon-exit-fullscreen" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4V7h3V4zm6 0h2v3h3v2h-5zM4 15h5v5H7v-3H4zm11 0h5v2h-3v3h-2z" /></svg>
               </button>
             </div>
-          </div>
-
-          <div class="audio-panel is-hidden" id="watchAudioPanel">
-            <div class="audio-panel__heading">
-              <span class="audio-panel__title">Virtual 7.1 Headphones</span>
-              <span class="audio-panel__status" id="watchAudioPanelStatus"></span>
-            </div>
-            <label class="audio-panel__row" for="watchHrtfProfile">
-              <span>HRTF Profile</span>
-              <select class="player-control-select player-control-select--small" id="watchHrtfProfile">
-                <option value="itu">ITU 7.1 (Natural)</option>
-                <option value="cinema">Cinema</option>
-                <option value="wide">Wide</option>
-              </select>
-            </label>
-            <label class="audio-panel__row" for="watchSurroundIntensity">
-              <span>Surround <output id="watchSurroundIntensityValue">1.00</output></span>
-              <input class="player-range player-range--panel" id="watchSurroundIntensity" type="range" min="0" max="1.5" value="1" step="0.01" />
-            </label>
-            <label class="audio-panel__row" for="watchCenterLevel">
-              <span>Center <output id="watchCenterLevelValue">1.00</output></span>
-              <input class="player-range player-range--panel" id="watchCenterLevel" type="range" min="0" max="1.5" value="1" step="0.01" />
-            </label>
-            <label class="audio-panel__row" for="watchLfeLevel">
-              <span>Bass <output id="watchLfeLevelValue">1.00</output></span>
-              <input class="player-range player-range--panel" id="watchLfeLevel" type="range" min="0" max="2" value="1" step="0.01" />
-            </label>
           </div>
         </div>
       </div>
@@ -407,16 +375,6 @@
       message: 'watchPlayerMessage',
       messageTitle: 'watchPlayerMessageTitle',
       messageText: 'watchPlayerMessageText',
-      audioMode: 'watchAudioMode',
-      hrtfProfile: 'watchHrtfProfile',
-      surroundIntensity: 'watchSurroundIntensity',
-      centerLevel: 'watchCenterLevel',
-      lfeLevel: 'watchLfeLevel',
-      audioPanel: 'watchAudioPanel',
-      audioPanelStatus: 'watchAudioPanelStatus',
-      surroundIntensityValue: 'watchSurroundIntensityValue',
-      centerLevelValue: 'watchCenterLevelValue',
-      lfeLevelValue: 'watchLfeLevelValue',
     };
 
     const playerElements = {};
@@ -541,6 +499,15 @@
 
     void (async () => {
       try {
+        const movieNightId = urlParams.get('movieNight');
+        if (movieNightId) {
+          const event = await window.OBJECTFLIX_MEMBERSHIP.request(`/api/movie-nights/${encodeURIComponent(movieNightId)}/join`, { method: 'POST' });
+          const permitted = new URL(event.watchUrl);
+          // A Movie Night can launch only the server-selected licensed episode.
+          showId = permitted.searchParams.get('id');
+          episodeId = permitted.searchParams.get('ep');
+          if (!showId || !episodeId) throw new Error('This Movie Night has no available episode.');
+        }
         state.library = await SHARED.loadLibrary();
         await SHARED.injectSecretEpisodes(state.library, state.secretEpisodes);
       } catch (error) {

@@ -1,6 +1,7 @@
 # Secrets
 .env
 src/env.js
+.dev.vars
 
 # TLS keys/certs for the local objectflix.com server (never commit)
 *.pem

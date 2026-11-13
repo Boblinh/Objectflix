@@ -650,7 +650,26 @@ Accuracy rules (critical):
     return null;
   }
 
-  async function requestAI(assistantId, message, context) {
+  async function tryAzureResponses(apiMessages, onText) {
+    const session = window.OBJECTFLIX_MEMBERSHIP?.session();
+    if (!session) return null;
+    try {
+      const response = await fetch(`${window.OBJECTFLIX_CONFIG.apiBaseUrl}/api/ai/azure/responses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({ messages: apiMessages.slice(-24), stream: true }),
+        signal: AbortSignal.timeout(95000),
+      });
+      if (!response.ok) { await response.body?.cancel(); return null; }
+      const { consumeResponsesStream } = await import('./responses-stream.js');
+      return await consumeResponsesStream(response.body, onText);
+    } catch {
+      debugWarn('[AI] Azure response unavailable; trying other configured providers.');
+      return null;
+    }
+  }
+
+  async function requestAI(assistantId, message, context, onText) {
     const allKeys = getAIKeys();
     const provider = window.OBJECTFLIX_CONFIG?.ai?.provider || 'gemini';
     const models = window.OBJECTFLIX_CONFIG?.ai?.models || [
@@ -661,7 +680,9 @@ Accuracy rules (critical):
       "gemini-3.1-flash-lite"
     ];
 
-    if (allKeys.length === 0) {
+    const configuredFallbacks = window.OBJECTFLIX_CONFIG?.ai?.fallbacks || [];
+    const hasFallback = configuredFallbacks.some((entry) => entry.serverSide ? Boolean(window.OBJECTFLIX_MEMBERSHIP?.session()) : getProviderKeys(entry).length > 0);
+    if (allKeys.length === 0 && !hasFallback) {
       await new Promise((r) => setTimeout(r, 600));
       return generateFallbackResponse(assistantId, message, context);
     }
@@ -673,7 +694,7 @@ Accuracy rules (critical):
     const SHARED = window.OBJECTFLIX_SHARED;
     if (SHARED?.loadLibrary) {
       try {
-        const lib = await SHARED.loadLibrary();
+        const lib = window.OBJECTFLIX_LIBRARY || window.OBJECTFLIX_WATCH?.library || await SHARED.loadLibrary();
         if (lib && lib.length) {
           const lines = lib.map((item) => {
             const acro = SHARED.acronymFor(item);
@@ -691,9 +712,17 @@ Accuracy rules (critical):
     const contextStr = `${catalogStr}Current Objectflix State:\n- current_page: ${context.current_page}\n- currently_playing: ${context.currently_playing}\n- watch_progress: ${context.watch_progress}\n\n`;
     const history = histories[assistantId] || [];
     const contextLimit = Number(window.OBJECTFLIX_SETTINGS?.get?.('conversationContext') || 8);
+    const azureMessages = (messages) => [
+      { role: 'system', content: `${systemPrompt}\n\n${contextStr}` },
+      ...messages.slice(0, -1),
+      { role: 'user', content: message },
+    ];
 
     async function callAI(messages) {
-      if (provider === 'gemini') {
+      if (provider === 'azure') {
+        const result = await tryAzureResponses(azureMessages(messages), onText);
+        if (result) return result;
+      } else if (provider === 'gemini') {
         const contents = [];
         for (const h of messages) {
           contents.push({
@@ -777,6 +806,12 @@ Accuracy rules (critical):
       const wantsLuna = /\bgpt[\s-]*5\.?6[\s-]*luna\b/i.test(lastUserMsg) || /\bluna\b/i.test(lastUserMsg);
 
       for (const fb of fallbacks) {
+        if (fb.protocol === 'azure-responses') {
+          if (provider === 'azure' || wantsLuna) continue;
+          const result = await tryAzureResponses(azureMessages(messages), onText);
+          if (result) return result;
+          continue;
+        }
         const fbKeys = getProviderKeys(fb);
         if (fbKeys.length === 0) {
           debugLog(`[AI] Skipping ${fb.name}: no API key configured`);
@@ -814,7 +849,8 @@ Accuracy rules (critical):
 
     
     const aiMessages = [];
-    for (const h of history.slice(-contextLimit)) {
+    const previousTurns = history.at(-1)?.role === 'user' && history.at(-1)?.content === message ? history.slice(0, -1) : history;
+    for (const h of previousTurns.slice(-Math.min(contextLimit, 20))) {
       aiMessages.push({ role: h.role, content: h.content });
     }
     aiMessages.push({ role: 'user', content: `${systemPrompt}\n\n${contextStr}\nUser: ${message}` });
@@ -1093,6 +1129,7 @@ Accuracy rules (critical):
   
 
   async function sendUserMessage(text) {
+    const requestedAssistant = currentAssistant;
     const history = histories[currentAssistant];
     history.push({ role: 'user', content: text });
     renderMessages();
@@ -1105,7 +1142,20 @@ Accuracy rules (critical):
     const context = getAppContext();
 
     try {
-      const reply = await requestAI(currentAssistant, text, context);
+      const reply = await requestAI(requestedAssistant, text, context, (partial) => {
+        if (currentAssistant !== requestedAssistant) return;
+        const container = document.getElementById('assistantMessages');
+        let bubble = container.querySelector('[data-streaming-reply]');
+        if (!bubble) {
+          const row = document.createElement('div');
+          row.className = `assistant-msg assistant-msg--assistant assistant-msg--${requestedAssistant}`;
+          row.innerHTML = `<div class="msg-avatar">${requestedAssistant === 'firey' ? '🔥' : '🍃'}</div><div class="msg-bubble" data-streaming-reply></div>`;
+          container.appendChild(row);
+          bubble = row.querySelector('[data-streaming-reply]');
+        }
+        bubble.textContent = stripActionTags(partial).replace(/\[ACTION:[\s\S]*$/, '');
+        scrollToBottom();
+      });
 
       
       const actionMatch = reply.match(/\[ACTION:[^\]]*\]/g);

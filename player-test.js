@@ -1,6 +1,4 @@
 import JASSUB from "jassub";
-import { VirtualSurround, SURROUND_MODES, HRTF_PROFILE_DEFAULT } from "./src/surround.js";
-import { AudioMonitorController } from "./src/audio-monitor.js";
 
 const JASSUB_CDN =
   "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist";
@@ -37,17 +35,6 @@ const elements = {
   message: document.getElementById("playerMessage"),
   messageTitle: document.getElementById("playerMessageTitle"),
   messageText: document.getElementById("playerMessageText"),
-  audioMode: document.getElementById("audioMode"),
-  channelTestButton: document.getElementById("channelTestButton"),
-  hrtfProfile: document.getElementById("hrtfProfile"),
-  surroundIntensity: document.getElementById("surroundIntensity"),
-  centerLevel: document.getElementById("centerLevel"),
-  lfeLevel: document.getElementById("lfeLevel"),
-  audioPanel: document.getElementById("audioPanel"),
-  audioPanelStatus: document.getElementById("audioPanelStatus"),
-  surroundIntensityValue: document.getElementById("surroundIntensityValue"),
-  centerLevelValue: document.getElementById("centerLevelValue"),
-  lfeLevelValue: document.getElementById("lfeLevelValue"),
   statusSummary: document.getElementById("statusSummary"),
   videoStatus: document.getElementById("videoStatus"),
   videoStatusText: document.getElementById("videoStatusText"),
@@ -68,15 +55,7 @@ const state = {
   destroyed: false,
   userVolume: elements.video.volume || 1,
   userMuted: Boolean(elements.video.muted),
-  audioMode: "original",
-  audioModeBusy: false,
 };
-
-const engine = new VirtualSurround(elements.video);
-
-
-const audioMonitor = new AudioMonitorController(engine);
-window.__audioMonitor = audioMonitor;
 
 const listenerController = new AbortController();
 const listenerOptions = { signal: listenerController.signal };
@@ -216,99 +195,8 @@ function setVolume() {
 
 function applyUserVolume() {
   if (state.destroyed) return;
-  const effective = state.userMuted ? 0 : state.userVolume;
-  if (engine.active) {
-    
-    
-    elements.video.volume = 1;
-    elements.video.muted = false;
-    engine.setVolume(effective);
-  } else {
-    elements.video.volume = state.userVolume;
-    elements.video.muted = state.userMuted;
-  }
-}
-
-function syncAudioUI() {
-  elements.audioPanel.classList.toggle("is-hidden", state.audioMode !== SURROUND_MODES.virtual);
-  elements.audioPanelStatus.textContent =
-    state.audioMode === SURROUND_MODES.virtual
-      ? "HRTF headphone virtualization active"
-      : "Stereo output (no HRTF processing)";
-  const profileId = engine.profile ? engine.profile.id : HRTF_PROFILE_DEFAULT;
-  if (elements.hrtfProfile.value !== profileId) elements.hrtfProfile.value = profileId;
-  if (elements.audioMode.value !== state.audioMode) elements.audioMode.value = state.audioMode;
-}
-
-async function setAudioMode(mode) {
-  if (state.audioModeBusy || state.destroyed) return;
-  if (mode === SURROUND_MODES.virtual) {
-    state.audioModeBusy = true;
-    try {
-      await engine.setMode(SURROUND_MODES.virtual);
-      state.audioMode = SURROUND_MODES.virtual;
-      audioMonitor.open();
-    } catch {
-      
-      state.audioMode = SURROUND_MODES.stereo;
-      audioMonitor.close();
-      engine.setMode(SURROUND_MODES.stereo).catch(() => {});
-      showDevelopmentMessage("Virtual surround unavailable", "HRTF processing could not be initialized. Audio output is set to Stereo.");
-    } finally {
-      state.audioModeBusy = false;
-    }
-    applyUserVolume();
-    syncAudioUI();
-  } else {
-    state.audioMode = mode;
-    audioMonitor.close();
-    engine.setMode(mode).catch(() => {});
-    applyUserVolume();
-    syncAudioUI();
-  }
-}
-
-function setHrtfProfile(profileId) {
-  engine.setProfile(profileId);
-}
-
-function setSurroundParams() {
-  const surround = Number(elements.surroundIntensity.value);
-  const center = Number(elements.centerLevel.value);
-  const lfe = Number(elements.lfeLevel.value);
-  engine.setParams({ surround, center, lfe });
-  updateRangeFill(elements.surroundIntensity, (surround - elements.surroundIntensity.min) / (elements.surroundIntensity.max - elements.surroundIntensity.min));
-  updateRangeFill(elements.centerLevel, (center - elements.centerLevel.min) / (elements.centerLevel.max - elements.centerLevel.min));
-  updateRangeFill(elements.lfeLevel, (lfe - elements.lfeLevel.min) / (elements.lfeLevel.max - elements.lfeLevel.min));
-  elements.surroundIntensityValue.textContent = surround.toFixed(2);
-  elements.centerLevelValue.textContent = center.toFixed(2);
-  elements.lfeLevelValue.textContent = lfe.toFixed(2);
-}
-
-function runChannelTest() {
-  if (!engine.active) {
-    showDevelopmentMessage("Channel test needs virtual mode", "Switch Audio Mode to Virtual 7.1 before running the surround channel test.");
-    return;
-  }
-  engine.runChannelTest((step, index, total) => {
-    setStatus(
-      elements.subtitleStatus,
-      elements.subtitleStatusText,
-      "loading",
-      `Channel test: ${step.label} (${index + 1}/${total})`,
-    );
-  }).then(() => {
-    if (state.destroyed) return;
-    setStatus(
-      elements.subtitleStatus,
-      elements.subtitleStatusText,
-      "ready",
-      "Channel test complete — every speaker should have been heard in order.",
-    );
-  }).catch((error) => {
-    if (state.destroyed) return;
-    setStatus(elements.subtitleStatus, elements.subtitleStatusText, "error", error.message);
-  });
+  elements.video.volume = state.userVolume;
+  elements.video.muted = state.userMuted;
 }
 
 function showControls(scheduleHide = true) {
@@ -535,21 +423,8 @@ function bindPlayerEvents() {
   elements.progress.addEventListener("input", previewProgress, listenerOptions);
   elements.progress.addEventListener("change", commitProgress, listenerOptions);
 
-  elements.audioMode.addEventListener("change", () => setAudioMode(elements.audioMode.value), listenerOptions);
-  elements.channelTestButton.addEventListener("click", runChannelTest, listenerOptions);
-  elements.hrtfProfile.addEventListener("change", () => setHrtfProfile(elements.hrtfProfile.value), listenerOptions);
-  elements.surroundIntensity.addEventListener("input", setSurroundParams, listenerOptions);
-  elements.centerLevel.addEventListener("input", setSurroundParams, listenerOptions);
-  elements.lfeLevel.addEventListener("input", setSurroundParams, listenerOptions);
-
-  elements.video.addEventListener("play", () => {
-    if (engine.active) engine.resume();
-    syncPlaybackUI();
-  }, listenerOptions);
-  elements.video.addEventListener("pause", () => {
-    if (engine.active) engine.suspend();
-    syncPlaybackUI();
-  }, listenerOptions);
+  elements.video.addEventListener("play", syncPlaybackUI, listenerOptions);
+  elements.video.addEventListener("pause", syncPlaybackUI, listenerOptions);
   elements.video.addEventListener("ended", syncPlaybackUI, listenerOptions);
   elements.video.addEventListener("timeupdate", syncTimeUI, listenerOptions);
   elements.video.addEventListener("durationchange", syncTimeUI, listenerOptions);
@@ -610,14 +485,6 @@ async function cleanup() {
     state.jassub = null;
   }
 
-  if (engine.active) {
-    elements.video.volume = state.userVolume;
-    elements.video.muted = state.userMuted;
-    await engine.destroy();
-  }
-
-  audioMonitor.destroy();
-
   if (state.workerUrl) {
     URL.revokeObjectURL(state.workerUrl);
     state.workerUrl = null;
@@ -632,7 +499,6 @@ function initializePlayer() {
   syncPlaybackUI();
   syncVolumeUI();
   syncTimeUI();
-  syncAudioUI();
   initializeSubtitles();
 }
 

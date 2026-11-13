@@ -8,9 +8,6 @@
 
 
 
-import { VirtualSurround, SURROUND_MODES, SURROUND_MODE_LABELS, HRTF_PROFILES, HRTF_PROFILE_DEFAULT } from "./surround.js";
-import { AudioMonitorController } from "./audio-monitor.js";
-
 const JASSUB_CDN = "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist";
 
 
@@ -55,8 +52,8 @@ async function probeAvcTwin(url) {
 }
 
 export class ObjectflixPlayer {
-  constructor({ video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, fakeDuration, audioMode, hrtfProfile, surroundIntensity, centerLevel, lfeLevel, audioPanel, audioPanelStatus, surroundIntensityValue, centerLevelValue, lfeLevelValue }) {
-    this.elements = { video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, audioMode, hrtfProfile, surroundIntensity, centerLevel, lfeLevel, audioPanel, audioPanelStatus, surroundIntensityValue, centerLevelValue, lfeLevelValue };
+  constructor({ video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, fakeDuration }) {
+    this.elements = { video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText };
 
     
     
@@ -78,19 +75,9 @@ export class ObjectflixPlayer {
       jassubWorkerError: null,
       hasMetadata: false,
       
-      
       userVolume: video.volume || 1,
       userMuted: Boolean(video.muted),
-      audioMode: "original",
-      audioModeBusy: false,
     };
-
-    
-    
-    this.engine = new VirtualSurround(video);
-
-    
-    this.monitor = new AudioMonitorController(this.engine);
 
     this.listenerController = new AbortController();
     this.listenerOptions = { signal: this.listenerController.signal };
@@ -99,7 +86,6 @@ export class ObjectflixPlayer {
     this.syncPlaybackUI();
     this.syncVolumeUI();
     this.syncTimeUI();
-    this.syncAudioUI();
   }
 
   load({ src, subtitleUrl }) {
@@ -168,13 +154,8 @@ export class ObjectflixPlayer {
       this.state.jassub = null;
     }
     
-    this.monitor.destroy();
-    if (this.engine.active) {
-      
-      this.elements.video.volume = this.state.userVolume;
-      this.elements.video.muted = this.state.userMuted;
-      void this.engine.destroy();
-    }
+    this.elements.video.volume = this.state.userVolume;
+    this.elements.video.muted = this.state.userMuted;
     if (this.state.workerUrl) {
       URL.revokeObjectURL(this.state.workerUrl);
       this.state.workerUrl = null;
@@ -320,89 +301,8 @@ export class ObjectflixPlayer {
   applyUserVolume() {
     const { video } = this.elements;
     if (this.state.destroyed) return;
-    const effective = this.state.userMuted ? 0 : this.state.userVolume;
-    if (this.engine.active) {
-      
-      
-      
-      video.volume = 1;
-      video.muted = false;
-      this.engine.setVolume(effective);
-    } else {
-      video.volume = this.state.userVolume;
-      video.muted = this.state.userMuted;
-    }
-  }
-
-  setAudioMode(mode) {
-    if (this.state.audioModeBusy || this.state.destroyed) return;
-    const select = this.elements.audioMode;
-
-    if (mode === SURROUND_MODES.virtual) {
-      this.state.audioModeBusy = true;
-      this.engine
-        .setMode(SURROUND_MODES.virtual)
-        .then(() => {
-          this.state.audioMode = SURROUND_MODES.virtual;
-          this.applyUserVolume();
-          this.syncAudioUI();
-          
-          this.monitor.open();
-        })
-        .catch(() => {
-          
-          this.state.audioMode = SURROUND_MODES.stereo;
-          if (select) select.value = SURROUND_MODES.stereo;
-          this.monitor.close();
-          this.engine.setMode(SURROUND_MODES.stereo).catch(() => {});
-          this.applyUserVolume();
-          this.syncAudioUI();
-          this.showMessage("Virtual surround unavailable", "HRTF processing could not be initialized. Audio output is set to Stereo.");
-        })
-        .finally(() => {
-          this.state.audioModeBusy = false;
-        });
-    } else {
-      this.state.audioMode = mode;
-      this.monitor.close();
-      this.engine.setMode(mode).catch(() => {});
-      this.applyUserVolume();
-      this.syncAudioUI();
-    }
-  }
-
-  setHrtfProfile(profileId) {
-    this.engine.setProfile(profileId);
-  }
-
-  setSurroundParams() {
-    const { surroundIntensity, centerLevel, lfeLevel, surroundIntensityValue, centerLevelValue, lfeLevelValue } = this.elements;
-    const surround = Number(surroundIntensity.value);
-    const center = Number(centerLevel.value);
-    const lfe = Number(lfeLevel.value);
-    this.engine.setParams({ surround, center, lfe });
-    this.updateRangeFill(surroundIntensity, (surround - surroundIntensity.min) / (surroundIntensity.max - surroundIntensity.min));
-    this.updateRangeFill(centerLevel, (center - centerLevel.min) / (centerLevel.max - centerLevel.min));
-    this.updateRangeFill(lfeLevel, (lfe - lfeLevel.min) / (lfeLevel.max - lfeLevel.min));
-    if (surroundIntensityValue) surroundIntensityValue.textContent = surround.toFixed(2);
-    if (centerLevelValue) centerLevelValue.textContent = center.toFixed(2);
-    if (lfeLevelValue) lfeLevelValue.textContent = lfe.toFixed(2);
-  }
-
-  syncAudioUI() {
-    const { audioMode, hrtfProfile, audioPanel, audioPanelStatus } = this.elements;
-    if (audioPanel) audioPanel.classList.toggle("is-hidden", this.state.audioMode !== SURROUND_MODES.virtual);
-    if (audioPanelStatus) {
-      audioPanelStatus.textContent =
-        this.state.audioMode === SURROUND_MODES.virtual
-          ? "HRTF headphone virtualization active"
-          : "Stereo output (no HRTF processing)";
-    }
-    if (hrtfProfile) {
-      const id = this.engine.profile ? this.engine.profile.id : HRTF_PROFILE_DEFAULT;
-      if (hrtfProfile.value !== id) hrtfProfile.value = id;
-    }
-    if (audioMode && audioMode.value !== this.state.audioMode) audioMode.value = this.state.audioMode;
+    video.volume = this.state.userVolume;
+    video.muted = this.state.userMuted;
   }
 
   showControls(scheduleHide = true) {
@@ -653,7 +553,7 @@ export class ObjectflixPlayer {
   
 
   bindPlayerEvents() {
-    const { video, controls, centerPlay, playPause, mute, fullscreen, volume, progress, canvas, message, audioMode, hrtfProfile, surroundIntensity, centerLevel, lfeLevel } = this.elements;
+    const { video, controls, centerPlay, playPause, mute, fullscreen, volume, progress, message } = this.elements;
 
     centerPlay.addEventListener("click", () => this.togglePlayback(), this.listenerOptions);
     playPause.addEventListener("click", () => this.togglePlayback(), this.listenerOptions);
@@ -664,20 +564,8 @@ export class ObjectflixPlayer {
     progress.addEventListener("change", () => this.commitProgress(), this.listenerOptions);
     message.addEventListener("click", () => this.hideMessage(), this.listenerOptions);
 
-    audioMode?.addEventListener("change", () => this.setAudioMode(audioMode.value), this.listenerOptions);
-    hrtfProfile?.addEventListener("change", () => this.setHrtfProfile(hrtfProfile.value), this.listenerOptions);
-    surroundIntensity?.addEventListener("input", () => this.setSurroundParams(), this.listenerOptions);
-    centerLevel?.addEventListener("input", () => this.setSurroundParams(), this.listenerOptions);
-    lfeLevel?.addEventListener("input", () => this.setSurroundParams(), this.listenerOptions);
-
-    video.addEventListener("play", () => {
-      if (this.engine.active) this.engine.resume();
-      this.syncPlaybackUI();
-    }, this.listenerOptions);
-    video.addEventListener("pause", () => {
-      if (this.engine.active) this.engine.suspend();
-      this.syncPlaybackUI();
-    }, this.listenerOptions);
+    video.addEventListener("play", () => this.syncPlaybackUI(), this.listenerOptions);
+    video.addEventListener("pause", () => this.syncPlaybackUI(), this.listenerOptions);
     video.addEventListener("ended", () => this.syncPlaybackUI(), this.listenerOptions);
     video.addEventListener("timeupdate", () => this.syncTimeUI(), this.listenerOptions);
     video.addEventListener("durationchange", () => this.syncTimeUI(), this.listenerOptions);
