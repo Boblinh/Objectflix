@@ -39,7 +39,6 @@ export async function stripeRequest(env, method, path, parameters = {}, idempote
   let result;
   try { result = await response.json(); } catch { throw new HttpError(502, "Stripe returned an unexpected response.", "stripe_unavailable"); }
   if (!response.ok) {
-    // Provider error bodies can contain private customer/request information.
     throw new HttpError(response.status === 404 ? 404 : 502,
       response.status === 404 ? "The billing record could not be found." : "Stripe could not complete this request. Please try again.",
       response.status === 404 ? "stripe_not_found" : "stripe_request_failed");
@@ -65,8 +64,6 @@ export function safeStripeUrl(url, type) {
   return parsed.href;
 }
 
-// Stripe's documented HMAC-SHA256 scheme, over the exact unparsed request body.
-// Web Crypto verify compares the MAC without a timing-sensitive string comparison.
 export async function verifyStripeSignature(payload, header, env, now = nowSeconds()) {
   if (!env.STRIPE_WEBHOOK_SECRET) throw new HttpError(503, "Stripe webhooks are not configured.", "webhook_not_configured");
   if (!header || header.length > 4096) throw new HttpError(400, "Invalid Stripe signature.", "invalid_signature");

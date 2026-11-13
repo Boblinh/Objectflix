@@ -370,8 +370,6 @@
 
   function refreshSearchResults() {
     const query = state.searchQuery;
-    // The complete catalog is already loaded. Local matching keeps typing instant
-    // and includes coming-soon titles as well as the long names behind acronyms.
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const results = library.filter((item) => {
       const text = `${item.title} ${displayTitle(item)} ${SHARED.acronymFor(item)} ${item.description} ${item.genres.join(' ')} object shows`.toLowerCase();

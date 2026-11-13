@@ -29,7 +29,6 @@ export function eventEnvelope(event) {
   };
 }
 
-// Pure projection, intentionally independent of event delivery order and redirects.
 export function subscriptionSnapshot(env, subscription, invoice, previous, now = nowSeconds()) {
   const items = subscription.items?.data || [];
   const item = items.length === 1 && !subscription.items?.has_more ? items[0] : null;
@@ -50,8 +49,6 @@ export function subscriptionSnapshot(env, subscription, invoice, previous, now =
     entitledPlan = configuredPlan.id;
     paidThrough = Math.min(paidEnd, periodEnd);
   }
-  // Missing/failed invoices never extend access. Unknown prices, terminal states,
-  // pause_collection, and expiry all fail back to the free regular-content tier.
   if (subscription.pause_collection || !canRetain || paidThrough <= now) { entitledPlan = "newbie"; paidThrough = 0; }
   if (cancelAt) paidThrough = Math.min(paidThrough, cancelAt);
   if (paidThrough <= now) { entitledPlan = "newbie"; paidThrough = 0; }
@@ -74,7 +71,6 @@ export async function processVerifiedEvent(env, eventId) {
   await withLease(env, `stripe:${event.customer_id}`, async (lease) => {
     const customer = await env.DB.prepare("SELECT * FROM billing_customers WHERE stripe_customer_id = ? AND livemode = ?")
       .bind(event.customer_id, event.livemode).first();
-    // Never attach membership using a client-supplied email or subscription ID.
     if (!customer) { await markIgnored(env, eventId); return; }
     const previous = await env.DB.prepare("SELECT * FROM billing_subscriptions WHERE stripe_subscription_id = ? AND user_id = ?")
       .bind(event.subscription_id, customer.user_id).first();
@@ -82,14 +78,12 @@ export async function processVerifiedEvent(env, eventId) {
     if (stripeId(subscription.customer, "cus") !== event.customer_id) throw new HttpError(409, "Subscription customer mismatch.", "customer_mismatch");
     if (subscription.metadata?.objectflix_user_id !== customer.user_id) {
       if (!previous) { await markIgnored(env, eventId); return; }
-      // Removing the ownership metadata cannot create an entitlement.
       subscription.items = { data: [] };
     }
     let invoice = subscription.latest_invoice;
     if (typeof invoice === "string") invoice = await stripeRequest(env, "GET", `/invoices/${invoice}`);
     if (invoice?.lines?.has_more) {
       const lines = await stripeRequest(env, "GET", `/invoices/${invoice.id}/lines`, { limit: 100 });
-      // Nonstandard very large invoices require an operator review; fail closed.
       invoice = lines.has_more ? null : { ...invoice, lines };
     }
     const snapshot = subscriptionSnapshot(env, subscription, invoice, previous);
@@ -159,7 +153,6 @@ stripeWebhooks.post("/", async (c) => {
     (event_id, event_type, customer_id, subscription_id, object_id, livemode, state, received_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(event_id) DO NOTHING`)
     .bind(event.event_id, event.event_type, event.customer_id, event.subscription_id, event.object_id, event.livemode, event.state, nowSeconds()).run();
-  // Acknowledge only AFTER durable receipt. Cron retries any interrupted/failed work.
   if (event.state === "pending") c.executionCtx.waitUntil(attemptVerifiedEvent(c.env, event.event_id));
   c.header("Cache-Control", "no-store");
   return c.json({ received: true });

@@ -45,7 +45,6 @@ export async function jsonBody(c, schema, maxBytes = 16384) {
 
 export function apiError(error, c) {
   if (error instanceof HttpError) return c.json({ success: false, error: error.message, code: error.code }, error.status);
-  // Do not log raw provider errors, request bodies, tokens, or billing details.
   console.error("[membership] operation failed");
   return c.json({ success: false, error: "The service is temporarily unavailable. Please try again.", code: "service_unavailable" }, 503);
 }

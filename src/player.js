@@ -34,7 +34,6 @@ function supportsAV1() {
   return supportsAV1._result;
 }
 
-// Returns the .avc.mp4 twin URL when one exists upstream, else null.
 async function probeAvcTwin(url) {
   try {
     const candidate = new URL(url, window.location.href);

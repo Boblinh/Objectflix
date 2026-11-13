@@ -42,8 +42,6 @@
     }
   }
 
-  // Stable identity for server-side storage: Discord users key by their
-  // Discord id (works on every device), email users key by their address.
   function accountKey(user) {
     if (!user) return null;
     if (user.provider === 'discord' && user.id) return `discord:${user.id}`;
@@ -219,8 +217,6 @@
         return;
       }
 
-      // Long-press / right-click intent is handled via the explicit edit
-      // affordance instead: a small pencil shown on hover.
       const editButton = target.closest('[data-edit-profile-id]');
       if (editButton) {
         const profile = dynamicProfiles.find((p) => p.id === editButton.dataset.editProfileId);
@@ -272,8 +268,6 @@
     const account = accountKey(user);
     bindEvents();
 
-    // Show cached profiles immediately (offline-friendly), then reconcile
-    // with the server as the source of truth.
     dynamicProfiles = readCachedProfiles(account);
     renderProfileGate(dynamicProfiles);
     elements.profileGate.classList.remove('is-hidden');

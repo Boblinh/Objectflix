@@ -1,4 +1,4 @@
-/* Shared browser client. Entitlements are display hints; the Worker authorizes every protected action. */
+
 (() => {
   const SESSION_KEY = 'objectflix_verified_session';
   const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -103,7 +103,7 @@
       const active = document.body.dataset.memberPage;
       header.innerHTML = `<a class="logo" href="./index.html" aria-label="Objectflix home"><img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="38" height="38" /><span class="logo__text">objectflix<span class="brand-dot">.</span></span></a><nav aria-label="Objectflix"><a href="./browse.html">Browse</a><a href="./movie-nights.html" ${active === 'movie-nights' ? 'aria-current="page"' : ''}>Movie Nights</a><a href="./membership.html" ${active === 'membership' ? 'aria-current="page"' : ''}>Membership</a></nav><a class="member-nav__profile" href="./index.html">${icon('user')}<span>My profile</span></a>`;
     }
-    if (session()) load().catch(() => { /* The current page provides its own offline state. */ });
+    if (session()) load().catch(() => {  });
   }
 
   window.OBJECTFLIX_MEMBERSHIP = { request, load, session, billing, applyAppearance, escapeHTML, icon, priceLabel, authLink, get current() { return cached; } };

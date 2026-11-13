@@ -40,8 +40,6 @@
     return `data:image/svg+xml;charset=UTF-8,${encoded}`;
   };
 
-  // Profiles are created by players and stored server-side (D1 via the API).
-  // No pre-made profiles are provided anymore.
   const profiles = [];
 
   const trendingSearches = ['BFDI', 'BFDIA', 'BFB', 'TPOT', 'Object shows', 'Animation'];

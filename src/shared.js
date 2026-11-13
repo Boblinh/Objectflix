@@ -544,10 +544,6 @@
     return results;
   }
 
-  // Returns true when the episode's video is actually playable: either the URL
-  // does not point at our /media proxy, or the Worker confirms the object
-  // exists on the bucket. Fails open (true) when the check itself fails, so a
-  // status-endpoint hiccup never blocks playback.
   async function isEpisodeStreamable(src) {
     if (!src) return false;
     const marker = '/media/';

@@ -1,4 +1,4 @@
-/* Objectflix v2 — the clubhouse. Shared consumer-facing design system. */
+
 .objectflix-v2 {
   --bg: #f8f7f3;
   --bg-raised: #fffefa;
@@ -78,7 +78,7 @@
 .objectflix-v2 .text-link:hover { color: var(--accent-2); }
 .objectflix-v2 .text-link .ui-icon { width: 17px; height: 17px; }
 
-/* A bright first hello. */
+
 .welcome-nav { max-width: 1440px; margin: 0 auto; min-height: 100px; padding: 22px 5%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .welcome-nav > nav { display: flex; align-items: center; gap: 30px; font-size: 12px; font-weight: 600; }
 .welcome-nav > nav > a:not(.button):hover { color: var(--accent-2); }
@@ -138,7 +138,7 @@
 .welcome-footer > p { margin: 0 auto 0 0; color: var(--muted); font-size: 11px; }
 .footer-signoff { font-size: 8px; font-weight: 600; letter-spacing: 0.12em; color: var(--muted); white-space: nowrap; }
 
-/* Navigation: a home for the whole universe. */
+
 .browse-page .app { padding-left: var(--sidebar-width); animation: none; }
 .club-sidebar { position: fixed; z-index: 30; inset: 0 auto 0 0; display: flex; flex-direction: column; width: var(--sidebar-width); padding: 27px 19px 20px; background: #efefe7; border-right: 1px solid #e1e2d7; overflow-y: auto; scrollbar-width: thin; }
 .club-sidebar > .logo { margin: 0 5px 39px; }
@@ -190,7 +190,7 @@
 .objectflix-v2 .mobile-menu .nav-link.is-active { background: var(--peach); color: var(--ink); }
 .objectflix-v2 .mobile-menu .community-link { padding: 11px 13px; font-size: 12px; color: var(--muted); }
 
-/* Discovery, with a little personality. */
+
 .browse-page main { width: min(1440px, 100%); margin: 0 auto; padding: 28px 38px 0; }
 .browse-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .browse-heading .eyebrow { color: #8a8d7f; font-size: 8px; letter-spacing: 0.14em; margin-bottom: 9px; }
@@ -297,7 +297,7 @@
 .browse-toast { position: fixed; z-index: 110; left: calc(50% + var(--sidebar-width) / 2); bottom: 28px; width: max-content; max-width: min(420px, calc(100% - 36px)); border-radius: 12px; padding: 14px 20px; background: var(--ink); color: #fffefa; box-shadow: var(--shadow); font-size: 12px; text-align: center; pointer-events: none; opacity: 0; transform: translate(-50%, 12px); transition: opacity 200ms ease, transform 200ms ease; }
 .browse-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
-/* Search, loading, and the occasional empty shelf. */
+
 .browse-page .section--search { width: 100%; padding: 0 0 35px; }
 .objectflix-v2 .search-hero { position: relative; padding: 36px; margin-bottom: 32px; background: #eae5f0; border: 1px solid #ded6e6; border-radius: 22px; overflow: hidden; }
 .search-hero h1 { position: relative; font-size: clamp(30px, 3.5vw, 44px); line-height: 1.1; font-weight: 500; margin-bottom: 12px; }
@@ -323,7 +323,7 @@
 .skeleton-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
 .skeleton--poster { aspect-ratio: 4/5; border-radius: 14px; }
 
-/* The show sheet and shared dialogs. */
+
 .objectflix-v2 .modal { padding: 24px; z-index: 80; }
 .objectflix-v2 .modal__backdrop { background: #20291bb3; backdrop-filter: blur(7px); }
 .objectflix-v2 .modal__panel { width: min(850px, 100%); max-height: calc(100dvh - 48px); background: var(--bg); border: 1px solid #ffffff80; border-radius: 23px; box-shadow: 0 28px 90px #18201255; scrollbar-width: thin; scrollbar-color: #a8b49b transparent; }
@@ -363,7 +363,7 @@
 .objectflix-v2 .star-rating button { color: #b6beaa; }
 .objectflix-v2 .star-rating button.is-lit { color: #be7728; text-shadow: none; }
 
-/* Pick your main character. Existing profile identities keep their colors. */
+
 .objectflix-v2 .profile-gate { position: relative; inset: auto; z-index: auto; min-height: calc(100dvh - 210px); padding: 60px 28px 90px; background: transparent; backdrop-filter: none; }
 .objectflix-v2 .profile-gate__content { width: min(900px, 100%); }
 .profile-spark { display: block; margin: 0 0 20px; font-size: 47px; color: #e5875f; transform: rotate(-10deg); }
@@ -398,7 +398,7 @@
 .profile-modal__actions { flex-wrap: wrap; }
 .profile-modal__actions .button { padding-inline: 12px; font-size: 11px; }
 
-/* Sign in, settle in. */
+
 .objectflix-v2.auth-page { display: block; min-height: 100vh; padding: 110px 40px 44px; }
 .objectflix-v2 .auth-page__logo { position: absolute; top: 29px; left: 44px; }
 .auth-back { position: absolute; top: 40px; right: 44px; }
@@ -438,7 +438,7 @@
 .auth-fan-note { margin: 30px 0 0; text-align: center; color: #a2ac95; font-size: 9px; }
 .objectflix-v2 .auth-alert { padding: 12px 14px; border: 1px solid #edc2ac; border-radius: 10px; background: #fce7da; color: #9a4c30; font-size: 12px; line-height: 1.6; }
 
-/* The lights go down only around the player. */
+
 .objectflix-v2.watch-page .navbar { min-height: 84px; padding: 20px 4%; border-bottom: 1px solid var(--border); background: #f8f7f3f0; backdrop-filter: blur(15px); }
 .watch-nav-label { font-size: 9px; color: #8d967e; letter-spacing: 0.1em; margin-left: 24px; padding-left: 24px; border-left: 1px solid var(--border); }
 .objectflix-v2 .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: #788d65; }
@@ -464,7 +464,7 @@
 .objectflix-v2.watch-page .footer { border-top: 1px solid var(--border); color: #8d9b7b; font-size: 11px; }
 .objectflix-v2 .objectflix-player:fullscreen { border-radius: 0; }
 
-/* A friend in the corner. */
+
 .objectflix-v2 .objectflix-assistant { z-index: 50; bottom: 20px; right: 20px; font-family: inherit; }
 .objectflix-v2 .assistant-trigger { gap: 9px; padding: 10px 14px; background: #303d25; border: 1px solid #49593a; color: #f4f6ee; box-shadow: 0 5px 20px #293a1826; }
 .objectflix-v2 .assistant-trigger:hover { box-shadow: 0 8px 25px #293a1833; }
@@ -487,7 +487,7 @@
 .objectflix-v2 .assistant-send:hover { background: #f7bb9a; }
 .objectflix-v2 .assistant-close { color: #859773; }
 
-/* A little room for every screen. */
+
 @media (min-width: 1600px) {
   .objectflix-v2 { --sidebar-width: 248px; }
   .club-sidebar { padding-inline: 25px; }
@@ -754,7 +754,7 @@
   .objectflix-v2 .watch-layout { width: calc(100% - 30px); }
 }
 
-/* Verified membership cosmetics, shared by the profile gate and account pages. */
+
 .history-tools { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 20px 0; }
 .history-tools p { color: #79856d; font-size: 12px; margin: 0; }
 .history-list { display: grid; gap: 15px; margin: 10px 0 35px; }

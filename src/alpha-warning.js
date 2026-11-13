@@ -1,4 +1,3 @@
-// src/alpha-warning.js — first-visit alpha welcome + storage notice
 (() => {
   const STORAGE_KEY = "objectflix_alpha_acknowledged";
   const B2_KEY = "objectflix_b2_notice_seen";
@@ -24,7 +23,6 @@
     if (modal) modal.classList.add("is-hidden");
   }
 
-  // ── AV1 helper ──────────────────────────────────────────────────
   function browserSupportsAV1() {
     if (browserSupportsAV1._cached !== undefined) return browserSupportsAV1._cached;
     const probe = document.createElement("video");
@@ -66,7 +64,7 @@
               const r = await fetch(u.toString(), { method: "HEAD" });
               if (r.ok) { safe.push(label); continue; }
             }
-          } catch { /* probe failed \u2192 treat as AV1-only */ }
+          } catch {  }
           av1Only.push(label);
         }
       }
@@ -96,7 +94,6 @@
     }
   }
 
-  // ── Template ────────────────────────────────────────────────────
   function createModal() {
     if (document.getElementById("alphaWarningModal")) return;
 
@@ -173,7 +170,6 @@
     modal.classList.remove("is-hidden");
   }
 
-  // ── B2 storage notice modal ────────────────────────────────────
   function createB2Modal() {
     if (document.getElementById("b2NoticeModal")) return;
 
@@ -219,7 +215,6 @@
     modal.classList.remove("is-hidden");
   }
 
-  // ── Bootstrap ───────────────────────────────────────────────────
   function init() {
     if (!alreadySeen()) createModal();
   }

@@ -2,8 +2,6 @@
 
 
 (() => {
-  // Debug logging is suppressed on GitHub Pages builds; kept for locally hosted
-  // instances (localhost / 127.0.0.1 / objectflix.com served from own machine).
   const IS_GITHUB_PAGES = /(^|\.)github\.io$/i.test(window.location.hostname);
   const debugLog = (...args) => { if (!IS_GITHUB_PAGES) console.log(...args); };
   const debugWarn = (...args) => { if (!IS_GITHUB_PAGES) console.warn(...args); };
@@ -521,9 +519,6 @@ Accuracy rules (critical):
         try {
           debugLog(`[AI] Trying ${model} on ${baseUrl} with key index ${keyNum}...`);
           const body = { model, messages: apiMessages };
-          // Groq's gpt-oss models support a server-side browser search tool
-          // (powered by Exa). No tool_choice override: the model decides when
-          // a web lookup is actually needed instead of browsing every turn.
           if (/groq\.com/i.test(baseUrl) && /^openai\/gpt-oss/i.test(model)) {
             body.tools = [{ type: 'browser_search' }];
             body.reasoning_effort = 'low';

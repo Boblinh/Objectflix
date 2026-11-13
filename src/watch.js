@@ -503,7 +503,6 @@
         if (movieNightId) {
           const event = await window.OBJECTFLIX_MEMBERSHIP.request(`/api/movie-nights/${encodeURIComponent(movieNightId)}/join`, { method: 'POST' });
           const permitted = new URL(event.watchUrl);
-          // A Movie Night can launch only the server-selected licensed episode.
           showId = permitted.searchParams.get('id');
           episodeId = permitted.searchParams.get('ep');
           if (!showId || !episodeId) throw new Error('This Movie Night has no available episode.');

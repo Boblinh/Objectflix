@@ -30,7 +30,7 @@ membership.get("/plans", async (c) => {
         const configured = await monthlyPrice(c.env, c.env[plan.priceEnv]);
         if (planFromPrice(c.env, configured.id)?.id !== plan.id) throw new Error("Invalid plan price mapping");
         price = { unitAmount: configured.unit_amount, currency: configured.currency, interval: "month" };
-      } catch { /* No guessed price or false checkout promise during an outage. */ }
+      } catch {  }
     }
     return { id: plan.id, name: plan.name, rank: plan.rank, description: plan.description, price,
       free: plan.id === "newbie", checkoutAvailable: Boolean(price && ready), entitlements: entitlementsFor(c.env, plan.id) };

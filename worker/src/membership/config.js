@@ -9,8 +9,6 @@ export const PLANS = Object.freeze([
 export const planFor = (id) => PLANS.find((plan) => plan.id === id);
 export const rankFor = (id) => planFor(id)?.rank ?? 0;
 
-// Implemented is a code capability, not a switch an operator can turn on.
-// Config may disable or move a shipped perk, but cannot advertise unbuilt work.
 export const PERKS = Object.freeze([
   ["regular_content", "All regular Objectflix content", "newbie", true],
   ["personal_watchlist", "Personal watchlist", "newbie", true],
@@ -52,7 +50,6 @@ export function perkConfiguration(env) {
   if (!overrides || Array.isArray(overrides) || typeof overrides !== "object") throw new HttpError(503, "Membership configuration is unavailable.", "configuration_required");
   return PERKS.map((perk) => {
     const override = overrides[perk.id] || {};
-    // Public viewing and regular content remain available to Newbie at every tier.
     const publicPerk = ["regular_content", "public_movie_nights"].includes(perk.id);
     return { ...perk,
       minPlan: publicPerk ? "newbie" : planFor(override.minPlan)?.id || perk.minPlan,

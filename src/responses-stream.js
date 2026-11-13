@@ -1,5 +1,3 @@
-// Responses API SSE decoder. Complete events, split UTF-8, and failed streams are
-// handled before the assistant is allowed to execute any final action tags.
 export async function consumeResponsesStream(stream, onText = () => {}) {
   if (!stream) throw new Error('Missing response stream.');
   const reader = stream.getReader();

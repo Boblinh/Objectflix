@@ -21,7 +21,6 @@ async function customerFor(env, user) {
 
 export async function currentStripeSubscriptions(env, customer, userId) {
   const response = await stripeRequest(env, "GET", "/subscriptions", { customer, status: "all", limit: 100 });
-  // A highly unusual account must be reviewed instead of risking duplicate billing.
   if (response.has_more) throw new HttpError(409, "Please manage this account through billing support.", "billing_review_required");
   return (response.data || []).filter((sub) => sub.metadata?.objectflix_user_id === userId && !["canceled", "incomplete_expired"].includes(sub.status));
 }
@@ -56,8 +55,6 @@ export async function createCheckout(env, user, planId) {
       attempt = null;
     }
 
-    // The attempt is persisted BEFORE contacting Stripe. A timeout/crash therefore
-    // retries the same idempotency key and parameters, not another charge/session.
     if (attempt && (attempt.plan_id !== planId || attempt.price_id !== price.id)) {
       throw new HttpError(409, "Finish or retry your previous checkout before choosing another plan.", "checkout_pending");
     }
@@ -70,7 +67,6 @@ export async function createCheckout(env, user, planId) {
       await env.DB.prepare("INSERT INTO billing_checkouts (user_id, request_id, plan_id, price_id, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(user.id, attempt.request_id, planId, price.id, attempt.created_at, attempt.expires_at).run();
     }
-    // A very late ambiguous retry must be recovered, not recreated with new params.
     if (attempt.expires_at - nowSeconds() < 1800) throw new HttpError(409, "This checkout attempt is expiring. Please try again after it expires.", "checkout_expiring");
     const session = await stripeRequest(env, "POST", "/checkout/sessions", {
       mode: "subscription", customer, client_reference_id: user.id,

@@ -1,4 +1,4 @@
-/* Free, per-profile viewing history. Kept on this device, alongside the existing watchlist. */
+
 (() => {
   const key = () => {
     try { const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null'); return profile?.id ? `objectflix_history_${profile.id}` : null; }
@@ -18,7 +18,7 @@
     const row = { showId: watch.item.id, episodeId: watch.episode.id, title: watch.item.title, episodeTitle: watch.episode.title,
       position: Math.min(video.currentTime, video.duration), duration: video.duration, updatedAt: Date.now() };
     try { localStorage.setItem(storageKey, JSON.stringify([row, ...entries().filter((entry) => entry.episodeId !== row.episodeId)].slice(0, 200))); }
-    catch { /* Playback continues even if device storage is full or unavailable. */ }
+    catch {  }
   }
   document.addEventListener('timeupdate', (event) => { if (event.target instanceof HTMLVideoElement) record(event.target); }, true);
   for (const type of ['pause', 'ended']) document.addEventListener(type, (event) => { if (event.target instanceof HTMLVideoElement) record(event.target, true); }, true);

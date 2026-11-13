@@ -1,4 +1,4 @@
-/* Membership and Movie Nights use the same clubhouse, with room to read. */
+
 .member-page { font-size: 14px; }
 .member-nav { max-width: 1360px; margin: auto; padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; gap: 30px; border-bottom: 1px solid var(--border); }
 .member-nav nav { display: flex; gap: 28px; align-items: center; font-size: 13px; color: var(--muted); }
@@ -116,7 +116,7 @@
 .member-loading { padding: 25px; color: #8a9a7b; font-size: 13px; line-height: 1.8; }
 .member-loading .text-link { font-size: inherit; }
 
-/* Movie Night listings and the event noticeboard. */
+
 .movie-hero-art { width: 220px; flex: 0 0 auto; padding: 30px; border-radius: 30% 45% 35% 40%; background: #e6def0; color: #a18bb1; transform: rotate(6deg); }
 .movie-hero-art .ui-icon { width: 150px; height: 120px; stroke-width: 1.1; }
 .movie-toolbar { display: flex; gap: 25px; justify-content: space-between; align-items: center; border-bottom: 1px solid #dbe3ce; padding: 0 0 22px; margin-bottom: 25px; }
@@ -174,7 +174,7 @@
 .movie-membership-note { border-top: 1px solid #dce4d0; padding: 32px 0; margin-top: 42px; display: flex; justify-content: space-between; align-items: center; gap: 25px; }
 .movie-membership-note p { margin: 0; color: #8b9c77; font-size: 13px; line-height: 1.8; }
 
-/* A focused hosting desk, not a separate dashboard. */
+
 .host-intro { padding: 50px 0 30px; }
 .host-intro h1 { font-size: 48px; margin: 15px 0; }
 .host-intro p { max-width: 65ch; font-size: 14px; color: #879974; line-height: 1.8; }

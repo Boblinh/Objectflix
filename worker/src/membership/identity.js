@@ -7,7 +7,6 @@ export async function tokenHash(token) {
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Called only after the existing OAuth callbacks have verified the provider.
 export async function createVerifiedSession(env, profile) {
   if (!["google", "discord"].includes(profile.provider) || !profile.id) throw new HttpError(401, "A verified account is required.", "authentication_required");
   const id = `${profile.provider}:${profile.id}`;
