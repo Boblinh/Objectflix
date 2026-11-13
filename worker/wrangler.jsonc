@@ -44,7 +44,7 @@
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 	"vars": {
-		"APP_URL": "",
+		"APP_URL": "https://bookish-adventure-1vg64ll.pages.github.io/",
 		"STRIPE_MODE": "test",
 		"MEMBERSHIP_PERKS_JSON": "{}",
 		"MEMBERSHIP_ADMIN_USER_IDS_JSON": "[]",

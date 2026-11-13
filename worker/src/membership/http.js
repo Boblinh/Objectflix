@@ -62,12 +62,28 @@ export function appUrl(env) {
 
 export function assertOrigin(c) {
   const origin = c.req.header("origin");
-  if (origin && origin !== appUrl(c.env).origin) throw new HttpError(403, "This origin is not allowed.", "origin_not_allowed");
+  if (!origin) return;
+  const allowed = new Set([appUrl(c.env).origin]);
+  for (const port of ["5173", "8080", "3000"]) {
+    allowed.add(`http://localhost:${port}`);
+    allowed.add(`http://127.0.0.1:${port}`);
+  }
+  if (!allowed.has(origin)) throw new HttpError(403, "This origin is not allowed.", "origin_not_allowed");
 }
 
 export function validateOAuthRedirect(env, redirectUri) {
-  const base = appUrl(env);
-  const allowed = [new URL("auth.html", base).href, new URL("index.html", base).href];
+  const bases = [appUrl(env).href];
+  for (const port of ["5173", "8080", "3000"]) {
+    bases.push(`http://localhost:${port}/`);
+    bases.push(`http://127.0.0.1:${port}/`);
+  }
+  const allowed = [];
+  for (const base of bases) {
+    try {
+      allowed.push(new URL("auth.html", base).href);
+      allowed.push(new URL("index.html", base).href);
+    } catch (e) { /* ignore */ }
+  }
   if (!allowed.includes(redirectUri)) throw new HttpError(400, "This sign-in redirect is not allowed.", "invalid_redirect");
 }
 
