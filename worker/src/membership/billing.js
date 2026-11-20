@@ -25,11 +25,11 @@ export async function currentStripeSubscriptions(env, customer, userId) {
   return (response.data || []).filter((sub) => sub.metadata?.objectflix_user_id === userId && !["canceled", "incomplete_expired"].includes(sub.status));
 }
 
-export async function createCheckout(env, user, planId) {
+export async function createCheckout(env, user, planId, base) {
   const plan = planFor(planId);
   if (!plan?.priceEnv) throw new HttpError(400, "Choose a paid membership plan.", "invalid_plan");
   if (!billingConfigured(env)) throw new HttpError(503, "Membership checkout is not open yet.", "billing_not_configured");
-  const base = appUrl(env);
+  const returnBase = base || appUrl(env);
   const price = await monthlyPrice(env, env[plan.priceEnv]);
   if (planFromPrice(env, price.id)?.id !== planId) throw new HttpError(503, "Plan pricing needs to be reviewed.", "configuration_required");
 
@@ -74,8 +74,8 @@ export async function createCheckout(env, user, planId) {
       "metadata[objectflix_user_id]": user.id,
       "metadata[objectflix_request_id]": attempt.request_id,
       "subscription_data[metadata][objectflix_user_id]": user.id,
-      success_url: new URL("membership.html?checkout=returned", base).href,
-      cancel_url: new URL("membership.html?checkout=cancelled", base).href,
+      success_url: new URL("membership.html?checkout=returned", returnBase).href,
+      cancel_url: new URL("membership.html?checkout=cancelled", returnBase).href,
       expires_at: attempt.expires_at,
     }, `objectflix:checkout:${attempt.request_id}`);
     if (!stripeId(session.id, "cs")) throw new HttpError(502, "Stripe did not create a checkout session.", "stripe_unavailable");
@@ -85,12 +85,12 @@ export async function createCheckout(env, user, planId) {
   });
 }
 
-export async function createPortal(env, user, targetPlanId) {
+export async function createPortal(env, user, targetPlanId, base) {
   if (!/^bpc_[A-Za-z0-9]+$/.test(env.STRIPE_PORTAL_CONFIGURATION_ID || "")) throw new HttpError(503, "Billing management is not configured yet.", "billing_not_configured");
   const customer = await env.DB.prepare("SELECT * FROM billing_customers WHERE user_id = ?").bind(user.id).first();
   if (!customer || Boolean(customer.livemode) !== liveMode(env)) throw new HttpError(404, "There is no billing account to manage yet.", "customer_not_found");
   const parameters = { customer: customer.stripe_customer_id, configuration: env.STRIPE_PORTAL_CONFIGURATION_ID,
-    return_url: new URL("membership.html?billing=returned", appUrl(env)).href };
+    return_url: new URL("membership.html?billing=returned", base || appUrl(env)).href };
   if (targetPlanId) {
     const subscriptions = await currentStripeSubscriptions(env, customer.stripe_customer_id, user.id);
     if (subscriptions.length !== 1) throw new HttpError(409, "Open Manage billing to review your subscriptions.", "billing_review_required");

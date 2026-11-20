@@ -635,7 +635,7 @@
       });
     }
 
-    // carousel scroll
+    
     document.querySelectorAll('[data-carousel]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const carousel = document.getElementById('episodeCarousel');
@@ -645,7 +645,7 @@
       });
     });
 
-    // tab switching keeps episodes, reviews and recommendations one click away
+    
     document.querySelectorAll('.watch-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.watch-tab').forEach((t) => {

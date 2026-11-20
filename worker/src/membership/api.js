@@ -46,18 +46,26 @@ membership.get("/me", async (c) => {
   return c.json({ success: true, membership: member, cosmetics, user: { id: user.id, displayName: user.display_name }, isStaff: isMembershipAdmin(c.env, user) });
 });
 
+function returnBase(c) {
+  const origin = c.req.header("origin");
+  if (origin) {
+    try { return appUrl({ ...c.env, APP_URL: origin }); } catch {}
+  }
+  return appUrl(c.env);
+}
+
 membership.post("/checkout", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, z.object({ planId }).strict());
   await rateLimit(c.env, `checkout:${c.get("user").id}`, 8);
-  return c.json({ success: true, ...await createCheckout(c.env, c.get("user"), body.planId) });
+  return c.json({ success: true, ...await createCheckout(c.env, c.get("user"), body.planId, returnBase(c)) });
 });
 
 membership.post("/portal", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, z.object({ planId: planId.optional() }).strict());
   await rateLimit(c.env, `portal:${c.get("user").id}`, 10);
-  return c.json({ success: true, ...await createPortal(c.env, c.get("user"), body.planId) });
+  return c.json({ success: true, ...await createPortal(c.env, c.get("user"), body.planId, returnBase(c)) });
 });
 
 membership.put("/preferences", async (c) => {

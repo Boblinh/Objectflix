@@ -17,7 +17,7 @@ function clean(value, max) {
 
 function profileAccount(c, suppliedAccount) {
 	const user = c.get("user");
-	// Resolve existing email/Discord profile keys from the verified server record.
+	
 	const account = user.legacy_account;
 	if (typeof account !== "string" || !account) {
 		throw new HttpError(403, "This account is not available for profiles.", "account_unavailable");

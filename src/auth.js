@@ -4,28 +4,13 @@
 
 
 
-import { firebaseConfig, FIREBASE_SDK_VERSION } from './firebase-config.js';
+import { firebaseConfigured } from './firebase-config.js';
+import { getFirebase } from './firebase.js';
 
 const ENV = window.__OBJECTFLIX_ENV__ || {};
 const CONFIG = window.OBJECTFLIX_CONFIG || {};
 const FIREBASE_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/firebase`;
 const DISCORD_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/discord`;
-const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
-
-let firebaseAuthPromise = null;
-async function getFirebaseAuth() {
-  if (!firebaseAuthPromise) {
-    firebaseAuthPromise = (async () => {
-      const [{ initializeApp }, { getAuth, GoogleAuthProvider, signInWithPopup }] = await Promise.all([
-        import(/* @vite-ignore */ `${FIREBASE_CDN}/firebase-app.js`),
-        import(/* @vite-ignore */ `${FIREBASE_CDN}/firebase-auth.js`),
-      ]);
-      const app = initializeApp(firebaseConfig);
-      return { auth: getAuth(app), GoogleAuthProvider, signInWithPopup };
-    })();
-  }
-  return firebaseAuthPromise;
-}
 const DISCORD_CONFIG = {
   clientId: ENV.DISCORD_CLIENT_ID || 'PASTE_DISCORD_CLIENT_ID',
   redirectUri: window.location.origin + window.location.pathname,
@@ -181,7 +166,7 @@ export const Auth = {
   },
 
   async handleGoogleLogin() {
-    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('PASTE_')) {
+    if (!firebaseConfigured()) {
       this.showError('Google sign-in is not configured. Add your Firebase web config in src/firebase-config.js.');
       return;
     }
@@ -192,7 +177,8 @@ export const Auth = {
         alertEl.textContent = 'Opening Google sign-in…';
         alertEl.classList.remove('is-hidden');
       }
-      const { auth, GoogleAuthProvider, signInWithPopup } = await getFirebaseAuth();
+      const { auth, authSdk } = await getFirebase();
+      const { GoogleAuthProvider, signInWithPopup } = authSdk;
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const credential = await signInWithPopup(auth, provider);

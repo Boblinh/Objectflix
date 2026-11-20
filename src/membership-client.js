@@ -81,7 +81,8 @@
     const url = new URL(result.url);
     const expected = action === 'portal' ? 'billing.stripe.com' : 'checkout.stripe.com';
     if (url.protocol !== 'https:' || url.hostname !== expected) throw new MembershipError('A valid Stripe session could not be opened.');
-    window.location.assign(url.href);
+    if (window.self !== window.top) window.top.location.assign(url.href);
+    else window.location.assign(url.href);
   }
 
   function priceLabel(price) {

@@ -82,7 +82,7 @@ export function validateOAuthRedirect(env, redirectUri) {
     try {
       allowed.push(new URL("auth.html", base).href);
       allowed.push(new URL("index.html", base).href);
-    } catch (e) { /* ignore */ }
+    } catch (e) {  }
   }
   if (!allowed.includes(redirectUri)) throw new HttpError(400, "This sign-in redirect is not allowed.", "invalid_redirect");
 }

@@ -1,5 +1,5 @@
 (() => {
-  // When loaded inside the modal iframe, defer all controls to the parent page.
+  
   if (window.self !== window.top) {
     document.documentElement.classList.add('in-page-modal');
     return;
@@ -84,7 +84,7 @@
     if (event.key === 'Escape') closeModal();
   });
 
-  // Deep links like ?modal=membership open the overlay directly.
+  
   try {
     const name = new URLSearchParams(window.location.search).get('modal');
     if (name && PAGES[name]) {

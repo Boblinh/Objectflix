@@ -1,8 +1,8 @@
-/* ------------------------------------------------------------------
- * Objectflix v2 — refined streaming-platform UI
- * Vibrant palette (coral, mint, lilac, peach) kept; the look is bigger,
- * cleaner and more platform-like while staying playful.
- * ------------------------------------------------------------------ */
+
+
+
+
+
 
 .objectflix-v2 {
   --bg: #f8f6f1;
@@ -108,7 +108,7 @@
 }
 .objectflix-v2 .skip-link:focus { top: 16px; }
 
-/* ---------------- Welcome page ---------------- */
+
 .welcome-page .page-shell { min-height: 0; }
 
 .welcome-nav {
@@ -307,7 +307,7 @@
 .welcome-footer > p { margin: 0 auto 0 0; color: var(--muted); font-size: 12px; }
 .footer-signoff { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); white-space: nowrap; }
 
-/* ---------------- Browse page ---------------- */
+
 .browse-page .app { padding-left: var(--sidebar-width); animation: none; }
 .club-sidebar {
   position: fixed;
@@ -489,7 +489,7 @@
 }
 .happy-stamp > span { font: 600 17px/1.4 'Outfit', sans-serif; letter-spacing: -0.04em; }
 
-/* Spotlight */
+
 .spotlight {
   display: grid;
   grid-template-columns: 1fr 1.02fr;
@@ -598,7 +598,7 @@
 .spotlight__caption { position: absolute; bottom: 0; right: 6px; z-index: 2; color: #637756; font-size: 11px; font-weight: 500; transform: rotate(-4deg); }
 .spotlight__spark { position: absolute; bottom: 0; left: -14px; z-index: 2; font-size: 44px; line-height: 1; color: #7c9465; }
 
-/* Filters */
+
 .discovery-filters { display: flex; align-items: center; gap: 16px; margin: 28px 0 8px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
 .discovery-filters > span:first-child { color: #7c8271; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .discovery-filters__count { margin-left: auto; color: #959889; font-size: 10px; white-space: nowrap; }
@@ -640,7 +640,7 @@
 .objectflix-v2 .carousel-button:hover { background: var(--mint); border-color: #9daf8e; box-shadow: none; transform: translateY(-1px); }
 .browse-page .carousel { grid-auto-columns: minmax(156px, calc((100% - 64px) / 5)); gap: 18px; padding: 7px 2px 20px; margin: 0 -2px; }
 
-/* Show cards */
+
 .show-card { min-width: 0; }
 .show-card__art {
   position: relative;
@@ -792,7 +792,7 @@
 }
 .browse-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
-/* Search page */
+
 .objectflix-v2 .section--search { width: 100%; padding: 0 0 36px; }
 .objectflix-v2 .search-hero {
   position: relative;
@@ -843,7 +843,7 @@
 .empty-state--connection { min-height: 60vh; }
 .search-empty { grid-column: 1/-1; width: 100%; margin-top: 0; }
 
-/* Details modal */
+
 .objectflix-v2 .modal { padding: 24px; z-index: 80; }
 .objectflix-v2 .modal__backdrop { background: rgba(32, 41, 27, 0.62); backdrop-filter: blur(8px); }
 .objectflix-v2 .modal__panel {
@@ -901,7 +901,7 @@
 .onboarding-panel > p:not(.eyebrow) { font-size: 14px; line-height: 1.85; color: var(--muted); }
 .onboarding-panel .button { margin-top: 12px; }
 
-/* Community modal */
+
 .objectflix-v2 .community-modal .modal__panel { max-width: 560px; }
 .objectflix-v2 :is(.community-input, .community-textarea, .community-select) { background: #fffefa; border-color: #d8dfcf; color: var(--ink); border-radius: 12px; }
 .objectflix-v2 .community-label { color: #738368; font-size: 13px; }
@@ -909,7 +909,7 @@
 .objectflix-v2 .star-rating button { color: #b6beaa; font-size: 20px; }
 .objectflix-v2 .star-rating button.is-lit { color: #be7728; text-shadow: none; }
 
-/* Profile gate */
+
 .objectflix-v2 .profile-gate {
   position: relative;
   inset: auto;
@@ -961,7 +961,7 @@
 .profile-modal__actions { flex-wrap: wrap; }
 .profile-modal__actions .button { padding-inline: 13px; font-size: 12px; }
 
-/* Auth page */
+
 .objectflix-v2.auth-page { display: block; min-height: 100vh; padding: 116px 40px 48px; }
 .objectflix-v2 .auth-page__logo { position: absolute; top: 29px; left: 44px; }
 .auth-back { position: absolute; top: 40px; right: 44px; }
@@ -1009,7 +1009,7 @@
 .objectflix-v2 .auth-alert { padding: 13px 15px; border: 1px solid #edc2ac; border-radius: 12px; background: #fce7da; color: #9a4c30; font-size: 13px; line-height: 1.6; }
 .objectflix-v2 .auth-verification-note { padding: 14px 16px; border: 1px solid #d8dec9; border-radius: 9px; color: #74875b; background: #eff3e7; font-size: 13px; line-height: 1.8; margin-bottom: 24px; }
 
-/* Watch page */
+
 .objectflix-v2.watch-page .navbar { min-height: 88px; padding: 20px 4%; border-bottom: 1px solid var(--border); background: rgba(248, 246, 241, 0.92); backdrop-filter: blur(15px); }
 .watch-nav-label { font-size: 10px; color: #8d967e; letter-spacing: 0.1em; margin-left: 24px; padding-left: 24px; border-left: 1px solid var(--border); }
 .objectflix-v2 .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #788d65; }
@@ -1093,7 +1093,7 @@
   .watch-tabs__body, .watch-tab-panel { max-height: 420px; }
 }
 
-/* Assistant chat widget */
+
 .objectflix-v2 .objectflix-assistant { z-index: 50; bottom: 20px; right: 20px; font-family: inherit; }
 .objectflix-v2 .assistant-trigger {
   gap: 9px;
@@ -1134,7 +1134,7 @@
 .objectflix-v2 .assistant-send:hover { background: #f7bb9a; }
 .objectflix-v2 .assistant-close { color: #859773; }
 
-/* Guest badge + note */
+
 .guest-badge {
   display: inline-flex;
   align-items: center;
@@ -1149,7 +1149,7 @@
 .watch-guest-note { color: var(--muted); font-size: 12px; margin-top: 12px; }
 .watch-guest-note a { color: var(--accent-2); text-decoration: underline; text-underline-offset: 3px; }
 
-/* Watch page: tabbed sections */
+
 .watch-tabs { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
 .watch-tabs__nav { display: flex; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
 .watch-tab {
@@ -1168,7 +1168,7 @@
 .watch-tab-panel.is-active { display: block; }
 .watch-reviews { margin-top: 0; }
 
-/* Watch page: episodes carousel (Netflix-like) */
+
 .watch-episodes { margin-top: 8px; }
 .episode-carousel {
   display: flex;
@@ -1188,7 +1188,7 @@
 }
 .episode-carousel .episode-card__title { font-size: 14px; }
 
-/* Reviews section */
+
 .watch-reviews { margin-top: 8px; }
 .reviews-summary {
   display: flex;
@@ -1259,7 +1259,7 @@
 .review-date { color: var(--muted); font-size: 10px; }
 .reviews-empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
 
-/* History */
+
 .history-tools { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 22px 0; }
 .history-tools p { color: #79856d; font-size: 13px; margin: 0; }
 .history-list { display: grid; gap: 16px; margin: 10px 0 38px; }
@@ -1271,7 +1271,7 @@
 .history-row p:not(.eyebrow) { font-size: 12px; color: #879874; margin: 0; }
 .history-row .button { font-size: 12px; white-space: nowrap; }
 
-/* Member decoration (kept) */
+
 .objectflix-v2 [data-member-frame="supporter"] { outline: 3px solid #d39873; outline-offset: 4px; }
 .objectflix-v2 [data-member-frame="movie-night"] { outline: 3px dashed #a68dbd; outline-offset: 4px; }
 .objectflix-v2 [data-member-frame="champion"] { outline: 3px solid #b49b4a; outline-offset: 4px; animation: champion-frame 4s ease-in-out infinite; }
@@ -1283,7 +1283,7 @@
 .objectflix-v2 [data-member-decoration="seasonal"]::after { content: '❧'; color: #a6784a; }
 .profile-supporter-badge { display: inline-block; margin-top: 9px; padding: 4px 7px; border: 1px solid #b9cba8; border-radius: 4px; color: #6e8856; background: #edf3e5; font-size: 9px; }
 
-/* ---------------- Page modal (membership / movie nights) ---------------- */
+
 body.page-modal-open { overflow: hidden; }
 .page-modal .modal__panel {
   width: min(1040px, 100%);
@@ -1301,7 +1301,7 @@ body.page-modal-open { overflow: hidden; }
 .in-page-modal .member-nav, .in-page-modal .member-footer, .in-page-modal .skip-link { display: none !important; }
 .in-page-modal .member-main { padding-top: 12px; }
 
-/* ---------------- Responsive ---------------- */
+
 @media (min-width: 1600px) {
   .objectflix-v2 { --sidebar-width: 258px; }
   .club-sidebar { padding-inline: 25px; }

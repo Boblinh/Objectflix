@@ -30,7 +30,7 @@
       else if (current) action = '<button class="button button--secondary" disabled type="button">Your current membership</button>';
       else if (plan.free) action = '<a class="button button--secondary" href="./index.html">Make yourself at home</a>';
       else if (!plan.checkoutAvailable) action = '<button class="button button--secondary" disabled type="button">Pricing not set yet</button>';
-      else if (!account) action = `<a class="button button--primary" href="${M.authLink()}">Sign in to join ${icon('arrow-right')}</a>`;
+      else if (!account) action = `<a class="button button--primary" href="${M.authLink()}" target="_top">Sign in to join ${icon('arrow-right')}</a>`;
       else action = `<button class="button button--primary" type="button" data-billing="${existing ? 'portal' : 'checkout'}" data-plan="${esc(plan.id)}">${existing ? 'Switch to this plan' : 'Choose this membership'} ${icon('arrow-right')}</button>`;
       const previous = plans[index - 1];
       const perks = (catalog?.perks || []).filter((perk) => perk.enabled && perk.implemented && plan.entitlements?.[perk.id] && (!previous || !previous.entitlements?.[perk.id]));
@@ -55,7 +55,7 @@
   function renderAccount() {
     const member = account?.membership;
     if (!member) {
-      elements.membershipCurrent.innerHTML = `<div><span class="eyebrow">YOUR PLACE IN THE CLUBHOUSE</span><h2>Already one of the gang?</h2><p>Sign in with a verified account to see your current membership and manage billing.</p></div><a class="button button--ink" href="${M.authLink()}">View my membership ${icon('arrow-right')}</a>`;
+      elements.membershipCurrent.innerHTML = `<div><span class="eyebrow">YOUR PLACE IN THE CLUBHOUSE</span><h2>Already one of the gang?</h2><p>Sign in with a verified account to see your current membership and manage billing.</p></div><a class="button button--ink" href="${M.authLink()}" target="_top">View my membership ${icon('arrow-right')}</a>`;
       elements.memberWorkspace.classList.add('is-hidden');
     } else {
       const billing = member.billing;
