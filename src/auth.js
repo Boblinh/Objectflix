@@ -4,8 +4,7 @@
 
 
 
-import { firebaseConfigured } from './firebase-config.js';
-import { getFirebase } from './firebase.js';
+import { isFirebaseConfigured, getFirebase } from './firebase.js';
 
 const ENV = window.__OBJECTFLIX_ENV__ || {};
 const CONFIG = window.OBJECTFLIX_CONFIG || {};
@@ -166,7 +165,7 @@ export const Auth = {
   },
 
   async handleGoogleLogin() {
-    if (!firebaseConfigured()) {
+    if (!isFirebaseConfigured()) {
       this.showError('Google sign-in is not configured. Add your Firebase web config in src/firebase-config.js.');
       return;
     }

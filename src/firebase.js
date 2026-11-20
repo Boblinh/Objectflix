@@ -1,10 +1,10 @@
-import { firebaseConfig, FIREBASE_SDK_VERSION } from './firebase-config.js';
+import { firebaseConfigured as firebaseConfig, FIREBASE_SDK_VERSION } from './firebase-config.js';
 
 const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
 
 let firebasePromise = null;
 
-export function firebaseConfigured() {
+export function isFirebaseConfigured() {
   return Boolean(firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PASTE_'));
 }
 
@@ -24,7 +24,7 @@ export async function getFirebase() {
 }
 
 export async function currentFirebaseUser() {
-  if (!firebaseConfigured()) return null;
+  if (!isFirebaseConfigured()) return null;
   try {
     const { auth } = await getFirebase();
     return auth.currentUser;

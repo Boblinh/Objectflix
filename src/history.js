@@ -31,8 +31,8 @@
 
   async function firestore() {
     try {
-      const { firebaseConfigured } = await import('./firebase-config.js');
-      if (!firebaseConfigured()) return null;
+      const { isFirebaseConfigured } = await import('./firebase.js');
+      if (!isFirebaseConfigured()) return null;
       if (!sdkPromise) {
         sdkPromise = (async () => {
           const { getFirebase } = await import('./firebase.js');

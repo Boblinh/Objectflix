@@ -1,4 +1,4 @@
-export const firebaseConfig = Object.freeze({
+export const firebaseConfigured = Object.freeze({
   apiKey: "AIzaSyB9Rqc8jaTZriXYxeNmF-wZ4YtB3QqUu3U",
   authDomain: "jsi37-7d1ed.firebaseapp.com",
   projectId: "jsi37-7d1ed",
