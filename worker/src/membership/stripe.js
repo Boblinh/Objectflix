@@ -39,6 +39,7 @@ export async function stripeRequest(env, method, path, parameters = {}, idempote
   let result;
   try { result = await response.json(); } catch { throw new HttpError(502, "Stripe returned an unexpected response.", "stripe_unavailable"); }
   if (!response.ok) {
+    console.error("[stripe] request failed:", method, path, response.status, result?.error?.code || "", result?.error?.message || "");
     throw new HttpError(response.status === 404 ? 404 : 502,
       response.status === 404 ? "The billing record could not be found." : "Stripe could not complete this request. Please try again.",
       response.status === 404 ? "stripe_not_found" : "stripe_request_failed");
