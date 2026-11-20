@@ -16,8 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./ui.css" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
+    <link rel="stylesheet" href="./ui.css?v=2" />
   </head>
   <body class="objectflix-v2 welcome-page">
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -31,7 +31,7 @@
       <nav aria-label="Main navigation">
         <a class="welcome-nav__explore" href="#first-picks">Meet the shows</a>
         <a class="welcome-nav__tv" href="./tv.html">TV mode <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-up-right"></use></svg></a>
-        <a class="welcome-nav__membership" href="./membership.html">Membership</a>
+        <a class="welcome-nav__membership" href="./membership.html" data-modal-page="membership">Membership</a>
         <a class="button button--ink" href="./auth.html">Come on in <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a>
       </nav>
     </header>
@@ -46,8 +46,9 @@
             <div class="button-row">
               <a class="button button--primary" href="./auth.html">Find your next favorite <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a>
               <a class="welcome-hero__secondary" href="#first-picks">Take a little look <span aria-hidden="true">↘</span></a>
+              <button class="button button--ghost" type="button" id="guestModeBtn">Continue as guest <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></button>
             </div>
-            <div class="welcome-note"><span class="mini-faces" aria-hidden="true"><span>◡</span><span>◡</span><span>◡</span></span><span>Made by a fan. For the whole fandom.</span></div>
+            <div class="welcome-note"><span>Made by a fan. For the whole fandom.</span></div>
           </div>
           <div class="welcome-art" aria-label="A cheerful illustrated television surrounded by object shows">
             <span class="art-caption art-caption--top">a whole lot of character.</span>
@@ -57,8 +58,6 @@
             <span class="art-caption art-caption--bottom">press play. find your people.</span>
           </div>
         </section>
-
-        <div class="welcome-ribbon" aria-hidden="true"><span>LESS SCROLLING</span><span>✳</span><span>MORE “ONE MORE EPISODE”</span><span>✳</span><span>100% OBJECT ENERGY</span><span>✳</span><span>WELCOME TO YOUR HAPPY PLACE</span></div>
 
         <section class="welcome-picks" id="first-picks" aria-labelledby="picks-title">
           <div class="section-heading">
@@ -90,7 +89,7 @@
           <div class="profile-actions">
             <button class="button button--secondary" id="manageProfilesButton" type="button" aria-pressed="false">Manage profiles</button>
             <a class="button button--ghost" href="./auth.html">Switch account <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a>
-            <a class="button button--ghost" href="./membership.html">Membership &amp; profile style</a>
+            <a class="button button--ghost" href="./membership.html" data-modal-page="membership">Membership &amp; profile style</a>
           </div>
         </div>
       </section>
@@ -131,6 +130,13 @@
       </div>
     </div>
 
+    <script>
+      document.getElementById('guestModeBtn')?.addEventListener('click', () => {
+        localStorage.setItem('objectflix_guest', 'true');
+        localStorage.setItem('objectflix_current_user', JSON.stringify({ provider: 'guest', id: 'guest', displayName: 'Guest', username: 'guest', email: '' }));
+        window.location.href = 'browse.html';
+      });
+    </script>
     <script src="./src/env.js"></script>
     <script src="./src/config.js"></script>
     <script src="./src/api.js"></script>
@@ -138,5 +144,6 @@
     <script src="./src/membership-client.js"></script>
     <script src="./src/gate.js"></script>
     <script src="./src/assistant.js"></script>
+    <script src="./src/modal-pages.js"></script>
   </body>
 </html>

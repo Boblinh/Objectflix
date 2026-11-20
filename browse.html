@@ -16,10 +16,10 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="./player-test.css" />
-    <link rel="stylesheet" href="./content-warning.css" />
-    <link rel="stylesheet" href="./ui.css" />
+    <link rel="stylesheet" href="./styles.css?v=2" />
+    <link rel="stylesheet" href="./player-test.css?v=2" />
+    <link rel="stylesheet" href="./content-warning.css?v=2" />
+    <link rel="stylesheet" href="./ui.css?v=2" />
   </head>
   <body class="objectflix-v2 browse-page">
     <a class="skip-link" href="#main-content">Skip to content</a>
@@ -43,8 +43,8 @@
           <div class="sidebar-divider"></div>
           <p class="sidebar-label">BETTER TOGETHER</p>
           <nav class="sidebar-nav sidebar-nav--community" aria-label="Community">
-            <a class="community-link" href="./movie-nights.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#tv"></use></svg> Movie Nights</a>
-            <a class="community-link" href="./membership.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg> <span data-membership-label>Membership</span></a>
+            <a class="community-link" href="./movie-nights.html" data-modal-page="movie-nights"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#tv"></use></svg> Movie Nights</a>
+            <a class="community-link" href="./membership.html" data-modal-page="membership"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg> <span data-membership-label>Membership</span></a>
             <button class="community-link" data-community-action="request-show" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#plus"></use></svg> Request a show</button>
             <button class="community-link" data-community-action="request-episode" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#film"></use></svg> Request an episode</button>
             <button class="community-link" data-community-action="feedback" type="button"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#message"></use></svg> Share a little feedback</button>
@@ -86,8 +86,8 @@
             <button class="nav-link" data-view="my-list" type="button">My list <span class="list-count" data-list-count>0</span></button>
             <button class="nav-link" data-view="search" type="button">Search</button>
             <button class="nav-link" data-view="history" type="button">Watch history</button>
-            <a class="nav-link" href="./movie-nights.html">Movie Nights</a>
-            <a class="nav-link" href="./membership.html">Membership</a>
+            <a class="nav-link" href="./movie-nights.html" data-modal-page="movie-nights">Movie Nights</a>
+            <a class="nav-link" href="./membership.html" data-modal-page="membership">Membership</a>
             <button class="community-link" data-community-action="request-show" type="button">Request a Show</button>
             <button class="community-link" data-community-action="request-episode" type="button">Request an Episode</button>
             <button class="community-link community-link--accent" data-community-action="feedback" type="button">Send Feedback</button>
@@ -162,5 +162,6 @@
     <script src="./src/browse.js"></script>
     <script src="./src/assistant.js"></script>
     <script src="./src/alpha-warning.js"></script>
+    <script src="./src/modal-pages.js"></script>
   </body>
 </html>

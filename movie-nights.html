@@ -8,6 +8,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" /><link rel="stylesheet" href="./ui.css" /><link rel="stylesheet" href="./membership.css" />
+    <script>
+      if (window.self === window.top) {
+        var p = new URLSearchParams(window.location.search);
+        p.set('modal', 'movie-nights');
+        window.location.replace('./index.html?' + p.toString());
+      }
+    </script>
   </head>
   <body class="objectflix-v2 member-page" data-member-page="movie-nights">
     <a class="skip-link" href="#main-content">Skip to Movie Nights</a><header class="member-nav" data-member-header></header>
@@ -17,10 +24,10 @@
       <div class="movie-toolbar"><div class="movie-filters" role="group" aria-label="Filter Movie Nights"><button class="movie-filter" type="button" data-event-filter="upcoming" aria-pressed="true">Coming up</button><button class="movie-filter" type="button" data-event-filter="past" aria-pressed="false">Past nights</button><button class="movie-filter" type="button" data-event-filter="all" aria-pressed="false">All nights</button></div><p id="movieTimezone">Times shown in your local timezone.</p><button class="text-link" type="button" id="refreshEvents">Refresh schedule ↻</button></div>
       <section class="event-grid" id="eventGrid" aria-label="Movie Night schedule" aria-busy="true"><p class="member-loading">Checking the clubhouse calendar…</p></section>
       <section class="event-detail is-hidden" id="eventDetail" aria-label="Movie Night details" tabindex="-1"></section>
-      <section class="movie-membership-note"><p><strong>Every good night starts with a good community.</strong><br />Explore the currently enabled supporter perks, from suggesting themes to personalizing your profile.</p><a class="button button--secondary" href="./membership.html">Movie Night Support <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a></section>
+      <section class="movie-membership-note"><p><strong>Every good night starts with a good community.</strong><br />Explore the currently enabled supporter perks, from suggesting themes to personalizing your profile.</p><a class="button button--secondary" href="./membership.html" data-modal-page="membership">Movie Night Support <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a></section>
     </main>
     <footer class="member-footer"><span class="footer-wordmark">objectflix<span class="brand-dot">.</span></span><p>Small objects. Shared stories.</p><a href="./browse.html">Find something to watch ↗</a></footer>
     <noscript><p class="member-alert">Enable JavaScript to load current Movie Night schedules and polls.</p></noscript>
-    <script src="./src/env.js"></script><script src="./src/config.js"></script><script src="./src/membership-client.js"></script><script src="./src/movie-nights.js"></script>
+    <script src="./src/env.js"></script><script src="./src/config.js"></script><script src="./src/membership-client.js"></script><script src="./src/movie-nights.js"></script><script src="./src/modal-pages.js"></script>
   </body>
 </html>

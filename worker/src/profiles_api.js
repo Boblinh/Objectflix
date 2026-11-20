@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { HttpError, apiError } from "./membership/http.js";
+import { requireIdentity } from "./membership/identity.js";
 
 const MAX_PROFILES_PER_ACCOUNT = 4;
 const AVATAR_CLASSES = new Set([
@@ -13,12 +15,23 @@ function clean(value, max) {
 	return text ? text.slice(0, max) : null;
 }
 
-function accountKey(value) {
-	const key = clean(value, 200);
-	if (!key) return null;
-	return key.toLowerCase() === "discord" || key.includes("discord:")
-		? key
-		: key.toLowerCase();
+function profileAccount(c, suppliedAccount) {
+	const user = c.get("user");
+	// Resolve existing email/Discord profile keys from the verified server record.
+	const account = user.legacy_account;
+	if (typeof account !== "string" || !account) {
+		throw new HttpError(403, "This account is not available for profiles.", "account_unavailable");
+	}
+	for (const claim of [c.req.query("account"), suppliedAccount]) {
+		if (claim === undefined) continue;
+		const normalized = typeof claim === "string"
+			? (user.provider === "google" ? claim.trim().toLowerCase() : claim.trim())
+			: null;
+		if (normalized !== account) {
+			throw new HttpError(403, "Profiles can only be accessed through their verified owner.", "account_mismatch");
+		}
+	}
+	return account;
 }
 
 function profileRow(row) {
@@ -33,12 +46,14 @@ function profileRow(row) {
 }
 
 export const profiles = new Hono();
+profiles.onError(apiError);
+profiles.use("*", async (c, next) => {
+	c.header("Cache-Control", "no-store");
+	await requireIdentity(c, next);
+});
 
 profiles.get("/", async (c) => {
-	const account = accountKey(c.req.query("account"));
-	if (!account) {
-		return c.json({ error: "An account query parameter is required." }, 400);
-	}
+	const account = profileAccount(c);
 
 	const { results } = await c.env.DB.prepare(
 		"SELECT * FROM profiles WHERE account = ? ORDER BY created_at ASC LIMIT 8"
@@ -56,11 +71,14 @@ profiles.post("/", async (c) => {
 	} catch {
 		return c.json({ error: "Request body must be JSON." }, 400);
 	}
+	if (!body || typeof body !== "object" || Array.isArray(body)) {
+		return c.json({ error: "Request body must be a JSON object." }, 400);
+	}
 
-	const account = accountKey(body.account);
+	const account = profileAccount(c, body.account);
 	const name = clean(body.name, 30);
-	if (!account || !name) {
-		return c.json({ error: "An account and a profile name are required." }, 400);
+	if (!name) {
+		return c.json({ error: "A profile name is required." }, 400);
 	}
 
 	const avatar = clean(body.avatar, 1) || name[0].toUpperCase();
@@ -100,12 +118,11 @@ profiles.patch("/:id", async (c) => {
 	} catch {
 		return c.json({ error: "Request body must be JSON." }, 400);
 	}
-
-	const account = accountKey(body.account);
-	if (!account) {
-		return c.json({ error: "An account is required." }, 400);
+	if (!body || typeof body !== "object" || Array.isArray(body)) {
+		return c.json({ error: "Request body must be a JSON object." }, 400);
 	}
 
+	const account = profileAccount(c, body.account);
 	const name = clean(body.name, 30);
 	const avatar = clean(body.avatar, 1);
 	const className = AVATAR_CLASSES.has(body.className) ? body.className : null;
@@ -113,10 +130,10 @@ profiles.patch("/:id", async (c) => {
 		return c.json({ error: "Nothing to update." }, 400);
 	}
 
-	const row = await c.env.DB.prepare("SELECT * FROM profiles WHERE id = ?")
-		.bind(c.req.param("id"))
+	const row = await c.env.DB.prepare("SELECT * FROM profiles WHERE id = ? AND account = ?")
+		.bind(c.req.param("id"), account)
 		.first();
-	if (!row || row.account !== account) {
+	if (!row) {
 		return c.json({ error: "Profile not found." }, 404);
 	}
 
@@ -127,9 +144,9 @@ profiles.patch("/:id", async (c) => {
 	};
 
 	const result = await c.env.DB.prepare(
-		"UPDATE profiles SET name = ?, avatar = ?, class_name = ? WHERE id = ?"
+		"UPDATE profiles SET name = ?, avatar = ?, class_name = ? WHERE id = ? AND account = ?"
 	)
-		.bind(updated.name, updated.avatar, updated.className, row.id)
+		.bind(updated.name, updated.avatar, updated.className, row.id, account)
 		.run();
 	if (!result.meta.changes) return c.json({ error: "Profile not found." }, 404);
 
@@ -137,18 +154,13 @@ profiles.patch("/:id", async (c) => {
 });
 
 profiles.delete("/:id", async (c) => {
-	const account = accountKey(c.req.query("account"));
-	if (!account) {
-		return c.json({ error: "An account query parameter is required." }, 400);
-	}
-
-	const row = await c.env.DB.prepare("SELECT * FROM profiles WHERE id = ?")
-		.bind(c.req.param("id"))
-		.first();
-	if (!row || row.account !== account) {
+	const account = profileAccount(c);
+	const result = await c.env.DB.prepare("DELETE FROM profiles WHERE id = ? AND account = ?")
+		.bind(c.req.param("id"), account)
+		.run();
+	if (!result.meta.changes) {
 		return c.json({ error: "Profile not found." }, 404);
 	}
 
-	await c.env.DB.prepare("DELETE FROM profiles WHERE id = ?").bind(row.id).run();
 	return c.json({ success: true });
 });

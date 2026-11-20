@@ -124,6 +124,79 @@ publicCommunity.post("/feedback", async (c) => {
 	return c.json({ success: true, feedback: { ...entry, status: "new" } }, 201);
 });
 
+function reviewRow(row) {
+	return {
+		id: row.id,
+		episodeId: row.episode_id,
+		rating: row.rating,
+		body: row.body,
+		authorName: row.author_name,
+		authorType: row.author_type,
+		userId: row.user_id ?? null,
+		createdAt: row.created_at,
+	};
+}
+
+publicCommunity.get("/reviews", async (c) => {
+	const episodeId = clean(c.req.query("episodeId"), 120);
+	if (!episodeId) return c.json({ error: "episodeId is required." }, 400);
+
+	const { results } = await c.env.DB.prepare(
+		"SELECT * FROM episode_reviews WHERE episode_id = ? ORDER BY created_at DESC LIMIT 100"
+	)
+		.bind(episodeId)
+		.all();
+
+	const reviews = results.map(reviewRow);
+	const average = reviews.length
+		? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
+		: null;
+
+	return c.json({ success: true, reviews, average, count: reviews.length });
+});
+
+publicCommunity.post("/reviews", async (c) => {
+	let body;
+	try {
+		body = await c.req.json();
+	} catch {
+		return c.json({ error: "Request body must be JSON." }, 400);
+	}
+
+	const episodeId = clean(body.episodeId, 120);
+	if (!episodeId) return c.json({ error: "episodeId is required." }, 400);
+
+	const rating = Number(body.rating);
+	if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+		return c.json({ error: "Rating must be an integer from 1 to 10." }, 400);
+	}
+
+	const message = clean(body.body, 2000);
+	if (!message) return c.json({ error: "A review message is required." }, 400);
+
+	const authorType = body.authorType === "account" ? "account" : "guest";
+	const authorName = clean(body.authorName, 80) || (authorType === "guest" ? "Guest" : "Viewer");
+
+	const entry = {
+		id: crypto.randomUUID(),
+		episodeId,
+		rating,
+		body: message,
+		authorName,
+		authorType,
+		userId: authorType === "account" ? clean(body.userId, 120) : null,
+		createdAt: Date.now(),
+	};
+
+	await c.env.DB.prepare(
+		"INSERT INTO episode_reviews (id, episode_id, rating, body, author_name, author_type, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+	)
+		.bind(entry.id, entry.episodeId, entry.rating, entry.body, entry.authorName, entry.authorType, entry.userId, entry.createdAt)
+		.run();
+
+	return c.json({ success: true, review: { ...entry } }, 201);
+});
+
 export const adminCommunity = new Hono();
 
 adminCommunity.get("/requests", async (c) => {
@@ -205,5 +278,23 @@ adminCommunity.delete("/feedback/:id", async (c) => {
 		.bind(c.req.param("id"))
 		.run();
 	if (!result.meta.changes) return c.json({ error: "Feedback not found." }, 404);
+	return c.json({ success: true });
+});
+
+adminCommunity.get("/reviews", async (c) => {
+	const episodeId = c.req.query("episodeId");
+	let sql = "SELECT * FROM episode_reviews";
+	const params = [];
+	if (episodeId) { sql += " WHERE episode_id = ?"; params.push(episodeId); }
+	sql += " ORDER BY created_at DESC LIMIT 500";
+	const { results } = await c.env.DB.prepare(sql).bind(...params).all();
+	return c.json({ success: true, reviews: results.map(reviewRow) });
+});
+
+adminCommunity.delete("/reviews/:id", async (c) => {
+	const result = await c.env.DB.prepare("DELETE FROM episode_reviews WHERE id = ?")
+		.bind(c.req.param("id"))
+		.run();
+	if (!result.meta.changes) return c.json({ error: "Review not found." }, 404);
 	return c.json({ success: true });
 });

@@ -2,6 +2,7 @@
 
 (() => {
   const API = window.OBJECTFLIX_API;
+  const MEMBERSHIP = window.OBJECTFLIX_MEMBERSHIP;
 
   const MAX_PROFILES = 4;
   const AVATAR_CLASSES = [
@@ -10,8 +11,6 @@
     'profile-avatar--gradient-c',
     'profile-avatar--gradient-d',
   ];
-  const CACHE_PREFIX = 'objectflix_profiles_';
-
   const elements = {
     profileGate: document.getElementById('profileGate'),
     profileGrid: document.getElementById('profileGrid'),
@@ -25,12 +24,14 @@
     submitBtn: document.getElementById('profileSubmitBtn'),
     deleteBtn: document.getElementById('profileDeleteBtn'),
     cancelBtn: document.getElementById('profileCancelBtn'),
+    manageBtn: document.getElementById('manageProfilesButton'),
   };
 
   let dynamicProfiles = [];
   let editingProfile = null;
   let selectedClass = AVATAR_CLASSES[0];
   let lastFocusedElement = null;
+  let profileSession = null;
 
   const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
@@ -42,30 +43,71 @@
     }
   }
 
-  function accountKey(user) {
-    if (!user) return null;
-    if (user.provider === 'discord' && user.id) return `discord:${user.id}`;
-    return (user.email || '').toLowerCase() || null;
-  }
-
-  function cacheProfiles(account, profiles) {
+  function clearActiveProfile() {
     try {
-      localStorage.setItem(CACHE_PREFIX + account, JSON.stringify(profiles));
+      sessionStorage.removeItem('objectflix_active_profile');
     } catch {
-      
     }
   }
 
-  function readCachedProfiles(account) {
+  function sameSession(expected) {
+    const current = MEMBERSHIP.session();
+    return Boolean(expected && current && current.accessToken === expected.accessToken && current.userId === expected.userId);
+  }
+
+  function requireProfileSession() {
+    if (sameSession(profileSession)) return true;
+    renderProfileLoadError(new API.ApiError('Sign in with Google or Discord to access your profiles.', 401));
+    return false;
+  }
+
+  function renderProfileLoadError(error) {
+    dynamicProfiles = [];
+    profileSession = null;
+    editingProfile = null;
+    clearActiveProfile();
+    elements.modal.classList.add('is-hidden');
+    elements.manageBtn.disabled = true;
+    elements.profileGrid.setAttribute('aria-busy', 'false');
+    const verificationRequired = error.status === 401 || error.status === 403;
+    elements.profileGrid.innerHTML = `
+      <div class="profile-empty-hint" id="profileLoadError" role="alert">
+        <p>${escapeHTML(error.message || 'Your profiles could not be loaded. Please try again.')}</p>
+        ${verificationRequired
+          ? '<a class="button button--primary" href="./auth.html?verify=1">Sign in with Google or Discord</a>'
+          : '<button class="button button--primary" type="button" id="retryProfilesBtn">Try again</button>'}
+      </div>
+    `;
+    document.getElementById('retryProfilesBtn')?.addEventListener('click', loadProfiles);
+  }
+
+  async function loadProfiles() {
+    const expectedSession = MEMBERSHIP.session();
+    profileSession = null;
+    dynamicProfiles = [];
+    clearActiveProfile();
+    elements.manageBtn.disabled = true;
+    elements.profileGrid.setAttribute('aria-busy', 'true');
+    elements.profileGrid.innerHTML = '<p class="profile-empty-hint" role="status">Loading your profiles…</p>';
     try {
-      const cached = JSON.parse(localStorage.getItem(CACHE_PREFIX + account) || 'null');
-      return Array.isArray(cached) ? cached : [];
-    } catch {
-      return [];
+      const serverProfiles = await API.listProfiles();
+      if (!sameSession(expectedSession)) {
+        renderProfileLoadError(new API.ApiError('Your account changed. Please sign in again to access your profiles.', 401));
+        return;
+      }
+      profileSession = expectedSession;
+      dynamicProfiles = serverProfiles;
+      renderProfileGate(dynamicProfiles);
+      if (localStorage.getItem('onboarding_needed') === 'true') showOnboarding();
+    } catch (error) {
+      renderProfileLoadError(error);
+    } finally {
+      elements.profileGrid.setAttribute('aria-busy', 'false');
     }
   }
 
   function renderProfileGate(profilesToRender) {
+    elements.manageBtn.disabled = false;
     const cards = profilesToRender.map(renderProfileCard).join('');
     const addBtn = profilesToRender.length >= MAX_PROFILES
       ? ''
@@ -99,7 +141,8 @@
   }
 
   function selectProfile(profileId) {
-    const profile = dynamicProfiles.find((p) => p.id === profileId) || dynamicProfiles[0];
+    if (!requireProfileSession()) return;
+    const profile = dynamicProfiles.find((p) => p.id === profileId);
     if (!profile) return;
     try {
       sessionStorage.setItem('objectflix_active_profile', JSON.stringify(profile));
@@ -110,6 +153,7 @@
   }
 
   function openModal(profile) {
+    if (!requireProfileSession()) return;
     lastFocusedElement = document.activeElement;
     editingProfile = profile;
     selectedClass = profile?.className || AVATAR_CLASSES[0];
@@ -145,9 +189,7 @@
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const user = currentUser();
-    const account = accountKey(user);
-    if (!account) return;
+    if (!requireProfileSession()) return;
 
     const name = elements.nameInput.value.trim().slice(0, 30);
     if (!name) {
@@ -162,17 +204,19 @@
 
     try {
       if (editingProfile) {
-        const updated = await API.updateProfile(editingProfile.id, { account, name, avatar, className: selectedClass });
+        const updated = await API.updateProfile(editingProfile.id, { name, avatar, className: selectedClass });
+        if (!requireProfileSession()) return;
         dynamicProfiles = dynamicProfiles.map((p) => (p.id === updated.id ? updated : p));
       } else {
-        const created = await API.createProfile({ account, name, avatar, className: selectedClass });
+        const created = await API.createProfile({ name, avatar, className: selectedClass });
+        if (!requireProfileSession()) return;
         dynamicProfiles = [...dynamicProfiles, created];
       }
-      cacheProfiles(account, dynamicProfiles);
       closeModal();
       renderProfileGate(dynamicProfiles);
     } catch (err) {
-      showError(err.message || 'Something went wrong. Please try again.');
+      if (err.status === 401 || err.status === 403) renderProfileLoadError(err);
+      else showError(err.message || 'Something went wrong. Please try again.');
     } finally {
       elements.submitBtn.disabled = false;
     }
@@ -180,26 +224,28 @@
 
   async function handleDelete() {
     if (!editingProfile) return;
-    const user = currentUser();
-    const account = accountKey(user);
-    if (!account) return;
+    if (!requireProfileSession()) return;
     if (!confirm(`Delete the profile "${editingProfile.name}"? Its likes and list will be orphaned.`)) return;
 
     elements.deleteBtn.disabled = true;
     try {
-      await API.deleteProfile(editingProfile.id, account);
+      await API.deleteProfile(editingProfile.id);
+      if (!requireProfileSession()) return;
       dynamicProfiles = dynamicProfiles.filter((p) => p.id !== editingProfile.id);
-      cacheProfiles(account, dynamicProfiles);
       closeModal();
       renderProfileGate(dynamicProfiles);
     } catch (err) {
-      showError(err.message || 'Could not delete this profile.');
+      if (err.status === 401 || err.status === 403) renderProfileLoadError(err);
+      else showError(err.message || 'Could not delete this profile.');
     } finally {
       elements.deleteBtn.disabled = false;
     }
   }
 
   function bindEvents() {
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'objectflix_current_user' || event.key === null) window.location.reload();
+    });
     document.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -258,6 +304,7 @@
   }
 
   async function init() {
+    clearActiveProfile();
     const user = currentUser();
     if (!user) {
       return;
@@ -265,25 +312,10 @@
 
     document.getElementById('welcomeLanding').classList.add('is-hidden');
     document.querySelector('.welcome-nav__explore').classList.add('is-hidden');
-    const account = accountKey(user);
     bindEvents();
 
-    dynamicProfiles = readCachedProfiles(account);
-    renderProfileGate(dynamicProfiles);
     elements.profileGate.classList.remove('is-hidden');
-
-    try {
-      const serverProfiles = await API.listProfiles(account);
-      dynamicProfiles = serverProfiles;
-      cacheProfiles(account, serverProfiles);
-    } catch {
-      
-    }
-    renderProfileGate(dynamicProfiles);
-
-    if (localStorage.getItem('onboarding_needed') === 'true') {
-      showOnboarding();
-    }
+    await loadProfiles();
   }
 
   function showOnboarding() {

@@ -13,6 +13,13 @@
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./ui.css" />
     <link rel="stylesheet" href="./membership.css" />
+    <script>
+      if (window.self === window.top) {
+        var p = new URLSearchParams(window.location.search);
+        p.set('modal', 'membership');
+        window.location.replace('./index.html?' + p.toString());
+      }
+    </script>
   </head>
   <body class="objectflix-v2 member-page" data-member-page="membership">
     <a class="skip-link" href="#main-content">Skip to memberships</a>
@@ -44,7 +51,7 @@
         <div class="wardrobe-layout"><div class="wardrobe-preview"><div class="profile-avatar profile-avatar--gradient-c" data-member-avatar id="memberAvatarPreview"><span class="profile-avatar__letter" id="memberAvatarLetter">O</span><span class="profile-avatar__smile" aria-hidden="true"></span></div><strong id="memberPreviewName">Your profile</strong><span id="memberPreviewTitle"></span></div><form class="member-form" id="cosmeticsForm"><div class="member-form__columns" id="cosmeticsOptions"></div><div class="member-checks" id="cosmeticsChecks"></div><div class="member-form__actions"><button class="button button--primary" type="submit">Save my style</button><p id="cosmeticsStatus" role="status"></p></div></form></div>
       </section>
 
-      <section class="member-movie-night" aria-labelledby="movieSupportTitle"><div class="member-movie-night__art" aria-hidden="true"><svg class="ui-icon"><use href="./assets/ui/icons.svg#tv"></use></svg><span>FRONT-ROW FEELING.<br />EVERYONE'S INVITED.</span></div><div><p class="eyebrow">MOVIE NIGHT SUPPORT</p><h2 id="movieSupportTitle">The best seat is the one together.</h2><p>Public Movie Nights, schedules, and eligible public polls are open to Newbie members too. Supporters can help shape upcoming nights through the enabled perks above.</p><a class="button button--ink" href="./movie-nights.html">Find the next Movie Night <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a><a class="text-link is-hidden" id="movieAdminLink" href="./movie-night-admin.html">Host a Movie Night ↗</a></div></section>
+      <section class="member-movie-night" aria-labelledby="movieSupportTitle"><div class="member-movie-night__art" aria-hidden="true"><svg class="ui-icon"><use href="./assets/ui/icons.svg#tv"></use></svg><span>FRONT-ROW FEELING.<br />EVERYONE'S INVITED.</span></div><div><p class="eyebrow">MOVIE NIGHT SUPPORT</p><h2 id="movieSupportTitle">The best seat is the one together.</h2><p>Public Movie Nights, schedules, and eligible public polls are open to Newbie members too. Supporters can help shape upcoming nights through the enabled perks above.</p><a class="button button--ink" href="./movie-nights.html" data-modal-page="movie-nights">Find the next Movie Night <svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></a><a class="text-link is-hidden" id="movieAdminLink" href="./movie-night-admin.html">Host a Movie Night ↗</a></div></section>
 
       <section class="feature-suggestion is-hidden" id="featureSuggestionSection" aria-labelledby="featureSuggestionTitle"><div><p class="eyebrow">HELP SHAPE THIS LITTLE UNIVERSE</p><h2 id="featureSuggestionTitle">What would make Objectflix more you?</h2><p>Share a thoughtful feature idea with the team.</p></div><form class="member-form" id="featureSuggestionForm"><label>A name for your idea<input name="title" required minlength="3" maxlength="100" placeholder="A little idea with big potential" /></label><label>Tell us more<textarea name="description" required minlength="10" maxlength="2000" rows="3" placeholder="What would it do, and why would you love it?"></textarea></label><div class="member-form__actions"><button class="button button--secondary" type="submit">Send my idea</button><p id="featureSuggestionStatus" role="status"></p></div></form></section>
 
@@ -52,6 +59,6 @@
     </main>
     <footer class="member-footer"><span class="footer-wordmark">objectflix<span class="brand-dot">.</span></span><p>A fan-made home for a wonderfully weird universe.</p><a href="./browse.html">Back to the good stuff ↗</a></footer>
     <noscript><p class="member-alert">Please enable JavaScript to load current prices and manage your membership.</p></noscript>
-    <script src="./src/env.js"></script><script src="./src/config.js"></script><script src="./src/membership-client.js"></script><script src="./src/membership.js"></script>
+    <script src="./src/env.js"></script><script src="./src/config.js"></script><script src="./src/membership-client.js"></script><script src="./src/membership.js"></script><script src="./src/modal-pages.js"></script>
   </body>
 </html>

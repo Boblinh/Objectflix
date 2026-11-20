@@ -918,7 +918,7 @@ Accuracy rules (critical):
             class="assistant-input"
             id="assistantInput"
             type="text"
-            placeholder="Ask Firey or Leafy anything..."
+            placeholder="Ask ${currentAssistant === 'firey' ? 'Firey' : 'Leafy'} anything..."
             autocomplete="off"
             required
           />

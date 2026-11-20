@@ -16,6 +16,8 @@
     library: [],
     secretEpisodes: new Map(),
     booted: false,
+    isGuest: false,
+    reviewRating: 0,
   };
 
   
@@ -35,6 +37,15 @@
 
   function currentUser() {
     return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  function formatReviewDate(ts) {
+    try { return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch { return ''; }
   }
 
   
@@ -136,6 +147,8 @@
 
     elements.watchView.innerHTML = `
       <div class="watch-layout">
+        <div class="watch-main">
+        <button class="watch-expand-btn is-hidden" type="button" data-action="expand-side">Show episodes, reviews & more ⇤</button>
         <section class="player-panel" aria-label="Video player">
           ${hasVideo
             ? renderWatchPlayerMarkup(item, episode)
@@ -149,15 +162,18 @@
         <div class="watch-grid">
           <section class="watch-hero">
             <p class="eyebrow">NOW WATCHING</p>
-            <h2>${item.title}</h2>
+            <h1>${episode.episodeNumber}. ${episode.title}</h1>
             <div class="watch-meta">
+              <span>${item.title}</span>
               <span>${item.match}</span>
               <span>${item.year}</span>
               <span>${item.rating}</span>
               <span>${item.duration}</span>
+              ${state.isGuest ? '<span class="guest-badge">GUEST MODE</span>' : ''}
             </div>
-            <p class="watch-description">${item.description}</p>
+            <p class="watch-description">${episode.description || item.description}</p>
             <div class="pill-row">${item.genres.map((genre) => `<span class="pill">${genre}</span>`).join('')}</div>
+            ${state.isGuest ? '<p class="watch-guest-note">You’re watching as a guest. <a href="auth.html">Sign in</a> to save progress and unlock your profiles.</p>' : ''}
           </section>
 
           <aside class="next-panel">
@@ -170,39 +186,79 @@
             </div>
           </aside>
         </div>
+        </div>
 
-        <section>
-          <div class="section-heading">
-            <h3>Episodes</h3>
-            <p>${item.episodes.length} episodes streamed live from the Objectflix API.</p>
+        <aside class="watch-side">
+        <section class="watch-tabs">
+          <div class="watch-tabs__nav" role="tablist" aria-label="Watch page sections">
+            <button class="watch-tab is-active" type="button" role="tab" data-tab="episodes" aria-selected="true">Episodes <span class="watch-tab__count">${item.episodes.length}</span></button>
+            <button class="watch-tab" type="button" role="tab" data-tab="reviews" aria-selected="false" id="reviewsTab">Reviews <span class="watch-tab__count" id="reviewsTabCount">0</span></button>
+            <button class="watch-tab" type="button" role="tab" data-tab="recommended" aria-selected="false">Recommended</button>
+            <button class="watch-tab-collapse" type="button" data-action="collapse-side" aria-label="Collapse side panel" title="Collapse">⇥</button>
+            <div class="watch-tabs__spacer"></div>
+            <div class="carousel-controls" data-carousel-controls>
+              <button class="carousel-button" type="button" data-carousel="ep-prev" aria-label="Scroll left"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-left"></use></svg></button>
+              <button class="carousel-button" type="button" data-carousel="ep-next" aria-label="Scroll right"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></button>
+            </div>
           </div>
-          <div class="episode-list">
-            ${item.episodes.map((ep) => renderEpisodeCard(item, ep)).join('')}
+          <div class="watch-tabs__body">
+            <div class="watch-tab-panel is-active" data-panel="episodes" role="tabpanel">
+              <div class="episode-carousel" id="episodeCarousel">
+                ${item.episodes.map((ep) => renderEpisodeCard(item, ep)).join('')}
+              </div>
+            </div>
+            <div class="watch-tab-panel" data-panel="reviews" role="tabpanel">
+              <div class="watch-reviews">
+                <div class="reviews-summary" id="reviewsAverage"></div>
+                <p class="sr-only" id="reviewsSummary">Loading reviews…</p>
+                <form class="review-form" id="reviewForm">
+                  <div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Rate this episode from 1 to 10">
+                    ${Array.from({ length: 10 }, (_, i) => `<button type="button" class="review-star" data-star="${i + 1}" aria-label="${i + 1} out of 10">★</button>`).join('')}
+                    <span class="review-rating-hint" id="reviewRatingHint">Tap a star to rate (1–10)</span>
+                  </div>
+                  <label class="community-label">Your thoughts
+                    <textarea class="community-textarea" id="reviewBody" required maxlength="2000" placeholder="What did you think of this episode?"></textarea>
+                  </label>
+                  <div class="review-form-row">
+                    <label class="community-label">Name
+                      <input class="community-input" id="reviewName" maxlength="80" value="${escapeHtml(state.isGuest ? 'Guest' : (currentUser()?.displayName || currentUser()?.username || ''))}" />
+                    </label>
+                    <label class="review-guest-toggle">
+                      <input type="checkbox" id="reviewGuestToggle" ${state.isGuest ? 'checked disabled' : ''} />
+                      <span>Post as guest</span>
+                    </label>
+                  </div>
+                  <div class="community-footer">
+                    <button class="button button--primary" type="submit" id="reviewSubmitBtn">Post Review</button>
+                  </div>
+                  <p class="auth-alert is-hidden" id="reviewError" role="alert"></p>
+                </form>
+                <div class="reviews-list" id="reviewsList"></div>
+              </div>
+            </div>
+            <div class="watch-tab-panel" data-panel="recommended" role="tabpanel">
+              <div class="recommend-grid">
+                ${state.library.filter((entry) => entry.id !== item.id).slice(0, 4).map((entry) => `
+                  <article class="recommend-card">
+                    <img src="${entry.backdrop}" alt="${entry.title} backdrop placeholder" />
+                    <div class="recommend-card__content">
+                      <div class="recommend-card__title">${entry.title}</div>
+                      <div class="card-meta"><span>${entry.match}</span><span>${entry.duration}</span></div>
+                      <button class="button button--secondary" type="button" data-action="play" data-id="${entry.id}">Watch</button>
+                    </div>
+                  </article>
+                `).join('')}
+              </div>
+            </div>
           </div>
         </section>
-
-        <section>
-          <div class="section-heading">
-            <h3>Recommended Shows</h3>
-            <p>More polished picks with similar energy.</p>
-          </div>
-          <div class="recommend-grid">
-            ${state.library.filter((entry) => entry.id !== item.id).slice(0, 4).map((entry) => `
-              <article class="recommend-card">
-                <img src="${entry.backdrop}" alt="${entry.title} backdrop placeholder" />
-                <div class="recommend-card__content">
-                  <div class="recommend-card__title">${entry.title}</div>
-                  <div class="card-meta"><span>${entry.match}</span><span>${entry.duration}</span></div>
-                  <button class="button button--secondary" type="button" data-action="play" data-id="${entry.id}">Watch</button>
-                </div>
-              </article>
-            `).join('')}
-          </div>
-        </section>
+        </aside>
       </div>
     `;
 
     if (hasVideo) void mountWatchPlayer();
+    void initReviews();
+    bindReviewEvents();
   }
 
   function renderWatchPlayerMarkup(item, episode) {
@@ -460,6 +516,152 @@
   }
 
 
+  function localReviewsKey() { return `objectflix_reviews_${state.episode.id}`; }
+  function readLocalReviews() {
+    try { return JSON.parse(localStorage.getItem(localReviewsKey()) || '[]'); } catch { return []; }
+  }
+  function writeLocalReviews(list) {
+    try { localStorage.setItem(localReviewsKey(), JSON.stringify(list)); } catch {}
+  }
+
+  async function initReviews() {
+    const container = document.getElementById('reviewsList');
+    const avgEl = document.getElementById('reviewsAverage');
+    const summaryEl = document.getElementById('reviewsSummary');
+    if (!container || !state.episode) return;
+    let reviews = [];
+    try {
+      const res = await window.OBJECTFLIX_API.listEpisodeReviews(state.episode.id);
+      reviews = res.reviews || [];
+      if (reviews.length === 0) reviews = readLocalReviews();
+    } catch {
+      reviews = readLocalReviews();
+    }
+    const count = reviews.length;
+    const average = count ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null;
+    if (avgEl) {
+      avgEl.innerHTML = count
+        ? `<span class="reviews-avg">${average}/10</span> <span class="reviews-count">${count} review${count === 1 ? '' : 's'}</span>`
+        : '';
+    }
+    if (summaryEl) summaryEl.textContent = count ? `${count} review${count === 1 ? '' : 's'} · avg ${average}/10` : 'Be the first to review this episode.';
+    const tabCount = document.getElementById('reviewsTabCount');
+    if (tabCount) tabCount.textContent = String(count);
+    container.innerHTML = reviews.length
+      ? reviews.slice().reverse().map((r) => `
+          <article class="review-card">
+            <div class="review-card__head">
+              <span class="review-author">${escapeHtml(r.authorName)}${r.authorType === 'guest' ? ' <span class="guest-badge">GUEST</span>' : ''}</span>
+              <span class="review-rating">${'★'.repeat(r.rating)}<span class="review-rating-num">${r.rating}/10</span></span>
+            </div>
+            <p class="review-body">${escapeHtml(r.body)}</p>
+            <span class="review-date">${formatReviewDate(r.createdAt)}</span>
+          </article>
+        `).join('')
+      : '<p class="reviews-empty">No reviews yet. Share your thoughts above!</p>';
+  }
+
+  function bindReviewEvents() {
+    const stars = document.querySelectorAll('#reviewStars .review-star');
+    const hint = document.getElementById('reviewRatingHint');
+    stars.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.reviewRating = Number(btn.dataset.star);
+        stars.forEach((s) => s.classList.toggle('is-lit', Number(s.dataset.star) <= state.reviewRating));
+        if (hint) hint.textContent = `${state.reviewRating}/10`;
+      });
+    });
+
+    const guestToggle = document.getElementById('reviewGuestToggle');
+    const nameInput = document.getElementById('reviewName');
+    if (guestToggle && nameInput) {
+      guestToggle.addEventListener('change', () => {
+        if (guestToggle.checked) {
+          if (!nameInput.value.trim() || nameInput.value.trim() === (currentUser()?.displayName || '')) {
+            nameInput.value = 'Guest';
+          }
+        } else {
+          const u = currentUser();
+          nameInput.value = u?.displayName || u?.username || '';
+        }
+      });
+    }
+
+    const form = document.getElementById('reviewForm');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('reviewError');
+        const submitBtn = document.getElementById('reviewSubmitBtn');
+        const body = document.getElementById('reviewBody')?.value?.trim() || '';
+        const name = document.getElementById('reviewName')?.value?.trim() || 'Guest';
+        const guest = document.getElementById('reviewGuestToggle')?.checked ?? state.isGuest;
+        if (!state.reviewRating) {
+          if (errorEl) { errorEl.textContent = 'Please pick a star rating first.'; errorEl.classList.remove('is-hidden'); }
+          return;
+        }
+        if (!body) {
+          if (errorEl) { errorEl.textContent = 'Please write a review.'; errorEl.classList.remove('is-hidden'); }
+          return;
+        }
+        if (errorEl) errorEl.classList.add('is-hidden');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting…'; }
+        try {
+          try {
+            await window.OBJECTFLIX_API.submitEpisodeReview({
+              episodeId: state.episode.id,
+              rating: state.reviewRating,
+              body,
+              authorName: name,
+              authorType: guest ? 'guest' : 'account',
+              userId: guest ? null : (currentUser()?.id || null),
+            });
+          } catch {
+            const list = readLocalReviews();
+            list.push({ id: 'local-' + Date.now(), episodeId: state.episode.id, rating: state.reviewRating, body, authorName: name, authorType: guest ? 'guest' : 'account', userId: guest ? null : (currentUser()?.id || null), createdAt: Date.now() });
+            writeLocalReviews(list);
+          }
+          const bodyEl = document.getElementById('reviewBody');
+          if (bodyEl) bodyEl.value = '';
+          state.reviewRating = 0;
+          stars.forEach((s) => s.classList.remove('is-lit'));
+          if (hint) hint.textContent = 'Tap a star to rate (1–10)';
+          await initReviews();
+        } catch (err) {
+          if (errorEl) { errorEl.textContent = err?.message || 'Could not post review.'; errorEl.classList.remove('is-hidden'); }
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Post Review'; }
+        }
+      });
+    }
+
+    // carousel scroll
+    document.querySelectorAll('[data-carousel]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const carousel = document.getElementById('episodeCarousel');
+        if (!carousel) return;
+        const dir = btn.dataset.carousel === 'ep-next' ? 1 : -1;
+        carousel.scrollBy({ left: dir * 320, behavior: 'smooth' });
+      });
+    });
+
+    // tab switching keeps episodes, reviews and recommendations one click away
+    document.querySelectorAll('.watch-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.watch-tab').forEach((t) => {
+          const active = t === tab;
+          t.classList.toggle('is-active', active);
+          t.setAttribute('aria-selected', String(active));
+        });
+        document.querySelectorAll('.watch-tab-panel').forEach((panel) => {
+          panel.classList.toggle('is-active', panel.dataset.panel === tab.dataset.tab);
+        });
+        const controls = document.querySelector('[data-carousel-controls]');
+        if (controls) controls.style.display = tab.dataset.tab === 'episodes' ? '' : 'none';
+      });
+    });
+  }
+
   function bindEvents() {
     document.addEventListener('click', (event) => {
       const target = event.target;
@@ -468,6 +670,15 @@
       if (!actionButton) return;
       const { action, id, episode } = actionButton.dataset;
 
+      if (action === 'collapse-side') {
+        const layout = document.querySelector('.watch-layout');
+        layout?.classList.add('is-collapsed');
+        document.querySelector('.watch-expand-btn')?.classList.remove('is-hidden');
+      }
+      if (action === 'expand-side') {
+        document.querySelector('.watch-layout')?.classList.remove('is-collapsed');
+        document.querySelector('.watch-expand-btn')?.classList.add('is-hidden');
+      }
       if (action === 'play-episode') playEpisode(id, episode);
       if (action === 'next-episode') {
         const next = SHARED.nextEpisode(state.item, state.episode);
@@ -483,9 +694,12 @@
 
   function init() {
     const user = currentUser();
-    if (!user) {
-      window.location.replace('index.html');
-      return;
+    const guestMode = !user || user.provider === 'guest' || localStorage.getItem('objectflix_guest') === 'true';
+    state.isGuest = guestMode;
+    if (guestMode && !user) {
+      const guestUser = { provider: 'guest', id: 'guest', displayName: 'Guest', username: 'guest', email: '' };
+      localStorage.setItem('objectflix_current_user', JSON.stringify(guestUser));
+      localStorage.setItem('objectflix_guest', 'true');
     }
 
     const urlParams = new URLSearchParams(window.location.search);

@@ -4,11 +4,28 @@
 
 
 
+import { firebaseConfig, FIREBASE_SDK_VERSION } from './firebase-config.js';
+
 const ENV = window.__OBJECTFLIX_ENV__ || {};
 const CONFIG = window.OBJECTFLIX_CONFIG || {};
-const GOOGLE_CLIENT_ID = ENV.GOOGLE_CLIENT_ID || '';
-const GOOGLE_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/google`;
+const FIREBASE_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/firebase`;
 const DISCORD_AUTH_ENDPOINT = `${CONFIG.apiBaseUrl || ''}/api/auth/discord`;
+const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
+
+let firebaseAuthPromise = null;
+async function getFirebaseAuth() {
+  if (!firebaseAuthPromise) {
+    firebaseAuthPromise = (async () => {
+      const [{ initializeApp }, { getAuth, GoogleAuthProvider, signInWithPopup }] = await Promise.all([
+        import(/* @vite-ignore */ `${FIREBASE_CDN}/firebase-app.js`),
+        import(/* @vite-ignore */ `${FIREBASE_CDN}/firebase-auth.js`),
+      ]);
+      const app = initializeApp(firebaseConfig);
+      return { auth: getAuth(app), GoogleAuthProvider, signInWithPopup };
+    })();
+  }
+  return firebaseAuthPromise;
+}
 const DISCORD_CONFIG = {
   clientId: ENV.DISCORD_CLIENT_ID || 'PASTE_DISCORD_CLIENT_ID',
   redirectUri: window.location.origin + window.location.pathname,
@@ -41,7 +58,6 @@ export const Auth = {
     this.bindEvents();
     this.setMode(new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'signin');
     this.handleDiscordCallback();
-    this.handleGoogleCallback();
   },
 
   bindEvents() {
@@ -107,6 +123,8 @@ export const Auth = {
   },
 
   finishLogin(user, credentials) {
+    sessionStorage.removeItem('objectflix_active_profile');
+    localStorage.removeItem('objectflix_guest');
     sessionStorage.removeItem('objectflix_verified_session');
     if (credentials?.accessToken && credentials?.expiresAt) {
       sessionStorage.setItem('objectflix_verified_session', JSON.stringify({ accessToken: credentials.accessToken, expiresAt: credentials.expiresAt, userId: `${user.provider}:${user.id}` }));
@@ -162,62 +180,43 @@ export const Auth = {
     }
   },
 
-  handleGoogleLogin() {
-    if (!GOOGLE_CLIENT_ID) {
-      this.showError('Google login is not configured. Add a Google Client ID first.');
-      return;
-    }
-
-    const state = crypto.randomUUID();
-    sessionStorage.setItem('objectflix_google_oauth_state', state);
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: window.location.origin + window.location.pathname,
-      response_type: 'code',
-      scope: 'openid email profile',
-      state,
-      prompt: 'select_account',
-    });
-
-    window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-  },
-
-  async handleGoogleCallback() {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    const error = params.get('error');
-
-    if (!code && !error) return;
-    window.history.replaceState({}, document.title, window.location.pathname);
-
-    const expectedState = sessionStorage.getItem('objectflix_google_oauth_state');
-    sessionStorage.removeItem('objectflix_google_oauth_state');
-
-    if (error || !code || !state || state !== expectedState) {
-      this.showError('Google sign-in was cancelled or could not be verified.');
+  async handleGoogleLogin() {
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('PASTE_')) {
+      this.showError('Google sign-in is not configured. Add your Firebase web config in src/firebase-config.js.');
       return;
     }
 
     const alertEl = document.getElementById('authAlert');
-    alertEl.textContent = 'Completing Google sign-in...';
-    alertEl.classList.remove('is-hidden');
-
     try {
-      const res = await fetch(GOOGLE_AUTH_ENDPOINT, {
+      if (alertEl) {
+        alertEl.textContent = 'Opening Google sign-in…';
+        alertEl.classList.remove('is-hidden');
+      }
+      const { auth, GoogleAuthProvider, signInWithPopup } = await getFirebaseAuth();
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const credential = await signInWithPopup(auth, provider);
+      const user = credential.user;
+      if (!user?.email || !user.emailVerified) {
+        throw new Error('A verified Google email is required.');
+      }
+      const idToken = await user.getIdToken();
+
+      if (alertEl) alertEl.textContent = 'Completing Google sign-in…';
+      const res = await fetch(FIREBASE_AUTH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          redirectUri: window.location.origin + window.location.pathname,
-        }),
+        body: JSON.stringify({ idToken }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Google sign-in failed.');
       this.finishLogin(data.session, data);
     } catch (err) {
-      console.error('Google sign-in failed:', err);
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') return;
+      console.error('Firebase Google sign-in failed:', err);
       this.showError(err.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      if (alertEl) alertEl.classList.add('is-hidden');
     }
   },
 
@@ -248,7 +247,6 @@ export const Auth = {
     const state = params.get('state');
     const error = params.get('error');
 
-    if (state === sessionStorage.getItem('objectflix_google_oauth_state')) return;
     if (!code && !error) return;
     if (!state && !error) return;
     window.history.replaceState({}, document.title, window.location.pathname);

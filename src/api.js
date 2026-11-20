@@ -159,24 +159,34 @@ window.OBJECTFLIX_API = (() => {
     return data.feedback;
   },
 
-  async listProfiles(account) {
-    const data = await request(`${endpoints.profiles}?account=${encodeURIComponent(account)}`);
-    return data.profiles || [];
+  async listEpisodeReviews(episodeId) {
+    const data = await request(endpoints.communityReviews(episodeId));
+    return { reviews: data.reviews || [], average: data.average, count: data.count || 0 };
   },
 
-  async createProfile(payload) {
-    const data = await send(endpoints.profiles, { body: payload });
-    return data.profile;
+  async submitEpisodeReview(payload) {
+    const data = await send(endpoints.communityReviewCreate, { body: payload });
+    return data.review;
   },
 
-  async updateProfile(id, payload) {
-    const data = await send(endpoints.profile(id), { method: "PATCH", body: payload });
-    return data.profile;
-  },
+    async listProfiles() {
+      const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.profiles);
+      return data.profiles || [];
+    },
 
-  async deleteProfile(id, account) {
-    return send(`${endpoints.profile(id)}?account=${encodeURIComponent(account)}`, { method: "DELETE" });
-  },
+    async createProfile(payload) {
+      const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.profiles, { method: "POST", body: payload });
+      return data.profile;
+    },
+
+    async updateProfile(id, payload) {
+      const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.profile(encodeURIComponent(id)), { method: "PATCH", body: payload });
+      return data.profile;
+    },
+
+    async deleteProfile(id) {
+      return window.OBJECTFLIX_MEMBERSHIP.request(endpoints.profile(encodeURIComponent(id)), { method: "DELETE" });
+    },
 
     async listAdminCommunity(kind) {
       const endpoint = kind === "feedback" ? endpoints.adminCommunityFeedback : endpoints.adminCommunityRequests;

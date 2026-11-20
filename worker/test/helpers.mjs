@@ -6,6 +6,7 @@ import { account, createVerifiedSession } from '../src/membership/identity.js';
 import { movieNights, movieNightAdmin } from '../src/membership/movie-nights.js';
 import { stripeWebhooks } from '../src/membership/webhooks.js';
 import { azureAI } from '../src/azure_api.js';
+import { profiles } from '../src/profiles_api.js';
 
 class Statement {
   constructor(db, sql, values = []) { this.db = db; this.sql = sql; this.values = values; }
@@ -25,7 +26,7 @@ class Statement {
 export function database() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON');
-  for (const name of ['0001_create_tables.sql', '0005_add_video_key.sql', '0020_profiles.sql', '0023_memberships_movie_nights.sql']) {
+  for (const name of ['0001_create_tables.sql', '0005_add_video_key.sql', '0020_profiles.sql', '0023_memberships_movie_nights.sql', '0025_episode_reviews.sql']) {
     sqlite.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
   }
   return {
@@ -52,7 +53,8 @@ export function environment(DB) {
 export const app = new Hono()
   .route('/api/membership', membership).route('/api/account', account)
   .route('/api/movie-nights', movieNights).route('/api/movie-night-admin', movieNightAdmin)
-  .route('/api/stripe/webhook', stripeWebhooks).route('/api/ai', azureAI);
+  .route('/api/stripe/webhook', stripeWebhooks).route('/api/ai', azureAI)
+  .route('/api/profiles', profiles);
 
 export async function identity(env, id = 'viewer') {
   const session = await createVerifiedSession(env, { id, provider: 'google', email: `${id}@example.invalid`, displayName: `Viewer ${id}` });

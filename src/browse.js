@@ -86,7 +86,14 @@
       
     }
 
+    const user = currentUser();
+    const isGuest = !user || user.provider === 'guest' || localStorage.getItem('objectflix_guest') === 'true';
+
     if (!profile) {
+      if (isGuest) {
+        profile = { id: 'guest', name: 'Guest', avatarClass: 'profile-avatar--gradient-a', guest: true };
+        return { profile, userProfiles: [profile] };
+      }
       window.location.href = 'index.html';
       return { profile: null, userProfiles: [] };
     }
@@ -790,9 +797,14 @@
 
   function init() {
     const user = currentUser();
-    if (!user) {
+    const isGuest = !user || user.provider === 'guest' || localStorage.getItem('objectflix_guest') === 'true';
+    if (!user && !isGuest) {
       window.location.replace('index.html');
       return;
+    }
+    if (isGuest && !user) {
+      localStorage.setItem('objectflix_current_user', JSON.stringify({ provider: 'guest', id: 'guest', displayName: 'Guest', username: 'guest', email: '' }));
+      localStorage.setItem('objectflix_guest', 'true');
     }
 
     const adminSession = window.OBJECTFLIX_ADMIN?.session?.();
