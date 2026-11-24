@@ -47,7 +47,7 @@
 		"APP_URL": "https://bookish-adventure-1vg64ll.pages.github.io/",
 		"STRIPE_MODE": "test",
 		"MEMBERSHIP_PERKS_JSON": "{}",
-		"MEMBERSHIP_ADMIN_USER_IDS_JSON": "[]",
+		"MEMBERSHIP_ADMIN_USER_IDS_JSON": "[\"discord:874633313309048862\"]",
 		"B2_BUCKET_ID": "e27ff822a343e51791f10c11",
 		"B2_BUCKET_NAME": "objectflix-videos",
 		"B2_TOKEN_TTL_SECONDS": "3600",

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f1e8" />
+    <meta name="robots" content="noindex" />
+    <title>Subtitle Workshop — Objectflix Admin</title>
+    <link rel="icon" href="./assets/ui/objectflix-mark.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./subtitle-workshop-admin.css" />
+  </head>
+  <body class="subtitle-admin-page">
+    <a class="skip-link" href="#subtitleAdminMain">Skip to subtitle queue</a>
+    <header class="subtitle-admin-topbar">
+      <a href="./admin.html" class="subtitle-admin-brand"><img src="./assets/ui/objectflix-mark.svg" alt="" width="36" height="36" /><span>objectflix<span>.</span></span><small>ADMIN</small></a>
+      <nav aria-label="Admin links"><a href="./admin.html">Admin console</a><a href="./browse.html">Back to clubhouse ↗</a></nav>
+    </header>
+    <main id="subtitleAdminMain" class="subtitle-admin-main" tabindex="-1">
+      <section class="subtitle-admin-heading"><p class="eyebrow">A LITTLE CARE GOES A LONG WAY</p><h1>Subtitle Workshop</h1><p>Review community notes, fix subtitle snags, and welcome fan-made tracks into the clubhouse.</p></section>
+      <p class="subtitle-admin-status" id="subtitleAdminStatus" role="status">Checking admin access…</p>
+      <section class="subtitle-admin-queue is-hidden" id="subtitleAdminQueue" aria-label="Subtitle moderation queue">
+        <div class="subtitle-admin-tabs" role="tablist" aria-label="Choose moderation queue"><button type="button" class="is-active" role="tab" aria-selected="true" data-queue="reports">Reports <span id="reportQueueCount">0</span></button><button type="button" role="tab" aria-selected="false" data-queue="submissions">Fan-made tracks <span id="submissionQueueCount">0</span></button></div>
+        <div class="subtitle-admin-list" id="subtitleAdminList"></div>
+      </section>
+    </main>
+    <div class="subtitle-preview is-hidden" id="subtitlePreview" role="dialog" aria-modal="true" aria-labelledby="subtitlePreviewTitle">
+      <button class="subtitle-preview__backdrop" type="button" data-close-preview aria-label="Close preview"></button>
+      <section class="subtitle-preview__panel"><button type="button" class="subtitle-preview__close" data-close-preview aria-label="Close preview">×</button><p class="eyebrow">FAN-MADE SUBTITLE PREVIEW</p><h2 id="subtitlePreviewTitle">Subtitle file</h2><p id="subtitlePreviewMeta"></p><pre id="subtitlePreviewContent"></pre></section>
+    </div>
+    <script src="./src/env.js"></script>
+    <script src="./src/config.js"></script>
+    <script src="./src/membership-client.js"></script>
+    <script src="./src/admin/subtitle-workshop.js"></script>
+  </body>
+</html>

@@ -17,20 +17,31 @@
     <link rel="stylesheet" href="./player-test.css?v=2" />
     <link rel="stylesheet" href="./content-warning.css?v=2" />
     <link rel="stylesheet" href="./ui.css?v=2" />
+    <link rel="stylesheet" href="./watch.css?v=1" />
+    <script>
+      try {
+        const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
+        const theme = localStorage.getItem(`objectflix_watch_theme_${profile?.id || 'guest'}`) || 'light';
+        document.documentElement.dataset.watchTheme = ['light', 'dark', 'crimson', 'purple', 'ocean'].includes(theme) ? theme : 'light';
+      } catch { document.documentElement.dataset.watchTheme = 'light'; }
+    </script>
   </head>
   <body class="objectflix-v2 watch-page">
     <a class="skip-link" href="#main-content">Skip to player</a>
 
-    <header class="navbar">
-      <div class="navbar__left">
-        <a class="logo" href="browse.html" aria-label="Back to Objectflix browse">
-          <img class="brand-mark" src="./assets/ui/objectflix-mark.svg" alt="" width="38" height="38" />
-          <span class="logo__text">objectflix<span class="brand-dot">.</span></span>
-        </a>
-        <span class="watch-nav-label">GET COMFY. THE GOOD PART'S STARTING.</span>
-      </div>
-      <div class="navbar__right">
-        <a class="back-link" href="browse.html"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-left"></use></svg> Back to the clubhouse</a>
+    <header class="watch-topbar">
+      <a class="watch-brand" href="browse.html" aria-label="Objectflix clubhouse">
+        <img src="./assets/ui/objectflix-mark.svg" alt="" width="38" height="38" />
+        <span>objectflix<span>.</span></span>
+      </a>
+      <div class="watch-topbar__middle"><span class="watch-topbar__spark" aria-hidden="true">✳</span><span>YOUR LITTLE CORNER OF THE OBJECT UNIVERSE</span></div>
+      <div class="watch-topbar__actions">
+        <label class="watch-theme-picker"><span aria-hidden="true">◐</span><span class="sr-only">Watch page theme</span>
+          <select id="watchThemeSelect" aria-label="Choose watch page theme">
+            <option value="light">Light</option><option value="dark">Dark</option><option value="crimson">Crimson</option><option value="purple">Purple</option><option value="ocean">Ocean</option>
+          </select>
+        </label>
+        <a class="watch-back-link" href="browse.html"><span aria-hidden="true">←</span> Browse</a>
       </div>
     </header>
 
@@ -38,8 +49,8 @@
       <section class="view view--active" id="watchView" aria-label="Watch page"></section>
     </main>
 
-    <footer class="footer">
-      <p>Small objects. Big stories. A fan-made home for a wonderfully weird universe.</p>
+    <footer class="watch-footer">
+      <span>Small objects. Big stories.</span><span>Made by a fan, for the whole fandom. ♡</span>
     </footer>
 
     <script type="importmap">

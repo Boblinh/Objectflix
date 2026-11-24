@@ -15,6 +15,17 @@ const DISCORD_CONFIG = {
   redirectUri: window.location.origin + window.location.pathname,
 };
 
+function authReturnTarget(value) {
+  const staticTargets = ['membership.html', 'movie-nights.html', 'movie-night-admin.html', 'subtitle-workshop-admin.html'];
+  if (staticTargets.includes(value)) return value;
+  if (typeof value !== 'string' || !value.startsWith('watch.html?')) return null;
+  const params = new URLSearchParams(value.slice('watch.html?'.length));
+  const id = params.get('id');
+  const episode = params.get('ep');
+  if (!/^[0-9a-f-]{36}$/i.test(id || '') || !/^[0-9a-f-]{36}$/i.test(episode || '') || [...params.keys()].some((key) => !['id', 'ep'].includes(key))) return null;
+  return `watch.html?id=${encodeURIComponent(id)}&ep=${encodeURIComponent(episode)}`;
+}
+
 export const Auth = {
   state: {
     mode: 'signin',
@@ -37,7 +48,8 @@ export const Auth = {
     window.Auth = this;
     if (!this.elements.form) return;
     const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-    if (['membership.html', 'movie-nights.html', 'movie-night-admin.html'].includes(returnTo)) sessionStorage.setItem('objectflix_auth_return', returnTo);
+    const returnTarget = authReturnTarget(returnTo);
+    if (returnTarget) sessionStorage.setItem('objectflix_auth_return', returnTarget);
     if (new URLSearchParams(window.location.search).has('verify')) document.getElementById('authVerificationNote')?.classList.remove('is-hidden');
     this.bindEvents();
     this.setMode(new URLSearchParams(window.location.search).get('mode') === 'signup' ? 'signup' : 'signin');
@@ -116,7 +128,7 @@ export const Auth = {
     localStorage.setItem('objectflix_current_user', JSON.stringify(user));
     const returnTo = sessionStorage.getItem('objectflix_auth_return');
     sessionStorage.removeItem('objectflix_auth_return');
-    window.location.assign(['membership.html', 'movie-nights.html', 'movie-night-admin.html'].includes(returnTo) ? `./${returnTo}` : './index.html');
+    window.location.assign(authReturnTarget(returnTo) ? `./${authReturnTarget(returnTo)}` : './index.html');
   },
 
   async handleSubmit(e) {

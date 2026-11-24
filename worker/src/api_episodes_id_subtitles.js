@@ -75,7 +75,7 @@ export class GetEpisodeSubtitles extends OpenAPIRoute {
     }
 
     const { results } = await DB.prepare(
-      "SELECT id, episode_id, language, url FROM subtitles WHERE episode_id = ? ORDER BY language"
+      "SELECT id, episode_id, language, url, attribution FROM subtitles WHERE episode_id = ? ORDER BY language"
     ).bind(id).all();
 
     
@@ -87,6 +87,7 @@ export class GetEpisodeSubtitles extends OpenAPIRoute {
       episodeId: row.episode_id,
       language: row.language,
       url: resolveSubtitleUrl(origin, row.url),
+      attribution: row.attribution ?? undefined,
     }));
 
     return {
@@ -99,6 +100,7 @@ export class GetEpisodeSubtitles extends OpenAPIRoute {
 function resolveSubtitleUrl(origin, url) {
   if (!url) return undefined;
   if (/^https?:\/\//.test(url)) return url;
+  if (url.startsWith("/api/")) return `${origin}${url}`;
   const key = url.replace(/^\/media\//, "");
   return getMediaUrl(origin, key);
 }

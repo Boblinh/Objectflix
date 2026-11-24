@@ -19,6 +19,7 @@ import { membership } from "./membership/api.js";
 import { movieNights, movieNightAdmin } from "./membership/movie-nights.js";
 import { stripeWebhooks, processPendingWebhooks } from "./membership/webhooks.js";
 import { azureAI } from "./azure_api.js";
+import { subtitleWorkshop } from "./subtitle_workshop.js";
 
 function resolveMediaKey(c) {
   const wildcard = c.req.path.slice("/media".length).replace(/^\/+/, "");
@@ -56,6 +57,7 @@ openapi.get("/api/search", SearchShows);
 app.route("/api/admin", admin);
 
 app.route("/api/community", publicCommunity);
+app.route("/api/subtitle-workshop", subtitleWorkshop);
 app.route("/api/profiles", profiles);
 openapi.post("/api/auth/discord", DiscordAuthCallback);
 openapi.post("/api/auth/firebase", FirebaseAuthCallback);

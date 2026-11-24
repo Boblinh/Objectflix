@@ -18,6 +18,8 @@
     booted: false,
     isGuest: false,
     reviewRating: 0,
+    subtitleTracks: [],
+    workshop: { reports: [], submissions: [] },
   };
 
   
@@ -140,6 +142,7 @@
 
     const hasVideo = Boolean(episode?.videoUrl);
     const next = SHARED.nextEpisode(item, episode);
+    state.subtitleTracks = [];
 
     if (item && episode) {
       document.title = `${episode.episodeNumber}. ${episode.title} — ${item.title} | Objectflix`;
@@ -147,118 +150,203 @@
 
     elements.watchView.innerHTML = `
       <div class="watch-layout">
-        <div class="watch-main">
-        <button class="watch-expand-btn is-hidden" type="button" data-action="expand-side">Show episodes, reviews & more ⇤</button>
-        <section class="player-panel" aria-label="Video player">
-          ${hasVideo
-            ? renderWatchPlayerMarkup(item, episode)
-            : `
+        <main class="watch-main-column">
+          <div class="watch-breadcrumb"><a href="browse.html">The clubhouse</a><span aria-hidden="true">/</span><span>${escapeHtml(item.title)}</span></div>
+          <section class="player-panel" aria-label="Video player">
+            ${hasVideo ? renderWatchPlayerMarkup(item, episode) : `
               <div class="player-screen ${episode ? 'player-screen--active' : ''}">
-                ${episode ? `<div class="player-screen__meta"><span class="eyebrow">NOW PLAYING</span><strong>${episode.title}</strong><span class="player-screen__hint">No stream available for this episode yet.</span></div>` : ''}
-              </div>
-            `}
-        </section>
-
-        <div class="watch-grid">
-          <section class="watch-hero">
-            <p class="eyebrow">NOW WATCHING</p>
-            <h1>${episode.episodeNumber}. ${episode.title}</h1>
-            <div class="watch-meta">
-              <span>${item.title}</span>
-              <span>${item.match}</span>
-              <span>${item.year}</span>
-              <span>${item.rating}</span>
-              <span>${item.duration}</span>
-              ${state.isGuest ? '<span class="guest-badge">GUEST MODE</span>' : ''}
-            </div>
-            <p class="watch-description">${episode.description || item.description}</p>
-            <div class="pill-row">${item.genres.map((genre) => `<span class="pill">${genre}</span>`).join('')}</div>
-            ${state.isGuest ? '<p class="watch-guest-note">You’re watching as a guest. <a href="auth.html">Sign in</a> to save progress and unlock your profiles.</p>' : ''}
+                ${episode ? `<div class="player-screen__meta"><span class="eyebrow">NOW PLAYING</span><strong>${escapeHtml(episode.title)}</strong><span class="player-screen__hint">No stream available for this episode yet.</span></div>` : ''}
+              </div>`}
           </section>
 
-          <aside class="next-panel">
-            <p class="eyebrow">UP NEXT</p>
-            <h3>${next ? next.title : 'No more episodes'}</h3>
-            <p>${next ? (next.description || 'Next episode details will appear here.') : 'You’ve reached the end of this show.'}</p>
-            <div class="button-row">
-              <button class="button button--primary" type="button" data-action="next-episode" ${next ? '' : 'disabled'}>Play Next Episode</button>
-              <button class="button button--secondary" type="button" data-action="details" data-id="${item.id}">Show Details</button>
+          <section class="watch-now-card" aria-labelledby="watchEpisodeTitle">
+            <div class="watch-poster"><img src="${escapeHtml(item.poster)}" alt="" /></div>
+            <div class="watch-now-card__copy">
+              <p class="eyebrow"><span class="watch-live-dot"></span> NOW PLAYING · ${escapeHtml(item.title)}</p>
+              <h1 id="watchEpisodeTitle">${escapeHtml(episode.episodeNumber)}. ${escapeHtml(episode.title)}</h1>
+              <div class="watch-meta"><span>${escapeHtml(item.year)}</span><span>${escapeHtml(item.rating)}</span><span>${escapeHtml(item.duration)}</span>${state.isGuest ? '<span class="guest-badge">GUEST MODE</span>' : ''}</div>
             </div>
-          </aside>
-        </div>
-        </div>
+            <div class="watch-now-card__actions"><button class="watch-round-action" type="button" data-action="share-episode" aria-label="Share this episode" title="Share episode">↗</button><button class="button button--soft" type="button" data-action="details" data-id="${escapeHtml(item.id)}">Show details</button></div>
+          </section>
 
-        <aside class="watch-side">
-        <section class="watch-tabs">
-          <div class="watch-tabs__nav" role="tablist" aria-label="Watch page sections">
-            <button class="watch-tab is-active" type="button" role="tab" data-tab="episodes" aria-selected="true">Episodes <span class="watch-tab__count">${item.episodes.length}</span></button>
-            <button class="watch-tab" type="button" role="tab" data-tab="reviews" aria-selected="false" id="reviewsTab">Reviews <span class="watch-tab__count" id="reviewsTabCount">0</span></button>
-            <button class="watch-tab" type="button" role="tab" data-tab="recommended" aria-selected="false">Recommended</button>
-            <button class="watch-tab-collapse" type="button" data-action="collapse-side" aria-label="Collapse side panel" title="Collapse">⇥</button>
-            <div class="watch-tabs__spacer"></div>
-            <div class="carousel-controls" data-carousel-controls>
-              <button class="carousel-button" type="button" data-carousel="ep-prev" aria-label="Scroll left"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-left"></use></svg></button>
-              <button class="carousel-button" type="button" data-carousel="ep-next" aria-label="Scroll right"><svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-right"></use></svg></button>
-            </div>
+          <div class="watch-lower-grid">
+            <section class="watch-description-card"><div class="watch-section-kicker">THE STORY SO FAR</div><p>${escapeHtml(episode.description || item.description || 'A little world of its own.')}</p><div class="watch-tag-row">${(item.genres || []).map((genre) => `<span>${escapeHtml(genre)}</span>`).join('')}</div>${state.isGuest ? '<p class="watch-guest-note">Watching as a guest. <a href="auth.html">Sign in</a> to save progress and unlock your profiles.</p>' : ''}</section>
+            <section class="watch-next-card"><div class="watch-next-card__top"><span class="watch-next-mark">✳</span><div><p class="eyebrow">UP NEXT</p><h2>${escapeHtml(next ? `${next.episodeNumber}. ${next.title}` : 'That’s a wrap for now')}</h2></div></div><p>${escapeHtml(next ? (next.description || 'Keep the story going with the next episode.') : 'You’ve reached the end of the available episodes.')}</p><button class="button button--primary" type="button" data-action="next-episode" ${next ? '' : 'disabled'}>${next ? 'Keep watching' : 'All caught up'} <span aria-hidden="true">→</span></button></section>
           </div>
-          <div class="watch-tabs__body">
-            <div class="watch-tab-panel is-active" data-panel="episodes" role="tabpanel">
-              <div class="episode-carousel" id="episodeCarousel">
-                ${item.episodes.map((ep) => renderEpisodeCard(item, ep)).join('')}
-              </div>
+        </main>
+
+        <aside class="watch-side" aria-label="Episode and community details">
+          <section class="watch-tabs">
+            <div class="watch-side__heading"><div><p class="eyebrow">STAY A LITTLE LONGER</p><h2>${escapeHtml(item.title)}<span aria-hidden="true">.</span></h2></div><span class="watch-side__count">${item.episodes.length} eps</span></div>
+            <div class="watch-tabs__nav" role="tablist" aria-label="Watch page sections">
+              <button class="watch-tab is-active" type="button" role="tab" id="watchTabEpisodes" data-tab="episodes" aria-controls="watchPanelEpisodes" aria-selected="true">Episodes</button>
+              <button class="watch-tab" type="button" role="tab" id="watchTabSubtitles" data-tab="subtitles" aria-controls="watchPanelSubtitles" aria-selected="false">Subtitles</button>
+              <button class="watch-tab" type="button" role="tab" id="reviewsTab" data-tab="reviews" aria-controls="watchPanelReviews" aria-selected="false">Reviews <span class="watch-tab__count" id="reviewsTabCount">0</span></button>
+              <button class="watch-tab" type="button" role="tab" id="watchTabRecommended" data-tab="recommended" aria-controls="watchPanelRecommended" aria-selected="false">For you</button>
             </div>
-            <div class="watch-tab-panel" data-panel="reviews" role="tabpanel">
-              <div class="watch-reviews">
-                <div class="reviews-summary" id="reviewsAverage"></div>
-                <p class="sr-only" id="reviewsSummary">Loading reviews…</p>
-                <form class="review-form" id="reviewForm">
-                  <div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Rate this episode from 1 to 10">
-                    ${Array.from({ length: 10 }, (_, i) => `<button type="button" class="review-star" data-star="${i + 1}" aria-label="${i + 1} out of 10">★</button>`).join('')}
-                    <span class="review-rating-hint" id="reviewRatingHint">Tap a star to rate (1–10)</span>
-                  </div>
-                  <label class="community-label">Your thoughts
-                    <textarea class="community-textarea" id="reviewBody" required maxlength="2000" placeholder="What did you think of this episode?"></textarea>
-                  </label>
-                  <div class="review-form-row">
-                    <label class="community-label">Name
-                      <input class="community-input" id="reviewName" maxlength="80" value="${escapeHtml(state.isGuest ? 'Guest' : (currentUser()?.displayName || currentUser()?.username || ''))}" />
-                    </label>
-                    <label class="review-guest-toggle">
-                      <input type="checkbox" id="reviewGuestToggle" ${state.isGuest ? 'checked disabled' : ''} />
-                      <span>Post as guest</span>
-                    </label>
-                  </div>
-                  <div class="community-footer">
-                    <button class="button button--primary" type="submit" id="reviewSubmitBtn">Post Review</button>
-                  </div>
-                  <p class="auth-alert is-hidden" id="reviewError" role="alert"></p>
-                </form>
-                <div class="reviews-list" id="reviewsList"></div>
+            <div class="watch-tabs__body">
+              <div class="watch-tab-panel is-active" id="watchPanelEpisodes" data-panel="episodes" role="tabpanel" aria-labelledby="watchTabEpisodes"><div class="episode-carousel" id="episodeCarousel">${item.episodes.map((ep) => renderEpisodeCard(item, ep)).join('')}</div></div>
+              <div class="watch-tab-panel" id="watchPanelSubtitles" data-panel="subtitles" role="tabpanel" aria-labelledby="watchTabSubtitles">${renderSubtitleWorkshop(item, episode)}</div>
+              <div class="watch-tab-panel" id="watchPanelReviews" data-panel="reviews" role="tabpanel" aria-labelledby="reviewsTab">
+                <div class="watch-reviews"><div class="reviews-summary" id="reviewsAverage"></div><p class="sr-only" id="reviewsSummary">Loading reviews…</p>
+                  <form class="review-form" id="reviewForm"><div class="review-stars" id="reviewStars" role="radiogroup" aria-label="Rate this episode from 1 to 10">${Array.from({ length: 10 }, (_, i) => `<button type="button" class="review-star" data-star="${i + 1}" aria-label="${i + 1} out of 10">★</button>`).join('')}<span class="review-rating-hint" id="reviewRatingHint">Tap a star to rate (1–10)</span></div>
+                    <label class="community-label">Your thoughts<textarea class="community-textarea" id="reviewBody" required maxlength="2000" placeholder="What stayed with you?"></textarea></label>
+                    <div class="review-form-row"><label class="community-label">Name<input class="community-input" id="reviewName" maxlength="80" value="${escapeHtml(state.isGuest ? 'Guest' : (currentUser()?.displayName || currentUser()?.username || ''))}" /></label><label class="review-guest-toggle"><input type="checkbox" id="reviewGuestToggle" ${state.isGuest ? 'checked disabled' : ''} /><span>Post as guest</span></label></div>
+                    <div class="community-footer"><button class="button button--primary" type="submit" id="reviewSubmitBtn">Post a little review</button></div><p class="auth-alert is-hidden" id="reviewError" role="alert"></p>
+                  </form><div class="reviews-list" id="reviewsList"></div></div>
               </div>
+              <div class="watch-tab-panel" id="watchPanelRecommended" data-panel="recommended" role="tabpanel" aria-labelledby="watchTabRecommended"><div class="recommend-grid">${state.library.filter((entry) => entry.id !== item.id).slice(0, 4).map((entry) => `
+                <article class="recommend-card"><img src="${escapeHtml(entry.backdrop)}" alt="" loading="lazy" /><div class="recommend-card__content"><div class="recommend-card__title">${escapeHtml(entry.title)}</div><div class="card-meta"><span>${escapeHtml(entry.match)}</span><span>${escapeHtml(entry.duration)}</span></div><button class="button button--secondary" type="button" data-action="play" data-id="${escapeHtml(entry.id)}">Step inside</button></div></article>`).join('')}</div></div>
             </div>
-            <div class="watch-tab-panel" data-panel="recommended" role="tabpanel">
-              <div class="recommend-grid">
-                ${state.library.filter((entry) => entry.id !== item.id).slice(0, 4).map((entry) => `
-                  <article class="recommend-card">
-                    <img src="${entry.backdrop}" alt="${entry.title} backdrop placeholder" />
-                    <div class="recommend-card__content">
-                      <div class="recommend-card__title">${entry.title}</div>
-                      <div class="card-meta"><span>${entry.match}</span><span>${entry.duration}</span></div>
-                      <button class="button button--secondary" type="button" data-action="play" data-id="${entry.id}">Watch</button>
-                    </div>
-                  </article>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
         </aside>
       </div>
     `;
 
     if (hasVideo) void mountWatchPlayer();
     void initReviews();
+    void initSubtitleWorkshop();
     bindReviewEvents();
+    bindSubtitleWorkshopEvents();
+  }
+
+  const WATCH_THEMES = new Set(['light', 'dark', 'crimson', 'purple', 'ocean']);
+
+  function watchThemeKey() {
+    try {
+      const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
+      return `objectflix_watch_theme_${profile?.id || 'guest'}`;
+    } catch {
+      return 'objectflix_watch_theme_guest';
+    }
+  }
+
+  function applyWatchTheme(theme, persist = false) {
+    const value = WATCH_THEMES.has(theme) ? theme : 'light';
+    document.documentElement.dataset.watchTheme = value;
+    const picker = document.getElementById('watchThemeSelect');
+    if (picker) picker.value = value;
+    const color = { light: '#f5f2e9', dark: '#101114', crimson: '#190b10', purple: '#140f20', ocean: '#0b151b' }[value];
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+    if (persist) {
+      try { localStorage.setItem(watchThemeKey(), value); } catch {}
+    }
+  }
+
+  function initWatchTheme() {
+    let saved = 'light';
+    try { saved = localStorage.getItem(watchThemeKey()) || 'light'; } catch {}
+    applyWatchTheme(saved);
+    document.getElementById('watchThemeSelect')?.addEventListener('change', (event) => applyWatchTheme(event.target.value, true));
+  }
+
+  function renderSubtitleWorkshop(item, episode) {
+    const canUpload = Boolean(window.OBJECTFLIX_MEMBERSHIP?.session());
+    const episodeId = escapeHtml(episode.id);
+    return `<div class="subtitle-workshop">
+      <div class="subtitle-workshop__intro"><span class="subtitle-workshop__icon" aria-hidden="true">Aa</span><div><p class="eyebrow">HELP THE NEXT VIEWER</p><h3>Subtitle Workshop</h3><p>Spot a typo or timing wobble? Help us make this episode easier to enjoy.</p></div></div>
+      <form class="subtitle-workshop-form" id="subtitleReportForm">
+        <input type="hidden" name="episodeId" value="${episodeId}" />
+        <label>What went wrong?<select class="community-input" id="subtitleIssueKind" name="kind"><option value="typo">A typo or translation</option><option value="timing">The timing feels off</option><option value="missing">A line is missing</option><option value="other">Something else</option></select></label>
+        <label>Subtitle track<select class="community-input" id="subtitleReportTrack" name="subtitleId"><option value="">No specific track</option></select></label>
+        <div class="subtitle-timing-row"><label>At (seconds)<input class="community-input" id="subtitleReportTime" name="timeSeconds" type="number" min="0" max="86400" step="1" placeholder="e.g. 42" /></label><button class="button button--soft" type="button" data-action="capture-subtitle-time">Use current time</button></div>
+        <label class="is-hidden" id="subtitleDirectionWrap">Timing direction<select class="community-input" name="direction"><option value="early">Subtitles appear too early</option><option value="late">Subtitles appear too late</option></select></label>
+        <label>What should we know?<textarea class="community-textarea" name="details" required maxlength="1000" rows="3" placeholder="Tell us what you noticed…"></textarea></label>
+        <label>Suggested corrected text <span class="workshop-optional">(optional)</span><textarea class="community-textarea" name="correctedText" maxlength="1000" rows="2" placeholder="If you know the fix, share it here."></textarea></label>
+        <button class="button button--primary" type="submit">Send a subtitle note <span aria-hidden="true">→</span></button><p class="subtitle-workshop-status" id="subtitleReportStatus" role="status"></p>
+      </form>
+      <div class="subtitle-workshop-divider"><span></span><span>OR SHARE YOUR OWN TRACK</span><span></span></div>
+      ${canUpload ? `<form class="subtitle-workshop-form" id="subtitleUploadForm"><input type="hidden" name="episodeId" value="${episodeId}" />
+        <label>Language code<input class="community-input" name="language" required maxlength="12" value="en" placeholder="en, vi, es…" /></label>
+        <label>Your .ASS / .SSA subtitle file<input class="community-input workshop-file" name="subtitleFile" type="file" accept=".ass,.ssa,text/plain" required /><span class="workshop-help">ASS/SSA files up to 400 KiB. This player uses styled ASS subtitles.</span></label>
+        <label>Credit / attribution<input class="community-input" name="attribution" required minlength="2" maxlength="120" placeholder="Your name or how the community should credit you" /></label>
+        <label class="workshop-rights"><input type="checkbox" name="rightsConfirmed" required /><span>I made this subtitle or have permission to share it, and I’m okay with Objectflix crediting the source.</span></label>
+        <button class="button button--soft" type="submit">Send for admin review <span aria-hidden="true">↗</span></button><p class="subtitle-workshop-status" id="subtitleUploadStatus" role="status"></p>
+      </form><div class="subtitle-my-submissions" id="subtitleMySubmissions"></div>`
+      : `<div class="subtitle-signin-note"><p>Fan-made tracks need a verified account so we can keep contributor credit attached.</p><a href="./auth.html?verify=1&amp;returnTo=${encodeURIComponent(`watch.html?id=${item.id}&ep=${episode.id}`)}">Sign in to submit a track ↗</a></div>`}
+    </div>`;
+  }
+
+  async function initSubtitleWorkshop() {
+    const container = document.getElementById('subtitleMySubmissions');
+    if (!container || !window.OBJECTFLIX_MEMBERSHIP?.session()) return;
+    try {
+      state.workshop = await window.OBJECTFLIX_API.listMySubtitleWorkshopItems();
+      const own = state.workshop.submissions.filter((row) => row.episodeId === state.episode?.id);
+      container.innerHTML = own.length ? `<p class="workshop-history-title">Your submissions for this episode</p>${own.map((row) => `<div class="workshop-history-row"><span>${escapeHtml(row.language.toUpperCase())} · ${escapeHtml(row.format.toUpperCase())}</span><span class="workshop-status workshop-status--${escapeHtml(row.status)}">${escapeHtml(row.status)}</span></div>${row.reviewNote ? `<p class="workshop-help">${escapeHtml(row.reviewNote)}</p>` : ''}`).join('')}` : '';
+    } catch {
+      container.textContent = 'Your previous submissions could not be loaded right now.';
+    }
+  }
+
+  function bindSubtitleWorkshopEvents() {
+    const kind = document.getElementById('subtitleIssueKind');
+    kind?.addEventListener('change', () => {
+      const isTiming = kind.value === 'timing';
+      document.getElementById('subtitleDirectionWrap')?.classList.toggle('is-hidden', !isTiming);
+      document.getElementById('subtitleReportTime')?.toggleAttribute('required', isTiming);
+    });
+
+    document.getElementById('subtitleReportForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const status = document.getElementById('subtitleReportStatus');
+      const data = new FormData(form);
+      const reportKind = String(data.get('kind') || 'other');
+      button.disabled = true;
+      status.textContent = 'Sending your note…';
+      try {
+        const report = await window.OBJECTFLIX_API.submitSubtitleReport({
+          episodeId: state.episode.id,
+          subtitleId: String(data.get('subtitleId') || '') || null,
+          kind: reportKind,
+          timeSeconds: reportKind === 'timing' ? Number(data.get('timeSeconds')) : (data.get('timeSeconds') ? Number(data.get('timeSeconds')) : null),
+          direction: reportKind === 'timing' ? String(data.get('direction')) : null,
+          details: String(data.get('details') || '').trim(),
+          correctedText: String(data.get('correctedText') || '').trim() || null,
+        });
+        form.reset();
+        document.getElementById('subtitleDirectionWrap')?.classList.add('is-hidden');
+        status.textContent = `Thank you — note ${report.id.slice(0, 8)} is with the subtitle team.`;
+      } catch (error) {
+        status.textContent = error.message || 'Could not send your report. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('subtitleUploadForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const status = document.getElementById('subtitleUploadStatus');
+      const data = new FormData(form);
+      const file = data.get('subtitleFile');
+      if (!(file instanceof File) || !file.size) { status.textContent = 'Choose an ASS or SSA subtitle file first.'; return; }
+      const format = file.name.split('.').pop()?.toLowerCase();
+      if (!['ass', 'ssa'].includes(format) || file.size > 400 * 1024) { status.textContent = 'Choose a .ASS or .SSA file no larger than 400 KiB.'; return; }
+      if (!window.OBJECTFLIX_MEMBERSHIP?.session()) { status.textContent = 'Please sign in with a verified account before submitting a track.'; return; }
+      button.disabled = true;
+      status.textContent = 'Sending your track for review…';
+      try {
+        const submission = await window.OBJECTFLIX_API.submitSubtitleFile({
+          episodeId: state.episode.id,
+          language: String(data.get('language') || '').trim(),
+          format,
+          attribution: String(data.get('attribution') || '').trim(),
+          rightsConfirmed: data.has('rightsConfirmed'),
+          content: await file.text(),
+        });
+        form.reset();
+        status.textContent = `Your ${format.toUpperCase()} track is in the review queue. Reference: ${submission.id.slice(0, 8)}.`;
+        void initSubtitleWorkshop();
+      } catch (error) {
+        status.textContent = error.message || 'Could not submit this track. Please try again.';
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   function renderWatchPlayerMarkup(item, episode) {
@@ -452,6 +540,7 @@
 
     if (state.episode?.id !== episodeId) return;
     if (!playerElements.video.isConnected) return;
+    state.subtitleTracks = subtitles;
 
     if (!(await SHARED.isEpisodeStreamable(state.episode.videoUrl))) {
       if (state.episode?.id !== episodeId || !playerElements.video.isConnected) return;
@@ -468,7 +557,7 @@
         const opt = document.createElement('option');
         opt.value = SHARED.toAbsoluteMediaUrl(sub.url);
         const langName = sub.language === 'en' ? 'English' : sub.language === 'vn' ? 'Vietnamese' : (sub.language || 'Unknown').toUpperCase();
-        opt.textContent = langName;
+        opt.textContent = sub.attribution ? `${langName} · fan-made by ${sub.attribution}` : langName;
         playerElements.subtitleSelect.appendChild(opt);
       });
       if (subtitleUrl) {
@@ -476,7 +565,19 @@
       }
       playerElements.subtitleSelect.addEventListener('change', (event) => {
         player.setSubtitleTrack(event.target.value);
+        const selected = subtitles.find((sub) => SHARED.toAbsoluteMediaUrl(sub.url) === event.target.value);
+        const reportTrack = document.getElementById('subtitleReportTrack');
+        if (reportTrack && selected) reportTrack.value = selected.id;
       });
+    }
+    const reportTrack = document.getElementById('subtitleReportTrack');
+    if (reportTrack) {
+      reportTrack.innerHTML = `<option value="">No specific track</option>${subtitles.map((sub) => {
+        const langName = sub.language === 'en' ? 'English' : sub.language === 'vn' ? 'Vietnamese' : (sub.language || 'Unknown').toUpperCase();
+        const label = sub.attribution ? `${langName} · fan-made by ${sub.attribution}` : langName;
+        return `<option value="${escapeHtml(sub.id)}">${escapeHtml(label)}</option>`;
+      }).join('')}`;
+      if (subtitles.length) reportTrack.value = subtitles[0].id;
     }
 
     player.load({ src: state.episode.videoUrl, subtitleUrl });
@@ -670,15 +771,21 @@
       if (!actionButton) return;
       const { action, id, episode } = actionButton.dataset;
 
-      if (action === 'collapse-side') {
-        const layout = document.querySelector('.watch-layout');
-        layout?.classList.add('is-collapsed');
-        document.querySelector('.watch-expand-btn')?.classList.remove('is-hidden');
+      if (action === 'capture-subtitle-time') {
+        const current = state.player?.elements.video.currentTime;
+        const input = document.getElementById('subtitleReportTime');
+        if (Number.isFinite(current) && input) {
+          input.value = String(Math.floor(current));
+          input.focus();
+        }
       }
-      if (action === 'expand-side') {
-        document.querySelector('.watch-layout')?.classList.remove('is-collapsed');
-        document.querySelector('.watch-expand-btn')?.classList.add('is-hidden');
+      if (action === 'share-episode') {
+        const url = window.location.href;
+        const title = `${state.item?.title || 'Objectflix'} · ${state.episode?.title || 'Episode'}`;
+        if (navigator.share) navigator.share({ title, url }).catch(() => {});
+        else if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(() => { actionButton.textContent = 'Copied!'; setTimeout(() => { actionButton.textContent = '↗'; }, 1500); }).catch(() => {});
       }
+
       if (action === 'play-episode') playEpisode(id, episode);
       if (action === 'next-episode') {
         const next = SHARED.nextEpisode(state.item, state.episode);
@@ -765,6 +872,7 @@
   }
 
   bindEvents();
+  initWatchTheme();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

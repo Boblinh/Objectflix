@@ -7,6 +7,7 @@ import { movieNights, movieNightAdmin } from '../src/membership/movie-nights.js'
 import { stripeWebhooks } from '../src/membership/webhooks.js';
 import { azureAI } from '../src/azure_api.js';
 import { profiles } from '../src/profiles_api.js';
+import { subtitleWorkshop } from '../src/subtitle_workshop.js';
 
 class Statement {
   constructor(db, sql, values = []) { this.db = db; this.sql = sql; this.values = values; }
@@ -26,9 +27,10 @@ class Statement {
 export function database() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON');
-  for (const name of ['0001_create_tables.sql', '0005_add_video_key.sql', '0020_profiles.sql', '0023_memberships_movie_nights.sql', '0025_episode_reviews.sql']) {
+  for (const name of ['0001_create_tables.sql', '0005_add_video_key.sql', '0020_profiles.sql', '0023_memberships_movie_nights.sql', '0025_episode_reviews.sql', '0026_subtitle_workshop.sql']) {
     sqlite.exec(readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
   }
+  sqlite.exec('ALTER TABLE episodes ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0');
   return {
     sqlite,
     prepare(sql) { return new Statement(sqlite, sql); },
@@ -54,7 +56,7 @@ export const app = new Hono()
   .route('/api/membership', membership).route('/api/account', account)
   .route('/api/movie-nights', movieNights).route('/api/movie-night-admin', movieNightAdmin)
   .route('/api/stripe/webhook', stripeWebhooks).route('/api/ai', azureAI)
-  .route('/api/profiles', profiles);
+  .route('/api/profiles', profiles).route('/api/subtitle-workshop', subtitleWorkshop);
 
 export async function identity(env, id = 'viewer') {
   const session = await createVerifiedSession(env, { id, provider: 'google', email: `${id}@example.invalid`, displayName: `Viewer ${id}` });

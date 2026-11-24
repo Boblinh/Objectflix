@@ -169,6 +169,21 @@ window.OBJECTFLIX_API = (() => {
     return data.review;
   },
 
+  async submitSubtitleReport(payload) {
+    const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.subtitleReports, { method: "POST", body: payload, public: true });
+    return data.report;
+  },
+
+  async submitSubtitleFile(payload) {
+    const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.subtitleSubmissions, { method: "POST", body: payload });
+    return data.submission;
+  },
+
+  async listMySubtitleWorkshopItems() {
+    const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.subtitleMine);
+    return { reports: data.reports || [], submissions: data.submissions || [] };
+  },
+
     async listProfiles() {
       const data = await window.OBJECTFLIX_MEMBERSHIP.request(endpoints.profiles);
       return data.profiles || [];

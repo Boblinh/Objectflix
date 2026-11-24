@@ -31,6 +31,7 @@ export const Subtitle = z.object({
 	episodeId: z.uuid(),
 	language: z.string(),
 	url: z.url(),
+	attribution: z.string().optional(),
 });
 
 export const SearchQuery = z.object({
