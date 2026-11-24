@@ -9,12 +9,10 @@
     <title>Admin — Objectflix</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./admin.css" />
+    <link rel="stylesheet" href="./admin-redesign.css?v=1" />
   </head>
   <body class="admin-page">
     <a class="skip-link" href="#adminMain">Skip to content</a>
@@ -35,11 +33,11 @@
     <div class="page-shell admin-shell is-hidden" id="adminShell">
       <header class="admin-navbar">
         <div class="admin-navbar__left">
-          <a class="logo" href="browse.html" aria-label="Back to Objectflix browse">
-            <span class="logo__mark">O</span>
-            <span class="logo__text">OBJECTFLIX</span>
+          <a class="admin-brand" href="browse.html" aria-label="Back to Objectflix browse">
+            <img src="./assets/ui/objectflix-mark.svg" alt="" width="38" height="38" />
+            <span>objectflix<span class="admin-brand__dot">.</span></span>
           </a>
-          <span class="admin-console-label">ADMIN CONSOLE</span>
+          <span class="admin-console-label"><i aria-hidden="true"></i> CREATOR CONSOLE</span>
         </div>
         <div class="admin-navbar__right">
           <div class="admin-identity" id="adminIdentity" aria-label="Signed in administrator">
@@ -49,24 +47,28 @@
               <span class="admin-identity__role" id="adminIdentityRole"></span>
             </div>
           </div>
-          <a class="back-link" href="subtitle-workshop-admin.html">Subtitle Workshop</a>
-          <a class="back-link" href="browse.html">Back to Browse</a>
+          <a class="admin-header-link" href="subtitle-workshop-admin.html"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg><span>Subtitle Workshop</span></a>
+          <a class="admin-header-link admin-header-link--quiet" href="browse.html"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-up-right"></use></svg><span>View clubhouse</span></a>
         </div>
       </header>
 
       <div class="admin-layout">
         <aside class="admin-sidebar" id="adminSidebar" aria-label="Admin navigation">
+          <div class="admin-sidebar__eyebrow">YOUR WORKSPACE</div>
           <nav class="admin-nav-tree">
             <button class="admin-nav-item" data-view="dashboard" data-permission="dashboard.view" type="button">
+              <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#grid"></use></svg></span>
               <span class="admin-nav-item__label">Dashboard</span>
             </button>
 
             <div class="admin-nav-group">
               <span class="admin-nav-group__label">Content</span>
               <button class="admin-nav-item" data-view="shows" data-permission="shows.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#film"></use></svg></span>
                 <span class="admin-nav-item__label">Shows</span>
               </button>
               <button class="admin-nav-item" data-view="episodes" data-permission="episodes.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#play"></use></svg></span>
                 <span class="admin-nav-item__label">Episodes</span>
               </button>
             </div>
@@ -74,9 +76,11 @@
             <div class="admin-nav-group">
               <span class="admin-nav-group__label">Media</span>
               <button class="admin-nav-item" data-view="upload" data-permission="media.upload" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#arrow-up-right"></use></svg></span>
                 <span class="admin-nav-item__label">Upload</span>
               </button>
               <button class="admin-nav-item" data-view="queue" data-permission="media.queue" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#grid"></use></svg></span>
                 <span class="admin-nav-item__label">Upload Queue</span>
               </button>
             </div>
@@ -84,9 +88,11 @@
             <div class="admin-nav-group">
               <span class="admin-nav-group__label">Community</span>
               <button class="admin-nav-item" data-view="requests" data-permission="community.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#mail"></use></svg></span>
                 <span class="admin-nav-item__label">Requests</span>
               </button>
               <button class="admin-nav-item" data-view="feedback" data-permission="community.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#message"></use></svg></span>
                 <span class="admin-nav-item__label">Feedback</span>
               </button>
             </div>
@@ -94,19 +100,27 @@
             <div class="admin-nav-group">
               <span class="admin-nav-group__label">System</span>
               <button class="admin-nav-item" data-view="storage" data-permission="storage.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#grid"></use></svg></span>
                 <span class="admin-nav-item__label">Storage</span>
               </button>
               <button class="admin-nav-item" data-view="users" data-permission="users.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#user"></use></svg></span>
                 <span class="admin-nav-item__label">Users</span>
               </button>
               <button class="admin-nav-item" data-view="assistants" data-permission="assistants.configure" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sparkles"></use></svg></span>
                 <span class="admin-nav-item__label">Assistants</span>
               </button>
               <button class="admin-nav-item" data-view="settings" data-permission="settings.manage" type="button">
+                <span class="admin-nav-item__icon"><svg class="admin-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#sun"></use></svg></span>
                 <span class="admin-nav-item__label">Settings</span>
               </button>
             </div>
           </nav>
+          <div class="admin-sidebar__footer">
+            <span class="admin-sidebar__footer-mark">✳</span>
+            <div><strong>Small objects.</strong><span>Big stories.</span></div>
+          </div>
         </aside>
 
         <main class="admin-main" id="adminMain" tabindex="-1">
