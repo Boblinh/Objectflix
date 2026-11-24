@@ -723,6 +723,7 @@
         }
         state.library = await SHARED.loadLibrary();
         await SHARED.injectSecretEpisodes(state.library, state.secretEpisodes);
+        if (SHARED.isArgUnlocked()) state.library = SHARED.applyArgArchiveFilter(state.library);
       } catch (error) {
         console.error('Failed to load the Objectflix library:', error);
         renderError(error);

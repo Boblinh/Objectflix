@@ -45,6 +45,7 @@
     libraryError: null,
     homeFilter: 'All',
     heroIndex: 0,
+    discovery: { query: '', loading: false, results: [], error: '' },
   };
 
   const arg = {
@@ -152,6 +153,10 @@
     elements.homeView.setAttribute('aria-busy', 'true');
     try {
       library = await SHARED.loadLibrary();
+      if (SHARED.isArgUnlocked()) {
+        await SHARED.injectSecretEpisodes(library, arg.secretEpisodes);
+        library = SHARED.applyArgArchiveFilter(library);
+      }
       window.OBJECTFLIX_LIBRARY = library;
       state.libraryLoading = false;
       renderHome();
@@ -246,6 +251,7 @@
     const continueItems = activeItems.filter((item) => item.progress > 0);
     elements.homeView.innerHTML = `
       ${heading}
+      ${isHome ? renderDiscoveryConcierge() : ''}
       ${renderSpotlight()}
       ${filters}
       ${continueItems.length ? renderRow({ key: 'continue', title: 'Right where you left the fun', description: 'Your next episode is calling.', items: continueItems }) : ''}
@@ -255,6 +261,57 @@
       ${upcoming.length ? renderRow({ key: 'upcoming', title: 'Good things on the horizon', description: 'A sneak peek at the stories making their way here.', items: upcoming }) : ''}
       <div class="clubhouse-note"><span aria-hidden="true">♡</span><p>Every good clubhouse grows together. <button type="button" data-community-action="request-show">Tell us what you'd love to watch.</button></p>${icon('arrow-up-right')}</div>
     `;
+  }
+
+  function renderDiscoveryConcierge() {
+    const discovery = state.discovery;
+    const results = discovery.results || [];
+    return `<section class="discovery-concierge" aria-labelledby="discoveryTitle">
+      <div class="discovery-concierge__intro">
+        <span class="discovery-concierge__spark" aria-hidden="true">✦</span>
+        <div><p class="eyebrow">A LITTLE AI MAGIC</p><h2 id="discoveryTitle">Tell us what you’re in the mood for<span class="brand-dot">.</span></h2><p>Describe the feeling, the chaos level, or how much time you have. We’ll find a real match from the clubhouse.</p></div>
+      </div>
+      <form class="discovery-form" data-discovery-form>
+        <label class="sr-only" for="discoveryInput">Describe what you want to watch</label>
+        <input id="discoveryInput" name="query" type="search" maxlength="240" value="${escapeHTML(discovery.query)}" placeholder="Something funny, chaotic, and easy to start…" autocomplete="off" />
+        <button class="button button--ink" type="submit" ${discovery.loading ? 'disabled' : ''}>${discovery.loading ? 'Finding a little world…' : `${icon('sparkles')} Find my show`}</button>
+      </form>
+      <div class="discovery-prompts" aria-label="Discovery ideas">
+        ${['A cozy show for a rainy day', 'Maximum chaos, please', 'Something like BFDI but stranger', 'I only have 30 minutes'].map((prompt) => `<button type="button" data-discovery-prompt="${escapeHTML(prompt)}">${escapeHTML(prompt)}</button>`).join('')}
+      </div>
+      ${discovery.error ? `<p class="discovery-status" role="alert">${escapeHTML(discovery.error)}</p>` : ''}
+      ${results.length ? `<div class="discovery-results" aria-live="polite"><div class="discovery-results__heading"><div><p class="eyebrow">THE CONCIERGE SUGGESTS</p><h3>A few worlds worth opening</h3></div><button type="button" class="text-link" data-discovery-clear>Start over</button></div><div class="discovery-results__grid">${results.map((result) => renderDiscoveryResult(result)).join('')}</div></div>` : ''}
+    </section>`;
+  }
+
+  function renderDiscoveryResult(result) {
+    const item = result.item;
+    const id = escapeHTML(item.id);
+    const title = escapeHTML(displayTitle(item));
+    const inList = state.myList.has(item.id);
+    return `<article class="discovery-result">
+      <button class="discovery-result__art" type="button" data-action="details" data-id="${id}" aria-label="Explore ${title}"><img src="${escapeHTML(item.poster)}" alt="${title}" loading="lazy" /><span>${result.match}% match</span></button>
+      <div class="discovery-result__copy"><div><p class="eyebrow">${escapeHTML(result.vibe)}</p><h3><button type="button" data-action="details" data-id="${id}">${title}</button></h3><p>${escapeHTML(result.reason)}</p></div><div class="discovery-result__actions"><button class="button button--primary" type="button" data-action="${releasedEpisodes(item).length ? 'play' : 'details'}" data-id="${id}">${icon(releasedEpisodes(item).length ? 'play' : 'arrow-up-right')} ${releasedEpisodes(item).length ? 'Watch' : 'Explore'}</button><button class="save-button ${inList ? 'is-saved' : ''}" type="button" data-action="toggle-list" data-id="${id}" aria-label="${inList ? 'Remove from' : 'Add to'} my list: ${title}" aria-pressed="${inList}">${icon(inList ? 'check' : 'bookmark')}</button></div></div>
+    </article>`;
+  }
+
+  async function runDiscovery(query) {
+    const text = String(query || '').trim();
+    if (!text || state.discovery.loading) return;
+    state.discovery = { query: text, loading: true, results: [], error: '' };
+    renderHome();
+    const concierge = window.OBJECTFLIX_AI_DISCOVERY;
+    try {
+      const results = concierge ? await concierge.discoverShows(text, library) : [];
+      state.discovery.loading = false;
+      state.discovery.results = results;
+      state.discovery.error = results.length ? '' : 'The concierge is still learning this clubhouse. Try a mood, a genre, or a show you already love.';
+    } catch (error) {
+      state.discovery.loading = false;
+      state.discovery.error = error.message || 'The concierge lost the plot. Try again in a moment.';
+    }
+    renderHome();
+    document.getElementById('discoveryInput')?.focus({ preventScroll: true });
   }
 
   function spotlightPicks() {
@@ -589,6 +646,8 @@
       } else {
         showArgToast('The archive is silent… nothing recovered.');
       }
+      library = SHARED.applyArgArchiveFilter(library);
+      window.OBJECTFLIX_LIBRARY = library;
       renderHome();
       renderSearch();
     }).catch((error) => {
@@ -651,10 +710,28 @@
 
 
   function bindEvents() {
+    document.addEventListener('submit', (event) => {
+      const form = event.target.closest?.('[data-discovery-form]');
+      if (!form) return;
+      event.preventDefault();
+      runDiscovery(new FormData(form).get('query'));
+    });
+
     document.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
 
+      const prompt = target.closest('[data-discovery-prompt]');
+      if (prompt) {
+        runDiscovery(prompt.dataset.discoveryPrompt);
+        return;
+      }
+      if (target.closest('[data-discovery-clear]')) {
+        state.discovery = { query: '', loading: false, results: [], error: '' };
+        renderHome();
+        document.getElementById('discoveryInput')?.focus({ preventScroll: true });
+        return;
+      }
       const navButton = target.closest('[data-view]');
       if (navButton) {
         event.preventDefault();

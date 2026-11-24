@@ -861,6 +861,56 @@ Accuracy rules (critical):
     return reply;
   }
 
+  async function discoverShows(query, catalog) {
+    const items = Array.isArray(catalog) ? catalog : [];
+    const cleanQuery = String(query || '').trim();
+    if (!cleanQuery || !items.length) return [];
+
+    const context = { current_page: 'AI Show Discovery', currently_playing: 'Nothing', watch_progress: 'N/A' };
+    const prompt = `You are Objectflix's Discovery Concierge. Find the best matches for this viewer request: "${cleanQuery.replace(/"/g, '\\"')}".
+
+Use ONLY shows in the Objectflix Catalog provided in your context. Return ONLY valid JSON (no markdown, no commentary) in this exact shape:
+{"results":[{"showId":"exact-catalog-show-id","match":92,"reason":"one warm sentence explaining the fit","vibe":"three short words"}]}
+
+Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes as available. Match by tone, genre, pace, episode count, and the viewer's constraints. If the request is vague, make a thoughtful variety of choices. `;
+
+    const localDiscovery = () => {
+      const terms = cleanQuery.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
+      const scored = items.map((item) => {
+        const haystack = [item.title, item.description, ...(item.genres || []), item.type].join(' ').toLowerCase();
+        const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 24 : 0), 0);
+        return { item, score };
+      }).sort((a, b) => b.score - a.score);
+      return scored.slice(0, Math.min(3, items.length)).map(({ item, score }) => ({
+        item,
+        match: Math.min(88, 62 + score),
+        reason: score ? 'A grounded match from the Objectflix catalogue for the mood you described.' : 'A gentle wildcard pick to help you find a new little world.',
+        vibe: (item.genres || ['object energy']).slice(0, 3).join(' · '),
+      }));
+    };
+
+    try {
+      const raw = await requestAI('leafy', prompt, context, null);
+      const match = String(raw || '').match(/\{[\s\S]*\}/);
+      const parsed = match ? JSON.parse(match[0]) : null;
+      const allowed = new Map(items.map((item) => [String(item.id), item]));
+      const results = Array.isArray(parsed?.results) ? parsed.results : [];
+      const safeResults = results
+        .filter((result) => allowed.has(String(result.showId)))
+        .map((result) => ({
+          item: allowed.get(String(result.showId)),
+          match: Math.max(1, Math.min(99, Number(result.match) || 75)),
+          reason: String(result.reason || 'A lovely match for the mood you described.').slice(0, 220),
+          vibe: String(result.vibe || 'fun · curious · unexpected').slice(0, 80),
+        }))
+        .slice(0, 4);
+      return safeResults.length ? safeResults : localDiscovery();
+    } catch (error) {
+      debugWarn('[AI] Discovery response was not valid JSON:', error.message);
+      return localDiscovery();
+    }
+  }
+
   
   
   
@@ -1208,4 +1258,6 @@ Accuracy rules (critical):
   } else {
     injectAssistantWidget();
   }
+
+  window.OBJECTFLIX_AI_DISCOVERY = { discoverShows };
 })();

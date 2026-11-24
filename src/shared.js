@@ -308,14 +308,63 @@
 
   
 
+  function syncArgSigil(unlocked) {
+    if (!document.body) return;
+    let sigil = document.getElementById('argSigil');
+    if (unlocked) {
+      if (!sigil) {
+        sigil = document.createElement('div');
+        sigil.id = 'argSigil';
+        sigil.className = 'arg-sigil';
+        sigil.setAttribute('aria-hidden', 'true');
+        sigil.textContent = '// TRANSMISSION INTERCEPTED — YOU WERE NEVER SUPPOSED TO FIND THIS';
+        document.body.appendChild(sigil);
+      }
+    } else if (sigil) {
+      sigil.remove();
+    }
+  }
+
   function applyArgUnlock(unlocked) {
     window.OBJECTFLIX_API.setUnlocked(unlocked);
+    document.documentElement.classList.toggle('arg-unlocked', Boolean(unlocked));
+    syncArgSigil(unlocked);
     try {
       if (unlocked) localStorage.setItem(window.OBJECTFLIX_CONFIG.arg.storageKey, '1');
       else localStorage.removeItem(window.OBJECTFLIX_CONFIG.arg.storageKey);
     } catch {
       
     }
+  }
+
+  function isArgUnlocked() {
+    try {
+      return localStorage.getItem(window.OBJECTFLIX_CONFIG.arg.storageKey) === '1'
+        && window.OBJECTFLIX_SETTINGS?.get?.('argEnabled') !== false;
+    } catch {
+      return false;
+    }
+  }
+
+  function applyArgArchiveFilter(library) {
+    if (!isArgUnlocked() || !Array.isArray(library)) return library;
+    const hiddenIds = new Set(window.OBJECTFLIX_CONFIG.arg.hiddenEpisodes.map((item) => item.id));
+    const host = library.find((item) => item.episodes?.some((episode) => hiddenIds.has(episode.id)));
+    if (!host) return library;
+    const episodes = host.episodes.filter((episode) => hiddenIds.has(episode.id));
+    if (!episodes.length) return library;
+    return [{
+      ...host,
+      title: 'Atltbe orf Merad Dansll',
+      description: 'THE ARCHIVE IS INCOMPLETE. MOST FILES WERE LOST. WHAT REMAINS IS NOT SUPPOSED TO BE WATCHED. YOU SHOULD LEAVE.',
+      match: '???',
+      year: '????',
+      rating: 'NOT RATED',
+      duration: 'UNKNOWN',
+      genres: ['LOST MEDIA', 'DO NOT WATCH'],
+      episodes,
+      argCorrupted: true,
+    }];
   }
 
   function restoreArgUnlock() {
@@ -325,7 +374,12 @@
     } catch {
       
     }
-    if (persisted && window.OBJECTFLIX_SETTINGS?.get?.('argEnabled') !== false) applyArgUnlock(true);
+    if (persisted && window.OBJECTFLIX_SETTINGS?.get?.('argEnabled') !== false) {
+      applyArgUnlock(true);
+    } else {
+      document.documentElement.classList.remove('arg-unlocked');
+      syncArgSigil(false);
+    }
   }
 
   
@@ -605,6 +659,8 @@
     createAvatarImage,
     applyArgUnlock,
     restoreArgUnlock,
+    isArgUnlocked,
+    applyArgArchiveFilter,
     injectSecretEpisodes,
     injectUpcomingEpisodes,
     showUnreleasedNoticeModal,
