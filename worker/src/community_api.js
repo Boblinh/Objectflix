@@ -1,3 +1,4 @@
+// Objectflix: this is the community_api part, kept here so the rest of the app knows exactly where to look.
 import { Hono } from "hono";
 
 const REQUEST_TYPES = new Set(["show", "episode"]);

@@ -32,6 +32,40 @@
   color: var(--text);
 }
 
+/* One tiny palette switchboard, so every clubhouse room can wear the same outfit. */
+html[data-theme="light"] .objectflix-v2 {
+  --bg: #f4f1e8; --bg-raised: #fffdf8; --surface: #fffdf8; --surface-2: #f8f6ef;
+  --text: #252822; --muted: #71766d; --border: #e3e1d8; --border-strong: #cfccb1;
+  --accent: #668e69; --accent-2: #4f7454; --ink: #252822; --shadow: 0 24px 70px rgba(49, 57, 42, .12);
+}
+html[data-theme="dark"] .objectflix-v2 {
+  --bg: #101114; --bg-raised: #191a1f; --surface: #191a1f; --surface-2: #202127;
+  --text: #f0f0ed; --muted: #a1a29f; --border: #303138; --border-strong: #4a4b55;
+  --accent: #a7e6a4; --accent-2: #a7e6a4; --ink: #f0f0ed; --shadow: 0 24px 70px rgba(0, 0, 0, .24);
+}
+html[data-theme="crimson"] .objectflix-v2 {
+  --bg: #170d11; --bg-raised: #221318; --surface: #221318; --surface-2: #2b191f;
+  --text: #fff1f1; --muted: #c49da4; --border: #4b2932; --border-strong: #70404c;
+  --accent: #ff687b; --accent-2: #ff9aa7; --ink: #fff1f1; --shadow: 0 24px 70px rgba(9, 0, 3, .28);
+}
+html[data-theme="purple"] .objectflix-v2 {
+  --bg: #151120; --bg-raised: #201b30; --surface: #201b30; --surface-2: #29223b;
+  --text: #f6f0ff; --muted: #b0a5c6; --border: #403451; --border-strong: #604d79;
+  --accent: #c7a6ff; --accent-2: #dfcaff; --ink: #f6f0ff; --shadow: 0 24px 70px rgba(5, 1, 14, .3);
+}
+html[data-theme="ocean"] .objectflix-v2 {
+  --bg: #0e171b; --bg-raised: #162328; --surface: #162328; --surface-2: #1e2d33;
+  --text: #eef8f7; --muted: #9bb3b4; --border: #2c4248; --border-strong: #41606a;
+  --accent: #72d1c5; --accent-2: #9be5dd; --ink: #eef8f7; --shadow: 0 24px 70px rgba(1, 9, 12, .28);
+}
+html[data-theme] body { background: var(--bg); color: var(--text); }
+html[data-theme] .objectflix-v2 { color-scheme: dark; }
+html[data-theme="light"] .objectflix-v2 { color-scheme: light; }
+
+.global-theme-picker { position: fixed; top: 14px; right: 18px; z-index: 100; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--accent-2); background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: var(--shadow-card); backdrop-filter: blur(12px); }
+.global-theme-picker select { max-width: 100px; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.global-theme-picker option { color: #252822; background: #fffdf8; }
+
 .objectflix-v2 :is(h1, h2, h3, h4) {
   font-family: 'Outfit', 'DM Sans', system-ui, sans-serif;
   font-weight: 600;

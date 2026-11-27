@@ -1,3 +1,4 @@
+// Objectflix: this is the admin_api part, kept here so the rest of the app knows exactly where to look.
 import { Hono } from "hono";
 import { authorizeAdmin, getUploadUrl, listBuckets, findAccountForBucket, deleteObject } from "./b2";
 import { adminCommunity } from "./community_api";

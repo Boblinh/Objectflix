@@ -1,3 +1,4 @@
+// Objectflix: this is the profiles_api part, kept here so the rest of the app knows exactly where to look.
 import { Hono } from "hono";
 import { HttpError, apiError } from "./membership/http.js";
 import { requireIdentity } from "./membership/identity.js";

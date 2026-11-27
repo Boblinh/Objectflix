@@ -1,3 +1,4 @@
+// Objectflix: this is the firebase part, kept here so the rest of the app knows exactly where to look.
 import { firebaseConfigured as firebaseConfig, FIREBASE_SDK_VERSION } from './firebase-config.js';
 
 const FIREBASE_CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;

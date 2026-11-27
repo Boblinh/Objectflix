@@ -1,3 +1,4 @@
+// Objectflix: this is the api_seasons_id_episodes part, kept here so the rest of the app knows exactly where to look.
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { Episode } from "./schemas";

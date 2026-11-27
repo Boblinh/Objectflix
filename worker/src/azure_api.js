@@ -1,3 +1,4 @@
+// Objectflix: this is the azure_api part, kept here so the rest of the app knows exactly where to look.
 import { Hono } from "hono";
 import { z } from "zod";
 import { HttpError, apiError, assertOrigin, jsonBody, rateLimit } from "./membership/http.js";

@@ -1,3 +1,4 @@
+// Objectflix: this is the b2 part, kept here so the rest of the app knows exactly where to look.
 
 
 const AUTH_URL = "https://api.backblazeb2.com/b2api/v4/b2_authorize_account";

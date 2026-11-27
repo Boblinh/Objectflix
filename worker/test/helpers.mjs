@@ -1,3 +1,4 @@
+// Objectflix: this is the helpers part, kept here so the rest of the app knows exactly where to look.
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';

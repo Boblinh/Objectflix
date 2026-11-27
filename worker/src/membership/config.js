@@ -1,3 +1,4 @@
+// Objectflix: this is the config part, kept here so the rest of the app knows exactly where to look.
 import { HttpError, nowSeconds } from "./http.js";
 
 export const PLANS = Object.freeze([

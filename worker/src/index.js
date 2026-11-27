@@ -1,3 +1,4 @@
+// Objectflix: this is the index part, kept here so the rest of the app knows exactly where to look.
 import { fromHono } from "chanfana";
 import { Hono } from "hono";
 import { cors } from "hono/cors";

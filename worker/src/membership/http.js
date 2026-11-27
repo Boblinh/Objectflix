@@ -1,3 +1,4 @@
+// Objectflix: this is the http part, kept here so the rest of the app knows exactly where to look.
 import { z } from "zod";
 
 export class HttpError extends Error {

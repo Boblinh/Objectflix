@@ -1,3 +1,4 @@
+// Objectflix: this is the admin part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const ADMIN = window.OBJECTFLIX_ADMIN;
   const B2 = window.OBJECTFLIX_B2;

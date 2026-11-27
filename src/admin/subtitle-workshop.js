@@ -1,3 +1,4 @@
+// Objectflix: this is the subtitle workshop part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const endpoints = window.OBJECTFLIX_CONFIG.endpoints;

@@ -1,3 +1,4 @@
+// Objectflix: this is the api_shows_id part, kept here so the rest of the app knows exactly where to look.
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { Show } from "./schemas";

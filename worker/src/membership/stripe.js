@@ -1,3 +1,4 @@
+// Objectflix: this is the stripe part, kept here so the rest of the app knows exactly where to look.
 import { HttpError, nowSeconds } from "./http.js";
 
 export const STRIPE_API_VERSION = "2025-06-30.basil";

@@ -1,3 +1,4 @@
+// Objectflix: this is the api part, kept here so the rest of the app knows exactly where to look.
 import { Hono } from "hono";
 import { z } from "zod";
 import { HttpError, apiError, appUrl, appUrlForOrigin, assertOrigin, jsonBody, nowSeconds, rateLimit } from "./http.js";

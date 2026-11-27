@@ -1,3 +1,4 @@
+// Objectflix: this is the schemas part, kept here so the rest of the app knows exactly where to look.
 
 import { z } from "zod";
 

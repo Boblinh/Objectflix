@@ -1,3 +1,4 @@
+// Objectflix: this is the community part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const CONFIG = window.OBJECTFLIX_CONFIG;
   const API = window.OBJECTFLIX_API;

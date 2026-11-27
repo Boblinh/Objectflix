@@ -1,3 +1,4 @@
+// Objectflix: this is the movie night admin part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const esc = M.escapeHTML;

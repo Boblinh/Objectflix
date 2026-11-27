@@ -1,3 +1,4 @@
+// Objectflix: this is the billing part, kept here so the rest of the app knows exactly where to look.
 import { HttpError, appUrl, nowSeconds, withLease } from "./http.js";
 import { planFor, planFromPrice } from "./config.js";
 import { billingConfigured, liveMode, monthlyPrice, safeStripeUrl, stripeId, stripeRequest } from "./stripe.js";

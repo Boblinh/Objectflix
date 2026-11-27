@@ -1,3 +1,4 @@
+// Objectflix: this is the alpha warning part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const STORAGE_KEY = "objectflix_alpha_acknowledged";
   const B2_KEY = "objectflix_b2_notice_seen";

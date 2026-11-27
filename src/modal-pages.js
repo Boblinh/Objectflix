@@ -1,3 +1,4 @@
+// Objectflix: this is the modal pages part, kept here so the rest of the app knows exactly where to look.
 (() => {
   
   if (window.self !== window.top) {

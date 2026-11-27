@@ -1,3 +1,4 @@
+// Objectflix: this is the responses stream part, kept here so the rest of the app knows exactly where to look.
 export async function consumeResponsesStream(stream, onText = () => {}) {
   if (!stream) throw new Error('Missing response stream.');
   const reader = stream.getReader();

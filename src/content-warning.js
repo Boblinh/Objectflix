@@ -1,3 +1,4 @@
+// Objectflix: this is the content warning part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const SEVERITY = {
     standard: { icon: '\u26a0', label: 'Content Warning' },

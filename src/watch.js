@@ -1,3 +1,4 @@
+// Objectflix: this is the watch part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -210,35 +211,7 @@
     bindSubtitleWorkshopEvents();
   }
 
-  const WATCH_THEMES = new Set(['light', 'dark', 'crimson', 'purple', 'ocean']);
-
-  function watchThemeKey() {
-    try {
-      const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
-      return `objectflix_watch_theme_${profile?.id || 'guest'}`;
-    } catch {
-      return 'objectflix_watch_theme_guest';
-    }
-  }
-
-  function applyWatchTheme(theme, persist = false) {
-    const value = WATCH_THEMES.has(theme) ? theme : 'light';
-    document.documentElement.dataset.watchTheme = value;
-    const picker = document.getElementById('watchThemeSelect');
-    if (picker) picker.value = value;
-    const color = { light: '#f5f2e9', dark: '#101114', crimson: '#190b10', purple: '#140f20', ocean: '#0b151b' }[value];
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
-    if (persist) {
-      try { localStorage.setItem(watchThemeKey(), value); } catch {}
-    }
-  }
-
-  function initWatchTheme() {
-    let saved = 'light';
-    try { saved = localStorage.getItem(watchThemeKey()) || 'light'; } catch {}
-    applyWatchTheme(saved);
-    document.getElementById('watchThemeSelect')?.addEventListener('change', (event) => applyWatchTheme(event.target.value, true));
-  }
+  // The theme controller now lives with the rest of the clubhouse, so watch mode just waves hello.
 
   function renderSubtitleWorkshop(item, episode) {
     const canUpload = Boolean(window.OBJECTFLIX_MEMBERSHIP?.session());
@@ -872,7 +845,6 @@
   }
 
   bindEvents();
-  initWatchTheme();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

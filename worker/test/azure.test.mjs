@@ -1,3 +1,4 @@
+// Objectflix: this is the azure.test part, kept here so the rest of the app knows exactly where to look.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { database, environment, identity, request, app } from './helpers.mjs';

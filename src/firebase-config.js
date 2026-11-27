@@ -1,3 +1,4 @@
+// Objectflix: this is the firebase config part, kept here so the rest of the app knows exactly where to look.
 export const firebaseConfigured = Object.freeze({
   apiKey: "AIzaSyB9Rqc8jaTZriXYxeNmF-wZ4YtB3QqUu3U",
   authDomain: "jsi37-7d1ed.firebaseapp.com",

@@ -1,3 +1,4 @@
+// Objectflix: this is the gen env part, kept here so the rest of the app knows exactly where to look.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
