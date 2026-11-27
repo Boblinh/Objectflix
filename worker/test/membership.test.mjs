@@ -60,6 +60,19 @@ test('tampered prices, tiers, customer IDs, return URLs and cross-origin checkou
   assert.equal(f.stripe.requests.length, 0);
 });
 
+test('Objectflix GitHub Pages origin is allowed for billing requests', async (t) => {
+  const f = await fixture(t);
+  const result = await request(f.env, '/api/membership/checkout', {
+    auth: f.auth,
+    method: 'POST',
+    headers: { Origin: 'https://boblinh.github.io' },
+    body: { planId: 'announcers-pick' },
+  });
+  assert.equal(result.response.status, 200);
+  const creation = f.stripe.requests.find((r) => r.url.pathname === '/v1/checkout/sessions');
+  assert.equal(creation.values['success_url'], 'https://boblinh.github.io/Objectflix/membership.html?checkout=returned');
+});
+
 test('concurrent checkout cannot create two subscriptions or two open sessions', async (t) => {
   const f = await fixture(t);
   const results = await Promise.all([1, 2, 3].map(() => request(f.env, '/api/membership/checkout', { auth: f.auth, method: 'POST', body: { planId: 'announcers-pick' } })));

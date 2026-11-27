@@ -11,6 +11,7 @@ export class HttpError extends Error {
 export const nowSeconds = () => Math.floor(Date.now() / 1000);
 export const unixTime = z.number().int().min(0).max(4102444800);
 export const recordId = z.string().min(1).max(150).regex(/^[a-zA-Z0-9_:.~-]+$/);
+const ADDITIONAL_APP_URLS = ["https://boblinh.github.io/Objectflix/"];
 
 export async function readBody(request, maxBytes = 16384) {
   if (Number(request.headers.get("content-length")) > maxBytes) throw new HttpError(413, "Request is too large.", "body_too_large");
@@ -60,10 +61,22 @@ export function appUrl(env) {
   return url;
 }
 
+export function applicationBases(env) {
+  const bases = [appUrl(env)];
+  for (const value of ADDITIONAL_APP_URLS) {
+    try { bases.push(appUrl({ ...env, APP_URL: value })); } catch {}
+  }
+  return bases;
+}
+
+export function appUrlForOrigin(env, origin) {
+  return applicationBases(env).find((base) => base.origin === origin) || null;
+}
+
 export function assertOrigin(c) {
   const origin = c.req.header("origin");
   if (!origin) return;
-  const allowed = new Set([appUrl(c.env).origin]);
+  const allowed = new Set(applicationBases(c.env).map((base) => base.origin));
   for (const port of ["5173", "8080", "3000"]) {
     allowed.add(`http://localhost:${port}`);
     allowed.add(`http://127.0.0.1:${port}`);
@@ -72,7 +85,7 @@ export function assertOrigin(c) {
 }
 
 export function validateOAuthRedirect(env, redirectUri) {
-  const bases = [appUrl(env).href];
+  const bases = applicationBases(env).map((base) => base.href);
   for (const port of ["5173", "8080", "3000"]) {
     bases.push(`http://localhost:${port}/`);
     bases.push(`http://127.0.0.1:${port}/`);

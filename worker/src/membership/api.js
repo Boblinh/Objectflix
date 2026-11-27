@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { HttpError, apiError, appUrl, assertOrigin, jsonBody, nowSeconds, rateLimit } from "./http.js";
+import { HttpError, apiError, appUrl, appUrlForOrigin, assertOrigin, jsonBody, nowSeconds, rateLimit } from "./http.js";
 import { requireIdentity, requireMembershipAdmin, isMembershipAdmin } from "./identity.js";
 import { PLANS, COSMETICS, entitlementsFor, memberState, perkConfiguration, planFromPrice, requirePerk } from "./config.js";
 import { billingConfigured, liveMode, monthlyPrice } from "./stripe.js";
@@ -49,7 +49,8 @@ membership.get("/me", async (c) => {
 function returnBase(c) {
   const origin = c.req.header("origin");
   if (origin) {
-    try { return appUrl({ ...c.env, APP_URL: origin }); } catch {}
+    const configured = appUrlForOrigin(c.env, origin);
+    if (configured) return configured;
   }
   return appUrl(c.env);
 }
