@@ -15,19 +15,23 @@ const eventQuery = `SELECT n.*, e.title AS episode_title, e.show_id, e.video_key
   r.revoked_at, r.valid_from, r.valid_until, r.episode_id AS licensed_episode
   FROM movie_nights n JOIN episodes e ON e.id = n.episode_id JOIN movie_night_rights r ON r.id = n.rights_id`;
 
+// Returns the signed-in viewer and current perks, or free-tier defaults for a guest.
 async function viewerFor(c) {
   const user = await getIdentity(c, true);
   return { user, member: user ? await memberState(c.env, user.id) : { planId: "newbie", entitlements: entitlementsFor(c.env, "newbie"), preferences: {} } };
 }
 
+// Hides an event until its regular announcement or the viewer's priority window.
 function visible(event, member, now = nowSeconds()) {
   return event.announce_at <= now || (member.entitlements.priority_announcements && event.priority_announce_at <= now);
 }
 
+// Confirms the event's license matches its episode and covers the full schedule.
 export function rightsCoverEvent(event) {
   return !event.revoked_at && event.licensed_episode === event.episode_id && event.valid_from <= event.starts_at && event.valid_until >= event.ends_at && Boolean(event.video_key);
 }
 
+// Derives the displayed state from stored status and event times without reviving terminal events.
 function eventStatus(event, now = nowSeconds()) {
   if (event.status === "cancelled" || event.status === "completed") return event.status;
   if (now >= event.ends_at) return "completed";
@@ -35,6 +39,7 @@ function eventStatus(event, now = nowSeconds()) {
   return "upcoming";
 }
 
+// Shapes an event for clients and derives playback and theme-suggestion availability.
 function publicEvent(event, member) {
   const status = eventStatus(event);
   return { id: event.id, title: event.title, description: event.description, startsAt: event.starts_at, endsAt: event.ends_at, status,
@@ -44,6 +49,7 @@ function publicEvent(event, member) {
   };
 }
 
+// Loads an event by route ID and returns the same not-found response for hidden events.
 async function eventFor(c, member) {
   const event = await c.env.DB.prepare(`${eventQuery} WHERE n.id = ?`).bind(c.req.param("id")).first();
   if (!event || !visible(event, member)) throw new HttpError(404, "Movie Night not found.", "event_not_found");
@@ -53,6 +59,7 @@ async function eventFor(c, member) {
 export const movieNights = new Hono();
 movieNights.onError(apiError);
 movieNights.use("*", async (c, next) => { c.header("Cache-Control", "no-store"); await next(); });
+// Lists events announced to this viewer, including early ones only when their perks allow it.
 movieNights.get("/", async (c) => {
   const { member } = await viewerFor(c);
   const { results } = await c.env.DB.prepare(`${eventQuery} WHERE n.announce_at <= ? OR (? = 1 AND n.priority_announce_at <= ?)
@@ -61,6 +68,7 @@ movieNights.get("/", async (c) => {
   return c.json({ success: true, events: results.map((event) => publicEvent(event, member)), serverTime: nowSeconds() });
 });
 
+// Combines visible event details with the viewer's polls, vote, RSVP, suggestions, and eligible recognition.
 movieNights.get("/:id", async (c) => {
   const { user, member } = await viewerFor(c);
   const event = await eventFor(c, member);
@@ -102,6 +110,7 @@ movieNights.get("/:id", async (c) => {
     viewer: { authenticated: Boolean(user), going: Boolean(attendance.results.length), supporterBadge: Boolean(user && member.entitlements.movie_supporter_badge) }, serverTime: now });
 });
 
+// Adds the signed-in viewer to a visible event's attendee list while rejecting closed events.
 movieNights.post("/:id/rsvp", requireIdentity, async (c) => {
   const member = await memberState(c.env, c.get("user").id);
   const event = await eventFor(c, member);
@@ -111,11 +120,13 @@ movieNights.post("/:id/rsvp", requireIdentity, async (c) => {
   return c.json({ success: true });
 });
 
+// Removes the signed-in viewer's RSVP without affecting other attendees.
 movieNights.delete("/:id/rsvp", requireIdentity, async (c) => {
   await c.env.DB.prepare("DELETE FROM movie_night_attendees WHERE event_id = ? AND user_id = ?").bind(c.req.param("id"), c.get("user").id).run();
   return c.json({ success: true });
 });
 
+// Requires a live event with valid streaming rights, then records attendance and returns its watch URL.
 movieNights.post("/:id/join", requireIdentity, async (c) => {
   const member = await memberState(c.env, c.get("user").id);
   const event = await eventFor(c, member);
@@ -130,6 +141,7 @@ movieNights.post("/:id/join", requireIdentity, async (c) => {
   return c.json({ success: true, watchUrl: url.href, serverTime: nowSeconds(), startsAt: event.starts_at });
 });
 
+// Accepts a rate-limited theme suggestion from an entitled member while the event is upcoming.
 movieNights.post("/:id/suggestions", requireIdentity, async (c) => {
   const user = c.get("user");
   const member = await memberState(c.env, user.id);
@@ -143,6 +155,7 @@ movieNights.post("/:id/suggestions", requireIdentity, async (c) => {
   return c.json({ success: true }, 201);
 });
 
+// Replaces the viewer's vote only when their tier qualifies and the poll, option, and event are open.
 movieNights.put("/:id/polls/:pollId/vote", requireIdentity, async (c) => {
   const user = c.get("user");
   const member = await memberState(c.env, user.id);
@@ -168,17 +181,20 @@ export const movieNightAdmin = new Hono();
 movieNightAdmin.onError(apiError);
 movieNightAdmin.use("*", requireMembershipAdmin);
 
+// Lists recent Movie Night records for the authenticated staff member.
 movieNightAdmin.get("/events", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT * FROM movie_nights ORDER BY starts_at DESC LIMIT 100").all();
   return c.json({ success: true, events: results });
 });
 
+// Lists recent streaming permissions alongside episode titles for staff review.
 movieNightAdmin.get("/rights", async (c) => {
   const { results } = await c.env.DB.prepare(`SELECT r.*, e.title AS episode_title FROM movie_night_rights r
     JOIN episodes e ON e.id = r.episode_id ORDER BY r.created_at DESC LIMIT 100`).all();
   return c.json({ success: true, rights: results });
 });
 
+// Searches only episodes with a stream and caps the staff-facing catalog results at 50.
 movieNightAdmin.get("/episodes", async (c) => {
   const query = String(c.req.query("q") || "").trim().slice(0, 100);
   const { results } = await c.env.DB.prepare(`SELECT e.id, e.title, s.title AS show_title FROM episodes e JOIN shows s ON s.id = e.show_id
@@ -187,6 +203,7 @@ movieNightAdmin.get("/episodes", async (c) => {
   return c.json({ success: true, episodes: results });
 });
 
+// Records admin-confirmed permission only for a streamed episode and a valid time window.
 movieNightAdmin.post("/rights", async (c) => {
   const body = await jsonBody(c, z.object({ episodeId: recordId, rightsHolder: z.string().trim().min(2).max(200), permissionReference: z.string().trim().min(5).max(1000),
     validFrom: unixTime, validUntil: unixTime, permissionVerified: z.literal(true) }).strict().refine((v) => v.validUntil > v.validFrom));
@@ -198,12 +215,14 @@ movieNightAdmin.post("/rights", async (c) => {
   return c.json({ success: true, id }, 201);
 });
 
+// Revokes a permission record by ID and reports when no such record exists.
 movieNightAdmin.post("/rights/:id/revoke", async (c) => {
   const result = await c.env.DB.prepare("UPDATE movie_night_rights SET revoked_at = ? WHERE id = ?").bind(nowSeconds(), c.req.param("id")).run();
   if (!result.meta.changes) throw new HttpError(404, "Permission record not found.", "rights_not_found");
   return c.json({ success: true });
 });
 
+// Checks that an active permission record matches the selected streamed episode and full event window.
 async function validateEventRights(env, body) {
   const rights = await env.DB.prepare("SELECT * FROM movie_night_rights WHERE id = ?").bind(body.rightsId).first();
   const episode = await env.DB.prepare("SELECT video_key FROM episodes WHERE id = ?").bind(body.episodeId).first();
@@ -212,6 +231,7 @@ async function validateEventRights(env, body) {
   }
 }
 
+// Creates an event only after its schema and full-schedule streaming permission both validate.
 movieNightAdmin.post("/events", async (c) => {
   const body = await jsonBody(c, eventSchema);
   await validateEventRights(c.env, body);
@@ -222,6 +242,7 @@ movieNightAdmin.post("/events", async (c) => {
   return c.json({ success: true, id }, 201);
 });
 
+// Updates an event, rechecking its rights unless it is being cancelled or completed.
 movieNightAdmin.put("/events/:id", async (c) => {
   const body = await jsonBody(c, eventSchema);
   if (!["cancelled", "completed"].includes(body.status)) await validateEventRights(c.env, body);
@@ -232,6 +253,7 @@ movieNightAdmin.put("/events/:id", async (c) => {
   return c.json({ success: true });
 });
 
+// Creates a scheduled poll and all its distinct options together for an open event.
 movieNightAdmin.post("/events/:id/polls", async (c) => {
   const body = await jsonBody(c, z.object({ question: z.string().trim().min(5).max(200), minPlan: z.enum(PLANS.map((plan) => plan.id)),
     opensAt: unixTime, closesAt: unixTime, options: z.array(z.string().trim().min(1).max(100)).min(2).max(8),
@@ -247,11 +269,13 @@ movieNightAdmin.post("/events/:id/polls", async (c) => {
   return c.json({ success: true, id }, 201);
 });
 
+// Lists recent theme suggestions with their event titles for staff review.
 movieNightAdmin.get("/suggestions", async (c) => {
   const { results } = await c.env.DB.prepare(`SELECT s.*, n.title AS event_title FROM movie_night_suggestions s JOIN movie_nights n ON n.id = s.event_id ORDER BY s.created_at DESC LIMIT 100`).all();
   return c.json({ success: true, suggestions: results });
 });
 
+// Sets a suggestion's review outcome to approved or declined and returns 404 if it is missing.
 movieNightAdmin.patch("/suggestions/:id", async (c) => {
   const { status } = await jsonBody(c, z.object({ status: z.enum(["approved", "declined"]) }).strict());
   const result = await c.env.DB.prepare("UPDATE movie_night_suggestions SET status = ? WHERE id = ?").bind(status, c.req.param("id")).run();

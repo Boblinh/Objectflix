@@ -1,4 +1,3 @@
-// Objectflix: this is the watch part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -25,9 +24,13 @@
 
   
   window.OBJECTFLIX_WATCH = {
+    // Exposes the player instance currently attached to the watch page.
     get player() { return state.player; },
+    // Exposes the show selected for the current watch session.
     get item() { return state.item; },
+    // Exposes the episode selected for the current watch session.
     get episode() { return state.episode; },
+    // Exposes the loaded catalog used by watch-page navigation.
     get library() { return state.library; },
     playEpisode,
     playTitle,
@@ -38,14 +41,17 @@
   
   
 
+  // Reads the current account record from local storage.
   function currentUser() {
     return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
   }
 
+  // Escapes untrusted text before it is included in generated watch-page markup.
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
+  // Formats a review timestamp as a localized month, day, and year.
   function formatReviewDate(ts) {
     try { return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
     catch { return ''; }
@@ -55,6 +61,7 @@
   
   
 
+  // Replaces the watch view with its initial library-loading state.
   function showLoading() {
     elements.watchView.innerHTML = `
       <section class="section" style="min-height:60vh;display:grid;place-items:center;text-align:center">
@@ -66,6 +73,7 @@
     `;
   }
 
+  // Shows a connection error and a route back to Browse when catalog loading fails.
   function renderError(error) {
     const message = error?.message || 'Something went wrong while loading the library.';
     elements.watchView.innerHTML = `
@@ -80,6 +88,7 @@
     `;
   }
 
+  // Shows an empty watch state when the requested show cannot be selected.
   function renderShowNotFound(message) {
     elements.watchView.innerHTML = `
       <section class="section" style="min-height:60vh;display:grid;place-items:center;text-align:center">
@@ -97,12 +106,14 @@
   
   
 
+  // Selects the requested episode, falling back to the show's first episode.
   function resolveEpisode(item, episodeId) {
     if (!item) return null;
     if (!episodeId) return item.episodes[0] || null;
     return item.episodes.find((ep) => ep.id === episodeId) || item.episodes[0] || null;
   }
 
+  // Replaces the URL's show and episode query values without a page reload.
   function updateUrl(showId, episodeId) {
     const url = new URL(window.location.href);
     url.searchParams.set('id', showId);
@@ -114,6 +125,7 @@
   
   
 
+  // Runs the content warning gate before playback, or proceeds when no gate applies.
   function guardContent(item, proceed) {
     const warning = window.OBJECTFLIX_WARNING;
     if (!warning) {
@@ -131,6 +143,7 @@
     if (!shown) proceed();
   }
 
+  // Rebuilds the watch page for the selected title and starts its player and community panels.
   function renderWatch() {
     const item = state.item;
     const episode = state.episode;
@@ -213,6 +226,7 @@
 
   // The theme controller now lives with the rest of the clubhouse, so watch mode just waves hello.
 
+  // Returns the report and upload forms, tailored to the episode and account session.
   function renderSubtitleWorkshop(item, episode) {
     const canUpload = Boolean(window.OBJECTFLIX_MEMBERSHIP?.session());
     const episodeId = escapeHtml(episode.id);
@@ -240,6 +254,7 @@
     </div>`;
   }
 
+  // Loads the signed-in member's subtitle submissions for the current episode.
   async function initSubtitleWorkshop() {
     const container = document.getElementById('subtitleMySubmissions');
     if (!container || !window.OBJECTFLIX_MEMBERSHIP?.session()) return;
@@ -252,6 +267,7 @@
     }
   }
 
+  // Wires subtitle issue reports and verified member track uploads to the workshop API.
   function bindSubtitleWorkshopEvents() {
     const kind = document.getElementById('subtitleIssueKind');
     kind?.addEventListener('change', () => {
@@ -322,6 +338,7 @@
     });
   }
 
+  // Returns the video, subtitle canvas, controls, and status markup for one episode.
   function renderWatchPlayerMarkup(item, episode) {
     return `
       <div class="objectflix-player is-loading" id="watchPlayer" tabindex="0" aria-label="Video player. Press Space or K to play and pause.">
@@ -410,6 +427,7 @@
     `;
   }
 
+  // Returns a catalog card showing an episode's active, secret, or unreleased state.
   function renderEpisodeCard(item, episode) {
     const active = state.episode && state.episode.id === episode.id;
     const secret = episode.secret;
@@ -429,6 +447,7 @@
   }
 
 
+  // Opens the community request flow with the currently selected show and episode.
   function askAdminsForCurrentEpisode() {
     window.OBJECTFLIX_COMMUNITY?.openEpisodeRequest?.({
       title: state.item?.title || '',
@@ -437,6 +456,7 @@
     });
   }
 
+  // Replaces an unavailable stream with a request prompt and handles an incoming ask flag.
   function showEpisodeMissingScreen() {
     if (state.player) {
       state.player.destroy();
@@ -465,6 +485,7 @@
     }
   }
 
+  // Resolves player elements and subtitle tracks, checks stream availability, then loads video.
   async function mountWatchPlayer() {
     const Player = window.ObjectflixPlayer;
     if (!Player) {
@@ -557,6 +578,7 @@
   }
 
 
+  // Selects a catalog episode, gates unreleased content, updates the URL, and redraws the page.
   function playEpisode(itemId, episodeId) {
     const item = state.library.find((entry) => entry.id === itemId) || state.item;
     if (!item) return;
@@ -575,6 +597,7 @@
     });
   }
 
+  // Selects a show's first episode, checks its content warning, and redraws the watch page.
   function playTitle(id) {
     const item = state.library.find((entry) => entry.id === id);
     if (!item) return;
@@ -590,14 +613,18 @@
   }
 
 
+  // Scopes the offline review cache to the currently selected episode.
   function localReviewsKey() { return `objectflix_reviews_${state.episode.id}`; }
+  // Reads cached episode reviews and returns an empty list when storage is unavailable.
   function readLocalReviews() {
     try { return JSON.parse(localStorage.getItem(localReviewsKey()) || '[]'); } catch { return []; }
   }
+  // Saves the local review list as JSON without failing the page when storage is blocked.
   function writeLocalReviews(list) {
     try { localStorage.setItem(localReviewsKey(), JSON.stringify(list)); } catch {}
   }
 
+  // Loads episode reviews with a local fallback, then updates the count and review cards.
   async function initReviews() {
     const container = document.getElementById('reviewsList');
     const avgEl = document.getElementById('reviewsAverage');
@@ -635,6 +662,7 @@
       : '<p class="reviews-empty">No reviews yet. Share your thoughts above!</p>';
   }
 
+  // Wires rating, guest-name, review submission, carousel, and watch-tab interactions.
   function bindReviewEvents() {
     const stars = document.querySelectorAll('#reviewStars .review-star');
     const hint = document.getElementById('reviewRatingHint');
@@ -736,6 +764,7 @@
     });
   }
 
+  // Routes watch-page buttons to playback, sharing, subtitle timing, and show details.
   function bindEvents() {
     document.addEventListener('click', (event) => {
       const target = event.target;
@@ -772,6 +801,7 @@
   }
 
 
+  // Establishes guest state, resolves URL selection, loads catalog data, and renders the page.
   function init() {
     const user = currentUser();
     const guestMode = !user || user.provider === 'guest' || localStorage.getItem('objectflix_guest') === 'true';

@@ -57,6 +57,7 @@ export class GetEpisodeSubtitles extends OpenAPIRoute {
     },
   };
 
+  // Checks episode visibility, then returns its subtitle tracks with resolved URLs.
   async handle(c) {
     
     const data = await this.getValidatedData();
@@ -98,6 +99,7 @@ export class GetEpisodeSubtitles extends OpenAPIRoute {
   }
 }
 
+// Converts stored subtitle paths to absolute URLs while preserving external URLs.
 function resolveSubtitleUrl(origin, url) {
   if (!url) return undefined;
   if (/^https?:\/\//.test(url)) return url;

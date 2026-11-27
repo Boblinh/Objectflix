@@ -1,4 +1,3 @@
-// Objectflix: this is the config part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -14,15 +13,23 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
 
   endpoints: Object.freeze({
     shows: "/api/shows",
+    // Build the API path for one show.
     show: (id) => `/api/shows/${id}`,
+    // Build the API path for a show's seasons.
     showSeasons: (id) => `/api/shows/${id}/seasons`,
+    // Build the API path for a season's episodes.
     seasonEpisodes: (id) => `/api/seasons/${id}/episodes`,
+    // Build the API path for one episode.
     episode: (id) => `/api/episodes/${id}`,
+    // Build the API path for an episode's subtitle tracks.
     episodeSubtitles: (id) => `/api/episodes/${id}/subtitles`,
+    // Build a media status URL with its key safely encoded.
     mediaStatus: (key) => `/api/media/status?key=${encodeURIComponent(key)}`,
+    // Build a search URL with the query safely encoded.
     search: (query) => `/api/search?q=${encodeURIComponent(query)}`,
     communityRequests: "/api/community/requests",
     communityFeedback: "/api/community/feedback",
+    // Build the reviews URL for one episode.
     communityReviews: (episodeId) => `/api/community/reviews?episodeId=${encodeURIComponent(episodeId)}`,
     communityReviewCreate: "/api/community/reviews",
     subtitleReports: "/api/subtitle-workshop/reports",
@@ -31,6 +38,7 @@ window.OBJECTFLIX_CONFIG = Object.freeze({
     subtitleAdminReports: "/api/subtitle-workshop/admin/reports",
     subtitleAdminSubmissions: "/api/subtitle-workshop/admin/submissions",
     profiles: "/api/profiles",
+    // Build the API path for one profile.
     profile: (id) => `/api/profiles/${id}`,
     adminCommunityRequests: "/api/admin/community/requests",
     adminCommunityFeedback: "/api/admin/community/feedback",

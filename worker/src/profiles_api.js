@@ -11,11 +11,13 @@ const AVATAR_CLASSES = new Set([
 	"profile-avatar--gradient-d",
 ]);
 
+// Trims a value, limits its length, and uses null for empty input.
 function clean(value, max) {
 	const text = String(value ?? "").trim();
 	return text ? text.slice(0, max) : null;
 }
 
+// Confirms account claims match the signed-in user's verified legacy account.
 function profileAccount(c, suppliedAccount) {
 	const user = c.get("user");
 	
@@ -35,6 +37,7 @@ function profileAccount(c, suppliedAccount) {
 	return account;
 }
 
+// Converts a database profile row to the API's camel-case response shape.
 function profileRow(row) {
 	return {
 		id: row.id,
@@ -53,6 +56,7 @@ profiles.use("*", async (c, next) => {
 	await requireIdentity(c, next);
 });
 
+// Lists profiles only for the signed-in user's verified account.
 profiles.get("/", async (c) => {
 	const account = profileAccount(c);
 
@@ -65,6 +69,7 @@ profiles.get("/", async (c) => {
 	return c.json({ success: true, profiles: results.map(profileRow) });
 });
 
+// Validates profile fields and account ownership before creating a profile within the account limit.
 profiles.post("/", async (c) => {
 	let body;
 	try {
@@ -112,6 +117,7 @@ profiles.post("/", async (c) => {
 	return c.json({ success: true, profile: entry }, 201);
 });
 
+// Updates allowed fields only when the profile belongs to the signed-in user's verified account.
 profiles.patch("/:id", async (c) => {
 	let body;
 	try {
@@ -154,6 +160,7 @@ profiles.patch("/:id", async (c) => {
 	return c.json({ success: true, profile: profileRow({ ...row, ...updated, class_name: updated.className }) });
 });
 
+// Deletes a profile only within the signed-in user's verified account.
 profiles.delete("/:id", async (c) => {
 	const account = profileAccount(c);
 	const result = await c.env.DB.prepare("DELETE FROM profiles WHERE id = ? AND account = ?")

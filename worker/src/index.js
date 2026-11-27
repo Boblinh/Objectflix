@@ -22,6 +22,7 @@ import { stripeWebhooks, processPendingWebhooks } from "./membership/webhooks.js
 import { azureAI } from "./azure_api.js";
 import { subtitleWorkshop } from "./subtitle_workshop.js";
 
+// Removes the media route prefix and decodes the remaining object key.
 function resolveMediaKey(c) {
   const wildcard = c.req.path.slice("/media".length).replace(/^\/+/, "");
   return decodeURIComponent(wildcard);
@@ -72,6 +73,7 @@ app.route("/api/ai", azureAI);
  
  
 
+// Finds the bucket assigned to an episode or subtitle key, returning null on lookup errors.
 async function episodeBucket(env, key) {
   try {
     const row = await env.DB.prepare("SELECT bucket FROM episodes WHERE video_key = ?").bind(key).first();
@@ -85,6 +87,7 @@ async function episodeBucket(env, key) {
   }
 }
 
+// Resolves the requested media key and bucket before streaming the B2 object.
 const mediaHandler = async (c) => {
   const key = resolveMediaKey(c);
   if (!key) return c.text("Missing media key", 400);
@@ -94,6 +97,7 @@ const mediaHandler = async (c) => {
 
 app.get("/media/*", mediaHandler);
 
+// Checks the key in its assigned bucket and returns exists: false when the storage lookup fails.
 app.get("/api/media/status", async (c) => {
   const key = c.req.query("key");
   if (!key) return c.json({ success: false, error: "Missing media key" }, 400);
@@ -110,6 +114,7 @@ app.get("/api/media/status", async (c) => {
  
 export default {
   fetch: app.fetch,
+  // Runs queued Stripe webhook processing in the scheduled event context.
   async scheduled(_controller, env, ctx) {
     ctx.waitUntil(processPendingWebhooks(env));
   },

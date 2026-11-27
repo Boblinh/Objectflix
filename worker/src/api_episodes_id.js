@@ -58,6 +58,7 @@ export class GetEpisode extends OpenAPIRoute {
     },
   };
 
+  // Loads episode metadata and its media URL; hidden episodes require the unlock header.
   async handle(c) {
     
     const data = await this.getValidatedData();

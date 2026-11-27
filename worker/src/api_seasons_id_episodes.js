@@ -57,6 +57,7 @@ export class GetSeasonEpisodes extends OpenAPIRoute {
     },
   };
 
+  // Confirms the season exists, then returns its visible episodes in episode order.
   async handle(c) {
     
     const data = await this.getValidatedData();

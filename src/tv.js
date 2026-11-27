@@ -1,4 +1,3 @@
-// Objectflix: this is the tv part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -21,6 +20,7 @@
     'NTT', 'Philips', 'Coocaa',
   ];
 
+  // Detects TV-style browsers from the URL override or a known device user-agent token.
   function isTVDevice() {
     
     if (new URLSearchParams(window.location.search).get('tv') === '1') return true;
@@ -29,6 +29,7 @@
   }
 
   
+  // Gives non-TV visitors a short choice before redirecting to the regular browse page.
   function runRedirectCountdown() {
     const warning = document.getElementById('tvWarning');
     const countdownEl = document.getElementById('tvCountdown');
@@ -69,9 +70,11 @@
   }
 
   
+  // Shows a local clock on TV pages and refreshes it every 30 seconds.
   function startClock() {
     const el = document.getElementById('tvClock');
     if (!el) return;
+    // Refreshes the displayed time using the device's local time zone.
     const tick = () => {
       const now = new Date();
       el.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -83,12 +86,14 @@
   
   let library = [];
 
+  // Loads the shared catalog and stores it for TV browsing and playback.
   async function loadCatalog() {
     library = await SHARED.loadLibrary();
     return library;
   }
 
   
+  // Chooses a featured show and renders its hero artwork and actions.
   function renderHero() {
     const hero = document.getElementById('tvHero');
     if (!library.length) return;
@@ -116,6 +121,7 @@
   }
 
   
+  // Renders the all-shows, recently-added, and most-episodes TV carousels.
   function renderRows() {
     const container = document.getElementById('tvRows');
     if (!library.length) return;
@@ -150,6 +156,7 @@
     `).join('');
   }
 
+  // Builds the selected show's detail modal and focuses its first episode.
   function openDetails(showId) {
     const item = library.find((s) => s.id === showId);
     if (!item) return;
@@ -185,15 +192,18 @@
     });
   }
 
+  // Hides the TV show details modal.
   function closeModal() {
     document.getElementById('tvModal').classList.add('is-hidden');
   }
 
   
+  // Navigates to the TV player for the selected show and episode.
   function playEpisode(showId, episodeId) {
     window.location.href = `tv-watch.html?id=${showId}&ep=${episodeId}`;
   }
 
+  // Starts the selected show's first episode when one is available.
   function playShow(showId) {
     const item = library.find((s) => s.id === showId);
     if (!item || !item.episodes.length) return;
@@ -201,6 +211,7 @@
   }
 
   
+  // Handles TV remote focus movement, activation, and modal dismissal keys.
   function handleKeydown(e) {
     const key = e.key;
 
@@ -278,6 +289,7 @@
   }
 
   
+  // Routes a focused TV element to its play, details, or episode action.
   function handleAction(el) {
     const action = el.dataset.tvAction;
     const showId = el.dataset.tvShow;
@@ -297,6 +309,7 @@
   }
 
   
+  // Wires click and keyboard actions, including clicking outside the detail modal.
   function bindEvents() {
     document.addEventListener('click', (e) => {
       const el = e.target.closest('.tv-focusable');
@@ -312,6 +325,7 @@
   }
 
   
+  // Escapes text before it is interpolated into TV page HTML.
   function esc(str) {
     return (str || '').replace(/[&<>"']/g,
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c)
@@ -319,6 +333,7 @@
   }
 
   
+  // Loads the catalog, renders TV content, and reports catalog failures in-page.
   async function initTV() {
     startClock();
 

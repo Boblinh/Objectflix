@@ -12,6 +12,7 @@ const schema = z.object({
   stream: z.boolean().default(true),
 }).strict().refine((body) => body.messages.reduce((sum, message) => sum + message.content.length, 0) <= 60000 && body.messages.some((message) => message.role === "user"));
 
+// Validates the configured Azure Responses URL and returns its normalized form.
 export function azureEndpoint(env) {
   const url = new URL(env.AZURE_OPENAI_ENDPOINT || DEFAULT_AZURE_ENDPOINT);
   if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash || url.port ||
@@ -25,10 +26,12 @@ export const azureAI = new Hono();
 azureAI.onError(apiError);
 azureAI.use("*", requireIdentity);
 
+// Reports Azure configuration and deployment without returning the API key.
 azureAI.get("/providers", (c) => c.json({ success: true, azure: {
   configured: Boolean(c.env.AZURE_OPENAI_API_KEY), deployment: c.env.AZURE_OPENAI_DEPLOYMENT || DEFAULT_AZURE_DEPLOYMENT,
 } }));
 
+// Requires an authenticated, rate-limited request and proxies validated messages to Azure as a stream or text response.
 azureAI.post("/azure/responses", async (c) => {
   assertOrigin(c);
   if (!c.env.AZURE_OPENAI_API_KEY) throw new HttpError(503, "Azure OpenAI is not configured yet.", "provider_not_configured");

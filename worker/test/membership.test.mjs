@@ -1,4 +1,3 @@
-// Objectflix: this is the membership.test part, kept here so the rest of the app knows exactly where to look.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -258,8 +257,10 @@ test('an expired synchronization lease cannot commit a stale entitlement snapsho
   const sub = paidSubscription(f.auth.user.id); f.stripe.subscriptions.set(sub.id, sub);
   const originalNow = Date.now;
   let advanced = 0;
+  // Advance test time only after Stripe returns a subscription, simulating work that outlives the DB lease.
   t.mock.method(Date, 'now', () => originalNow() + advanced);
   const fetchStripe = globalThis.fetch;
+  // Keep the real Stripe stub's response but delay logical time after its subscription lookup.
   t.mock.method(globalThis, 'fetch', async (...args) => {
     const result = await fetchStripe(...args);
     if (String(args[0]).includes('/subscriptions/')) advanced = 91000;
@@ -304,6 +305,7 @@ test('all regular tiers can join public nights, RSVP, and change one public-poll
 
 test('revoked, expired, cancelled, upcoming and mismatched event permissions block playback', async (t) => {
   const f = await fixture(t); const event = await seedEvent(f.env, f.auth);
+  // Reuses the same join attempt after each rights/status change to check the current gate.
   const join = () => request(f.env, `/api/movie-nights/${event.id}/join`, { auth: f.auth, method: 'POST' });
   assert.equal((await join()).data.code, 'event_not_live');
   await f.DB.prepare("UPDATE movie_nights SET status = 'live', starts_at = ?").bind(now() - 10).run();
@@ -327,6 +329,7 @@ test('staff access is fail-closed and event creation requires an explicit, match
 
 test('theme suggestions and early announcements obey current membership entitlements', async (t) => {
   const f = await fixture(t); const event = await seedEvent(f.env, f.auth);
+  // Repeats the exact suggestion request before and after the fixture gains its perk.
   const suggest = () => request(f.env, `/api/movie-nights/${event.id}/suggestions`, { auth: f.auth, method: 'POST', body: { theme: 'Underdog stories', description: 'A night for the unexpected winners.' } });
   assert.equal((await suggest()).response.status, 403);
   await grant(f, 'fan-favorite'); assert.equal((await suggest()).response.status, 201);

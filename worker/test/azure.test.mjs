@@ -1,13 +1,16 @@
-// Objectflix: this is the azure.test part, kept here so the rest of the app knows exactly where to look.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { database, environment, identity, request, app } from './helpers.mjs';
 import { consumeResponsesStream } from '../../src/responses-stream.js';
 import { DEFAULT_AZURE_ENDPOINT } from '../src/azure_api.js';
 
+// Builds a UTF-8 response stream in small byte chunks to exercise split SSE and multibyte parsing.
 function streamOf(text, chunkSize = 7) {
   const bytes = new TextEncoder().encode(text);
-  return new ReadableStream({ start(controller) { for (let i = 0; i < bytes.length; i += chunkSize) controller.enqueue(bytes.slice(i, i + chunkSize)); controller.close(); } });
+  return new ReadableStream({
+    // Enqueues raw byte slices so a test can split both event boundaries and UTF-8 characters.
+    start(controller) { for (let i = 0; i < bytes.length; i += chunkSize) controller.enqueue(bytes.slice(i, i + chunkSize)); controller.close(); },
+  });
 }
 const completedStream = [
   'event: response.output_text.delta\r\ndata: {"type":"response.output_text.delta","delta":"Hello, "}\r\n\r\n',
@@ -41,6 +44,7 @@ test('Azure endpoint requires a verified session and fails gracefully when its k
 test('Azure uses the server deployment and server key, not a browser-supplied endpoint or model', async (t) => {
   const DB = database(); t.after(() => DB.sqlite.close()); const env = { ...environment(DB), AZURE_OPENAI_API_KEY: 'azure_test_fixture' }; const auth = await identity(env);
   let received;
+  // Replace network access so the test can inspect the server-built Azure request without sending credentials.
   t.mock.method(globalThis, 'fetch', async (url, init) => { received = { url, init, body: JSON.parse(init.body) }; return Response.json({ status: 'completed', output: [{ content: [{ type: 'output_text', text: 'x = -29/8' }] }] }); });
   const body = { messages: [{ role: 'system', content: 'You are an Objectflix assistant.' }, { role: 'user', content: 'solve 8x + 31 = 2' }], stream: false };
   const response = await request(env, '/api/ai/azure/responses', { auth, method: 'POST', body });
@@ -60,6 +64,7 @@ test('Azure uses the server deployment and server key, not a browser-supplied en
 test('Azure streaming is passed through as SSE, and throttling errors do not expose upstream details', async (t) => {
   const DB = database(); t.after(() => DB.sqlite.close()); const env = { ...environment(DB), AZURE_OPENAI_API_KEY: 'azure_test_fixture' }; const auth = await identity(env);
   let fail = false;
+  // Simulate both a successful SSE provider response and a throttling failure without calling Azure.
   t.mock.method(globalThis, 'fetch', async () => fail ? Response.json({ error: { message: 'sensitive Azure diagnostic' } }, { status: 429 }) : new Response(streamOf(completedStream), { headers: { 'Content-Type': 'text/event-stream' } }));
   const response = await app.fetch(new Request('https://api.example/api/ai/azure/responses', { method: 'POST', headers: { Authorization: `Bearer ${auth.accessToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'Hello' }], stream: true }) }), env);
   assert.ok(response.headers.get('Content-Type').includes('text/event-stream'));

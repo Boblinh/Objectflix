@@ -11,9 +11,12 @@ export const BILLING_EVENTS = new Set([
   "invoice.paid", "invoice.payment_failed", "invoice.payment_action_required", "invoice.finalization_failed",
 ]);
 
+// Extracts a subscription ID from current and legacy invoice payload fields.
 export const invoiceSubscription = (invoice) => stripeId(invoice?.parent?.subscription_details?.subscription || invoice?.subscription, "sub");
+// Handles both modern nested price details and Stripe's older line.price shape.
 const linePrice = (line) => stripeId(line.pricing?.price_details?.price || line.price, "price");
 
+// Validates the Stripe event envelope and stores only the IDs needed for later synchronization.
 export function eventEnvelope(event) {
   if (!stripeId(event?.id, "evt") || typeof event.type !== "string" || typeof event.livemode !== "boolean" || !event.data?.object) {
     throw new HttpError(400, "Malformed Stripe event.", "invalid_event");
@@ -30,6 +33,7 @@ export function eventEnvelope(event) {
   };
 }
 
+// Computes the stored tier and paid-through date from a subscription and its matching paid invoice.
 export function subscriptionSnapshot(env, subscription, invoice, previous, now = nowSeconds()) {
   const items = subscription.items?.data || [];
   const item = items.length === 1 && !subscription.items?.has_more ? items[0] : null;
@@ -58,11 +62,13 @@ export function subscriptionSnapshot(env, subscription, invoice, previous, now =
     invoiceStatus: invoice?.status || null };
 }
 
+// Marks unowned or unsupported events ignored so they do not retry or grant entitlements.
 async function markIgnored(env, eventId) {
   await env.DB.prepare("UPDATE stripe_webhook_events SET state = 'ignored', processed_at = ?, last_error_code = NULL WHERE event_id = ? AND state = 'pending'")
     .bind(nowSeconds(), eventId).run();
 }
 
+// Re-fetches Stripe's canonical subscription state and atomically syncs ownership, access, and event status.
 export async function processVerifiedEvent(env, eventId) {
   const event = await env.DB.prepare("SELECT * FROM stripe_webhook_events WHERE event_id = ?").bind(eventId).first();
   if (!event || event.state !== "pending") return;
@@ -120,6 +126,7 @@ export async function processVerifiedEvent(env, eventId) {
   });
 }
 
+// Records a safe retry code and delay when processing fails, leaving the verified event pending.
 export async function attemptVerifiedEvent(env, eventId) {
   try { await processVerifiedEvent(env, eventId); }
   catch (error) {
@@ -130,6 +137,7 @@ export async function attemptVerifiedEvent(env, eventId) {
   }
 }
 
+// Retries due pending events and removes expired sessions and old rate-limit windows.
 export async function processPendingWebhooks(env) {
   if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) return;
   const { results } = await env.DB.prepare("SELECT event_id FROM stripe_webhook_events WHERE state = 'pending' AND next_attempt_at <= ? ORDER BY received_at LIMIT 20")
@@ -143,6 +151,7 @@ export async function processPendingWebhooks(env) {
 
 export const stripeWebhooks = new Hono();
 stripeWebhooks.onError(apiError);
+// Verifies the raw Stripe signature and mode before saving the event once and scheduling its sync.
 stripeWebhooks.post("/", async (c) => {
   const payload = await readBody(c.req.raw, 262144);
   await verifyStripeSignature(payload, c.req.header("stripe-signature"), c.env);

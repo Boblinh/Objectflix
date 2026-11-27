@@ -53,6 +53,7 @@ export class GetShowSeasons extends OpenAPIRoute {
     },
   };
 
+  // Confirms the show exists, then returns its seasons and stored episode counts.
   async handle(c) {
     
     const data = await this.getValidatedData();

@@ -1,5 +1,5 @@
-// Objectflix: this is the history part, kept here so the rest of the app knows exactly where to look.
 (() => {
+  // Builds the per-profile localStorage key, or returns null when no profile is selected.
   const key = () => {
     try {
       const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
@@ -9,6 +9,7 @@
     }
   };
 
+  // Loads the current profile's watch history, returning an empty list for invalid data.
   function entries() {
     try {
       const saved = JSON.parse(localStorage.getItem(key()) || '[]');
@@ -18,6 +19,7 @@
     }
   }
 
+  // Saves at most the 200 newest history rows for the active profile.
   function saveEntries(rows) {
     const storageKey = key();
     if (!storageKey) return;
@@ -30,6 +32,7 @@
   let cloudReady = false;
   let sdkPromise = null;
 
+  // Lazily initializes Firebase and returns the signed-in user's history collection context.
   async function firestore() {
     try {
       const { isFirebaseConfigured } = await import('./firebase.js');
@@ -50,6 +53,7 @@
     }
   }
 
+  // Merges remote history with local rows by episode, keeping each row's newest update time.
   async function loadCloud() {
     const ctx = await firestore();
     if (!ctx) return;
@@ -67,6 +71,7 @@
     } catch {}
   }
 
+  // Writes one watch-history row to the signed-in user's Firestore collection when available.
   async function pushCloud(row) {
     const ctx = await firestore();
     if (!ctx) return;
@@ -76,6 +81,7 @@
     } catch {}
   }
 
+  // Saves valid watch progress locally and remotely, throttling routine updates unless forced.
   function record(video, force = false) {
     const storageKey = key();
     const watch = window.OBJECTFLIX_WATCH;
@@ -108,6 +114,7 @@
 
   window.OBJECTFLIX_HISTORY = {
     entries,
+    // Clears local history and, when signed in, deletes every row in the user's cloud history.
     async clear() {
       const storageKey = key();
       if (storageKey) localStorage.removeItem(storageKey);
@@ -119,6 +126,7 @@
         cloudReady = false;
       } catch {}
     },
+    // Reports whether a Firestore history read or write has succeeded in this session.
     get cloudReady() { return cloudReady; },
     refresh: loadCloud,
   };

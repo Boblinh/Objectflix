@@ -1,4 +1,3 @@
-// Objectflix: this is the admin part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const ADMIN = window.OBJECTFLIX_ADMIN;
   const B2 = window.OBJECTFLIX_B2;
@@ -16,6 +15,7 @@
     defaultBucket: "objectflix-videos",
   };
 
+  // Reads the shared settings store or merges valid saved values over the defaults.
   function settingsAll() {
     if (SETTINGS && typeof SETTINGS.getAll === "function") return SETTINGS.getAll();
     const merged = { ...SETTINGS_DEFAULTS };
@@ -30,11 +30,13 @@
     return merged;
   }
 
+  // Returns one setting, using the caller's fallback only when it is unset.
   function settingsGet(key, fallback) {
     const all = settingsAll();
     return all[key] !== undefined ? all[key] : fallback;
   }
 
+  // Uses localStorage as a fallback; if SETTINGS.set exists, this branch recurses into itself.
   function settingsSet(key, value) {
     if (SETTINGS && typeof SETTINGS.set === "function") {
       settingsSet(key, value);
@@ -83,6 +85,7 @@
   let episodeViewShowId = null;
   let queuePollTimer = null;
 
+  // Escapes text for safe insertion into the admin panel's HTML templates.
   function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;",
@@ -93,14 +96,17 @@
     })[ch]);
   }
 
+  // Finds the first matching element under the supplied root or document.
   function $(selector, root) {
     return (root || document).querySelector(selector);
   }
 
+  // Returns all matching elements under the supplied root or document as an array.
   function $$(selector, root) {
     return Array.from((root || document).querySelectorAll(selector));
   }
 
+  // Formats a timestamp as a short relative age, falling back to a calendar date.
   function timeAgo(ts) {
     if (!ts) return "";
     const sec = Math.floor((Date.now() - ts) / 1000);
@@ -113,10 +119,12 @@
     return day < 7 ? `${day}d ago` : new Date(ts).toLocaleDateString();
   }
 
+  // Formats a timestamp for display in the admin tables.
   function fmtDate(ts) {
     return ts ? new Date(ts).toLocaleString() : "";
   }
 
+  // Converts a byte count into a compact, human-readable size.
   function formatBytes(bytes) {
     if (!bytes) return "—";
     const units = ["B", "KB", "MB", "GB"];
@@ -129,6 +137,7 @@
     return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
   }
 
+  // Selects a configured bucket, preferring the requested name and then the default.
   function configuredBucketName(preferred) {
     const buckets = CONFIG.b2.buckets || [];
     if (preferred && buckets.some((b) => b.name === preferred)) return preferred;
@@ -136,10 +145,12 @@
     return def?.name || preferred || "";
   }
 
+  // Loads the locally saved catalog overrides, or an empty object when none exist.
   function getPatches() {
     return SHARED.loadCatalogPatches() || {};
   }
 
+  // Merges override maps and adds unseen draft entries before saving the catalog patches.
   function mergePatches(patchFragment) {
     const current = getPatches();
     for (const key of ["removedShows", "updatedShows", "removedEpisodes", "updatedEpisodes"]) {
@@ -158,6 +169,7 @@
     return current;
   }
 
+  // Fetches shows, seasons, and episodes from the API and caches the assembled catalog.
   async function loadRawCatalog() {
     const shows = await API.listShows();
     const raw = { shows: [] };
@@ -176,6 +188,7 @@
     return raw;
   }
 
+  // Applies local additions, edits, and removals to the fetched catalog for admin views.
   function buildCatalogModel() {
     const patches = getPatches();
     const removedShows = patches.removedShows || {};
@@ -237,6 +250,7 @@
     return shows;
   }
 
+  // Updates sidebar counts from the current catalog, upload queue, and community inboxes.
   function refreshNavCounts() {
     const shows = buildCatalogModel();
     const queue = B2.getUploads();
@@ -244,6 +258,7 @@
     const feedback = COMMUNITY?.listFeedback?.() || [];
     const pendingRequests = requests.filter((r) => r.status === "pending").length;
     const newFeedback = feedback.filter((f) => f.status === "new").length;
+    // Writes one sidebar badge count when that view has a count element.
     const setCount = (view, value) => {
       const el = document.querySelector(`.admin-nav-item[data-view="${view}"] .admin-nav-item__count`);
       if (el) el.textContent = value;
@@ -254,6 +269,7 @@
     setCount("feedback", newFeedback || "");
   }
 
+  // Adds missing count badges, populates them, and refreshes after community data loads.
   function seedNavCounts() {
     for (const view of ["shows", "queue", "requests", "feedback"]) {
       const btn = document.querySelector(`.admin-nav-item[data-view="${view}"]`);
@@ -269,6 +285,7 @@
     }
   }
 
+  // Shows the denial screen with a sign-in or allowlist explanation and hides the admin shell.
   function showAccessDenied() {
     const user = ADMIN.currentUser();
     const denied = document.getElementById("accessDenied");
@@ -284,11 +301,13 @@
     document.title = "Access denied — Objectflix Admin";
   }
 
+  // Reveals the admin workspace and hides the access-denied panel.
   function showShell() {
     document.getElementById("accessDenied").classList.add("is-hidden");
     document.getElementById("adminShell").classList.remove("is-hidden");
   }
 
+  // Fills the header with the signed-in admin's Discord identity and any changed-name note.
   function renderIdentity() {
     const avatar = document.getElementById("adminIdentityAvatar");
     const name = document.getElementById("adminIdentityName");
@@ -307,6 +326,7 @@
     }
   }
 
+  // Activates an authorized view, renders it, and shows a readable error if rendering fails.
   function showView(name) {
     const view = VIEWS[name];
     if (!view || !ADMIN.can(session, VIEW_PERMISSION[name])) return;
@@ -335,6 +355,7 @@
     $("#adminMain")?.focus?.();
   }
 
+  // Hides unauthorized sidebar entries and connects the rest to view navigation.
   function bindSidebar() {
     $$(".admin-nav-item").forEach((btn) => {
       const perm = btn.dataset.permission;
@@ -346,6 +367,7 @@
     });
   }
 
+  // Replaces the modal contents, opens it, and focuses its first form control.
   function openModal(title, contentHTML) {
     const modal = document.getElementById("adminModal");
     const content = document.getElementById("adminModalContent");
@@ -359,12 +381,14 @@
     content.querySelector("input, select, textarea")?.focus?.();
   }
 
+  // Hides the admin modal and clears its contents.
   function closeModal() {
     const modal = document.getElementById("adminModal");
     modal.classList.add("is-hidden");
     document.getElementById("adminModalContent").innerHTML = "";
   }
 
+  // Connects the modal close button and Escape key to the shared close handler.
   function bindModal() {
     document.getElementById("adminModalClose").addEventListener("click", closeModal);
     document.addEventListener("keydown", (event) => {
@@ -372,6 +396,7 @@
     });
   }
 
+  // Routes delegated admin actions and the episode-show selector to their handlers.
   function bindGlobalEvents() {
     document.addEventListener("click", (event) => {
       const target = event.target.closest("[data-admin-action]");
@@ -508,6 +533,7 @@
     });
   }
 
+  // Renders an upload status as a styled badge, escaping unknown status labels.
   function statusPill(item) {
     const labels = {
       queued: "Queued",
@@ -521,6 +547,7 @@
     return `<span class="status-pill status-pill--${esc(item.status)}">${labels[item.status] || esc(item.status)}</span>`;
   }
 
+  // Renders catalog, upload, community, and settings summaries into the dashboard panel.
   function renderDashboard(panel) {
     const shows = buildCatalogModel();
     const queue = B2.getUploads();
@@ -610,6 +637,7 @@
     `;
   }
 
+  // Renders editable shows and a restore list for shows hidden by local overrides.
   function renderShows(panel) {
     if (!ADMIN.can(session, "shows.manage")) return;
     const shows = buildCatalogModel();
@@ -683,6 +711,7 @@
     panel.innerHTML = html;
   }
 
+  // Opens the add/edit form for a show after checking the caller's management permission.
   function openShowModal(showId) {
     if (!ADMIN.can(session, "shows.manage")) return;
     const shows = buildCatalogModel();
@@ -724,6 +753,7 @@
     });
   }
 
+  // Validates a show form and stores its edits or new draft in the local catalog patches.
   function saveShowForm(form) {
     const formData = new FormData(form);
     const id = String(formData.get("showId") || formData.get("id") || "").trim();
@@ -749,6 +779,7 @@
     refreshNavCounts();
   }
 
+  // Hides a show and its added episodes in local overrides after explicit confirmation.
   function removeShow(showId) {
     if (!confirm(`Remove "${showId}" from the catalog? This hides the show everywhere.`)) return;
     const patches = getPatches();
@@ -765,6 +796,7 @@
     refreshNavCounts();
   }
 
+  // Removes a show's hidden marker and refreshes the show list and navigation count.
   function restoreShow(showId) {
     const patches = getPatches();
     if (patches.removedShows?.[showId]) delete patches.removedShows[showId];
@@ -774,6 +806,7 @@
     refreshNavCounts();
   }
 
+  // Renders the selected show's episodes, including local overrides and restore actions.
   function renderEpisodes(panel) {
     if (!ADMIN.can(session, "episodes.manage")) return;
     const shows = buildCatalogModel();
@@ -894,6 +927,7 @@
     panel.innerHTML = html;
   }
 
+  // Opens the add/edit form for an episode and preselects its current season when available.
   function openEpisodeModal(showId, episodeId) {
     if (!ADMIN.can(session, "episodes.manage")) return;
     const shows = buildCatalogModel();
@@ -956,6 +990,7 @@
     }
   }
 
+  // Validates an episode form and saves it as an edit or a new local catalog entry.
   function saveEpisodeForm(form) {
     const formData = new FormData(form);
     const showId = String(formData.get("showId") || "");
@@ -1003,6 +1038,7 @@
     refreshNavCounts();
   }
 
+  // Hides an episode and removes conflicting local edits after explicit confirmation.
   function removeEpisode(showId, episodeId) {
     if (!confirm("Remove this episode from the catalog everywhere?")) return;
     const patches = getPatches();
@@ -1015,6 +1051,7 @@
     refreshNavCounts();
   }
 
+  // Clears an episode's hidden marker and refreshes the episode list and navigation count.
   function restoreEpisode(showId, episodeId) {
     const patches = getPatches();
     if (patches.removedEpisodes?.[episodeId]) delete patches.removedEpisodes[episodeId];
@@ -1024,6 +1061,7 @@
     refreshNavCounts();
   }
 
+  // Builds the destination object key from the currently selected show, number, and file.
   function currentUploadKey() {
     const shows = buildCatalogModel();
     const show = shows.find((s) => s.id === $("#uploadShowSelect")?.value);
@@ -1033,6 +1071,7 @@
     return B2.objectKeyFor(show.title, episodeNumber, file.name);
   }
 
+  // Renders the upload form, storage setup notice, and live object-key preview.
   function renderUpload(panel) {
     if (!ADMIN.can(session, "media.upload")) return;
     const shows = buildCatalogModel();
@@ -1114,6 +1153,7 @@
         event.preventDefault();
         void handleUploadStart(event.target);
       });
+      // Recomputes the displayed destination key after upload fields change.
       const updatePreview = () => {
         const key = currentUploadKey();
         const preview = $("#uploadKeyPreview");
@@ -1126,6 +1166,7 @@
     }
   }
 
+  // Checks whether the current upload key already exists and reports the result in the form.
   async function handleUploadCheck() {
     const key = currentUploadKey();
     const result = $("#uploadResult");
@@ -1141,6 +1182,7 @@
       : `"${key}" does not exist yet${check.offline ? " (could not reach the media proxy to confirm)" : ""}.`;
   }
 
+  // Adds or updates the uploaded episode in local catalog patches and records the activity.
   function registerEpisodeInCatalog(showId, episodeNumber, title, videoUrl) {
     const patches = getPatches();
     const liveShow = rawCatalog?.shows.find((s) => s.id === showId);
@@ -1166,6 +1208,7 @@
     B2.logActivity("Episode registered in catalog", `${showId}/${episodeNumber} — ${title}`);
   }
 
+  // Validates the upload form, skips existing objects, queues new files, and optionally registers them.
   async function handleUploadStart(form) {
     if (!ADMIN.can(session, "media.upload")) return;
     const result = $("#uploadResult");
@@ -1226,6 +1269,7 @@
     refreshNavCounts();
   }
 
+  // Renders queued uploads with progress, status, and the actions available for each item.
   function renderQueue(panel) {
     if (!ADMIN.can(session, "media.queue")) return;
     const queue = B2.getUploads();
@@ -1297,6 +1341,7 @@
     panel.innerHTML = html;
   }
 
+  // Refreshes the upload queue every 1.5 seconds while its view is active.
   function startQueuePolling() {
     if (queuePollTimer) clearInterval(queuePollTimer);
     queuePollTimer = setInterval(() => {
@@ -1313,6 +1358,7 @@
     completed: '<span class="badge badge--accent">completed</span>',
   };
 
+  // Refreshes the selected community inbox from the API, then redraws its panel and count.
   async function syncCommunityView(kind) {
     if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
     try {
@@ -1326,10 +1372,12 @@
     refreshNavCounts();
   }
 
+  // Renders a five-star display with the supplied number of stars filled.
   function starsRow(rating) {
     return `<span style="color:#f5c518;letter-spacing:2px;white-space:nowrap">${"★".repeat(rating)}<span style="color:rgba(255,255,255,0.2)">${"★".repeat(5 - rating)}</span></span>`;
   }
 
+  // Saves an authorized request status change and refreshes the request list and count.
   async function setRequestStatus(id, status) {
     if (!ADMIN.can(session, "community.manage")) return;
     try {
@@ -1342,6 +1390,7 @@
     }
   }
 
+  // Renders the request inbox; optionally starts a background refresh from the API.
   function renderRequests(panel, skipRefresh) {
     if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
     const requests = COMMUNITY.listRequests();
@@ -1406,6 +1455,7 @@
     if (!skipRefresh) void syncCommunityView("requests");
   }
 
+  // Renders viewer feedback and rating totals, optionally refreshing from the API afterward.
   function renderFeedback(panel, skipRefresh) {
     if (!ADMIN.can(session, "community.manage") || !COMMUNITY) return;
     const feedback = COMMUNITY.listFeedback();
@@ -1463,6 +1513,7 @@
     if (!skipRefresh) void syncCommunityView("feedback");
   }
 
+  // Tests the configured storage endpoint and shows its bucket list or connection error.
   async function handleStorageTest() {
     if (!ADMIN.can(session, "storage.manage")) return;
     const result = $("#storageTestResult");
@@ -1490,6 +1541,7 @@
     }
   }
 
+  // Renders configured storage details and controls for choosing the default bucket.
   function renderStorage(panel) {
     if (!ADMIN.can(session, "storage.manage")) return;
     const buckets = CONFIG.b2.buckets || [];
@@ -1558,6 +1610,7 @@
     `;
   }
 
+  // Shows the active admin session and local email/password accounts in this browser.
   function renderUsers(panel) {
     if (!ADMIN.can(session, "users.manage")) return;
     let localUsers = {};
@@ -1624,6 +1677,7 @@
     `;
   }
 
+  // Removes a confirmed local account and its profiles, then redraws the account list.
   function removeAccount(email) {
     if (!confirm(`Remove the local account "${email}"?`)) return;
     try {
@@ -1639,6 +1693,7 @@
     renderUsers($("#viewUsers"));
   }
 
+  // Clears the browser's current account after confirmation and returns to the sign-in page.
   function signOut() {
     if (!confirm("Sign out of Objectflix in this browser?")) return;
     localStorage.removeItem("objectflix_current_user");
@@ -1646,6 +1701,7 @@
     window.location.replace("index.html");
   }
 
+  // Renders assistant preferences and the configured primary and fallback AI keys.
   function renderAssistants(panel) {
     if (!ADMIN.can(session, "assistants.configure")) return;
     const settings = settingsAll();
@@ -1797,6 +1853,7 @@
     `;
   }
 
+  // Clamps and saves the assistant's conversation length, then refreshes its settings view.
   function saveAssistantContext() {
     const field = $("#assistantContextField");
     if (!field) return;
@@ -1808,6 +1865,7 @@
     if (status) status.textContent = "Saved.";
   }
 
+  // Clears assistant chat history for this browser after confirmation.
   function clearHistories() {
     if (!confirm("Clear all assistant chat history for this browser?")) return;
     try {
@@ -1820,6 +1878,7 @@
     if (status) status.textContent = "Chat history cleared.";
   }
 
+  // Adds a non-duplicate Gemini key to this browser's saved key list.
   function saveAiKey() {
     const field = $("#aiKeyField");
     if (!field) return;
@@ -1846,6 +1905,7 @@
     if (status) status.textContent = `API key added (${keys.length} total).`;
   }
 
+  // Removes the selected saved Gemini key after confirmation and updates the key list.
   function removeAiKey(index) {
     let keys = [];
     try { keys = JSON.parse(localStorage.getItem("objectflix_ai_keys") || "[]"); } catch {}
@@ -1863,6 +1923,7 @@
     if (status) status.textContent = "Key removed.";
   }
 
+  // Removes all saved Gemini keys and their rotation index after confirmation.
   function clearAiKey() {
     if (!confirm("Clear all configured API keys?")) return;
     localStorage.removeItem("objectflix_ai_keys");
@@ -1874,6 +1935,7 @@
     if (status) status.textContent = "All API keys cleared.";
   }
 
+  // Adds a non-duplicate API key for the selected fallback provider.
   function saveFallbackKey(providerId) {
     const field = $(`#fbKeyField_${providerId}`);
     if (!field) return;
@@ -1897,6 +1959,7 @@
     if (status) status.textContent = `${providerId} key added (${keys.length} total).`;
   }
 
+  // Removes one saved key for a fallback provider after confirmation.
   function removeFallbackKey(providerId, index) {
     const storeKey = `objectflix_ai_keys_${providerId}`;
     let keys = [];
@@ -1915,6 +1978,7 @@
     if (status) status.textContent = `${providerId} key removed.`;
   }
 
+  // Clears the selected fallback provider's saved keys and rotation index after confirmation.
   function clearFallbackKeys(providerId) {
     if (!confirm(`Clear all ${providerId} API keys?`)) return;
     localStorage.removeItem(`objectflix_ai_keys_${providerId}`);
@@ -1925,6 +1989,7 @@
     if (status) status.textContent = `All ${providerId} keys cleared.`;
   }
 
+  // Queries Gemini with configured keys and marks configured models that are reachable.
   async function probeModels() {
     const result = $("#modelProbeResult");
     const chips = $("#modelChips");
@@ -1965,6 +2030,7 @@
     if (result) result.textContent = `${available.size} generative model${available.size === 1 ? "" : "s"} reachable across ${keys.length} key${keys.length === 1 ? "" : "s"}.`;
   }
 
+  // Renders site-wide preferences and controls for inspecting or clearing catalog overrides.
   function renderSettings(panel) {
     if (!ADMIN.can(session, "settings.manage")) return;
     const settings = settingsAll();
@@ -2027,6 +2093,7 @@
     refreshCatalogPreview();
   }
 
+  // Validates and persists the settings form, then redraws the settings panel.
   function saveSettings() {
     const form = $("#settingsForm");
     if (!form) return;
@@ -2046,6 +2113,7 @@
     if (status) status.textContent = "Settings saved.";
   }
 
+  // Restores the documented defaults after confirmation and refreshes the settings panel.
   function resetSettings() {
     if (!confirm("Reset all site settings to their defaults?")) return;
     settingsSet("defaultAssistant", "firey");
@@ -2058,6 +2126,7 @@
     if (status) status.textContent = "Settings reset to defaults.";
   }
 
+  // Shows the current catalog overrides as formatted JSON in the settings panel.
   function refreshCatalogPreview() {
     const el = $("#catalogOverridesPreview");
     if (!el) return;
@@ -2065,6 +2134,7 @@
     el.textContent = Object.keys(patches).length ? JSON.stringify(patches, null, 2) : "No overrides yet.";
   }
 
+  // Opens a modal with the current catalog override data as formatted JSON.
   function viewCatalogPatches() {
     const patches = getPatches();
     openModal("Catalog overrides", `
@@ -2075,6 +2145,7 @@
     `);
   }
 
+  // Clears all local catalog overrides after confirmation and refreshes affected views.
   function clearCatalogPatches() {
     if (!confirm("Clear all catalog overrides? Shows and episodes will return to the live API state.")) return;
     SHARED.saveCatalogPatches({});
@@ -2083,6 +2154,7 @@
     refreshNavCounts();
   }
 
+  // Verifies the admin session, wires the workspace, loads catalog data, and starts queue polling.
   function init() {
     session = ADMIN.session();
     if (!session) {

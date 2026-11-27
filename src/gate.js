@@ -1,4 +1,3 @@
-// Objectflix: this is the gate part, kept here so the rest of the app knows exactly where to look.
 
 
 (() => {
@@ -34,8 +33,10 @@
   let lastFocusedElement = null;
   let profileSession = null;
 
+  // Escapes profile values before they're rendered into the gate's HTML templates.
   const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
+  // Reads the current browser account, returning null if its saved data is invalid.
   function currentUser() {
     try {
       return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
@@ -44,6 +45,7 @@
     }
   }
 
+  // Removes the selected profile from this tab's session storage.
   function clearActiveProfile() {
     try {
       sessionStorage.removeItem('objectflix_active_profile');
@@ -51,17 +53,20 @@
     }
   }
 
+  // Checks that the live membership credentials still match the session that loaded profiles.
   function sameSession(expected) {
     const current = MEMBERSHIP.session();
     return Boolean(expected && current && current.accessToken === expected.accessToken && current.userId === expected.userId);
   }
 
+  // Blocks profile actions when the verified membership session has expired or changed.
   function requireProfileSession() {
     if (sameSession(profileSession)) return true;
     renderProfileLoadError(new API.ApiError('Sign in with Google or Discord to access your profiles.', 401));
     return false;
   }
 
+  // Clears stale profile state and shows either a sign-in link or a retry action.
   function renderProfileLoadError(error) {
     dynamicProfiles = [];
     profileSession = null;
@@ -82,6 +87,7 @@
     document.getElementById('retryProfilesBtn')?.addEventListener('click', loadProfiles);
   }
 
+  // Loads profiles for the current verified session and rejects results if the account changed.
   async function loadProfiles() {
     const expectedSession = MEMBERSHIP.session();
     profileSession = null;
@@ -107,6 +113,7 @@
     }
   }
 
+  // Renders profile cards and the add control, hiding creation once the profile limit is reached.
   function renderProfileGate(profilesToRender) {
     elements.manageBtn.disabled = false;
     const cards = profilesToRender.map(renderProfileCard).join('');
@@ -129,6 +136,7 @@
     }
   }
 
+  // Builds one selectable profile card with a separate edit button.
   function renderProfileCard(profile) {
     return `
       <div class="profile-card-wrap">
@@ -141,6 +149,7 @@
     `;
   }
 
+  // Saves the chosen profile for this tab and enters the browse page.
   function selectProfile(profileId) {
     if (!requireProfileSession()) return;
     const profile = dynamicProfiles.find((p) => p.id === profileId);
@@ -153,6 +162,7 @@
     window.location.href = 'browse.html';
   }
 
+  // Opens the create/edit form and initializes its fields and avatar swatch selection.
   function openModal(profile) {
     if (!requireProfileSession()) return;
     lastFocusedElement = document.activeElement;
@@ -170,12 +180,14 @@
     elements.nameInput.focus();
   }
 
+  // Closes the profile editor and restores focus to the element that opened it.
   function closeModal() {
     elements.modal.classList.add('is-hidden');
     editingProfile = null;
     if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
   }
 
+  // Rebuilds the avatar color controls and marks the currently selected class.
   function renderSwatches() {
     elements.swatchRow.innerHTML = AVATAR_CLASSES.map((className) => `
       <button type="button" class="avatar-swatch ${className} ${className === selectedClass ? 'is-selected' : ''}"
@@ -183,11 +195,13 @@
     `).join('');
   }
 
+  // Displays a profile form error in the modal.
   function showError(message) {
     elements.errorEl.textContent = message;
     elements.errorEl.classList.remove('is-hidden');
   }
 
+  // Validates and saves a profile, then refreshes the grid or reports an API error.
   async function handleSubmit(event) {
     event.preventDefault();
     if (!requireProfileSession()) return;
@@ -223,6 +237,7 @@
     }
   }
 
+  // Deletes the profile being edited after confirmation and refreshes the grid.
   async function handleDelete() {
     if (!editingProfile) return;
     if (!requireProfileSession()) return;
@@ -243,6 +258,7 @@
     }
   }
 
+  // Wires profile selection, editing, modal controls, avatar inputs, and keyboard behavior.
   function bindEvents() {
     window.addEventListener('storage', (event) => {
       if (event.key === 'objectflix_current_user' || event.key === null) window.location.reload();
@@ -304,6 +320,7 @@
     });
   }
 
+  // Clears stale profile selection and loads profiles for a signed-in account.
   async function init() {
     clearActiveProfile();
     const user = currentUser();
@@ -319,6 +336,7 @@
     await loadProfiles();
   }
 
+  // Shows the first-use onboarding modal and clears its flag when dismissed.
   function showOnboarding() {
     const modal = document.getElementById('onboardingModal');
     modal.classList.remove('is-hidden');

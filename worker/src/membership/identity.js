@@ -3,11 +3,13 @@ import { Hono } from "hono";
 import { HttpError, apiError, nowSeconds } from "./http.js";
 
 const encoder = new TextEncoder();
+// Hashes bearer tokens before storage so a database leak does not expose usable sessions.
 export async function tokenHash(token) {
   const bytes = await crypto.subtle.digest("SHA-256", encoder.encode(token));
   return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Upserts a verified Google/Discord account and returns a new one-day bearer session.
 export async function createVerifiedSession(env, profile) {
   if (!["google", "discord"].includes(profile.provider) || !profile.id) throw new HttpError(401, "A verified account is required.", "authentication_required");
   const id = `${profile.provider}:${profile.id}`;
@@ -25,6 +27,7 @@ export async function createVerifiedSession(env, profile) {
   return { accessToken, expiresAt };
 }
 
+// Resolves the bearer session from the request; optional callers can treat a missing header as guest.
 export async function getIdentity(c, optional = false) {
   const header = c.req.header("authorization");
   if (!header && optional) return null;
@@ -37,12 +40,14 @@ export async function getIdentity(c, optional = false) {
   return user;
 }
 
+// Loads the verified user into the Hono context and disables caching for protected responses.
 export async function requireIdentity(c, next) {
   c.set("user", await getIdentity(c));
   c.header("Cache-Control", "no-store");
   await next();
 }
 
+// Checks the configured user-ID allowlist, failing closed for missing or malformed config.
 export function isMembershipAdmin(env, user) {
   if (!user) return false;
   try {
@@ -51,6 +56,7 @@ export function isMembershipAdmin(env, user) {
   } catch { return false; }
 }
 
+// Requires an authenticated allowlisted user before passing the request to staff routes.
 export async function requireMembershipAdmin(c, next) {
   const user = await getIdentity(c);
   if (!isMembershipAdmin(c.env, user)) throw new HttpError(403, "Movie Night management is limited to authorized staff.", "staff_required");
@@ -62,10 +68,12 @@ export async function requireMembershipAdmin(c, next) {
 export const account = new Hono();
 account.onError(apiError);
 account.use("*", requireIdentity);
+// Returns the verified user's account details and whether their ID is on the staff allowlist.
 account.get("/session", (c) => {
   const user = c.get("user");
   return c.json({ success: true, user: { id: user.id, displayName: user.display_name, provider: user.provider }, isStaff: isMembershipAdmin(c.env, user) });
 });
+// Deletes only the current hashed bearer session, immediately revoking that token.
 account.post("/logout", async (c) => {
   const token = c.req.header("authorization").slice(7);
   await c.env.DB.prepare("DELETE FROM account_sessions WHERE token_hash = ?").bind(await tokenHash(token)).run();

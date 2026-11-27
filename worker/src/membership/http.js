@@ -1,7 +1,9 @@
 // Objectflix: this is the http part, kept here so the rest of the app knows exactly where to look.
 import { z } from "zod";
 
+// Carries an HTTP status and stable API error code to the shared error handler.
 export class HttpError extends Error {
+  // Keeps the client-facing message separate from the status and machine-readable code.
   constructor(status, message, code = "request_failed") {
     super(message);
     this.status = status;
@@ -9,11 +11,13 @@ export class HttpError extends Error {
   }
 }
 
+// Returns Unix time in seconds for database expiry and schedule comparisons.
 export const nowSeconds = () => Math.floor(Date.now() / 1000);
 export const unixTime = z.number().int().min(0).max(4102444800);
 export const recordId = z.string().min(1).max(150).regex(/^[a-zA-Z0-9_:.~-]+$/);
 const ADDITIONAL_APP_URLS = ["https://boblinh.github.io/Objectflix/"];
 
+// Reads a request stream with a byte limit so oversized bodies are rejected before parsing.
 export async function readBody(request, maxBytes = 16384) {
   if (Number(request.headers.get("content-length")) > maxBytes) throw new HttpError(413, "Request is too large.", "body_too_large");
   const reader = request.body?.getReader();
@@ -35,6 +39,7 @@ export async function readBody(request, maxBytes = 16384) {
   }
 }
 
+// Checks JSON content type, parses a bounded body, and returns only schema-validated fields.
 export async function jsonBody(c, schema, maxBytes = 16384) {
   if (!c.req.header("content-type")?.toLowerCase().startsWith("application/json")) throw new HttpError(415, "Use an application/json request.", "invalid_content_type");
   let body;
@@ -45,12 +50,14 @@ export async function jsonBody(c, schema, maxBytes = 16384) {
   return parsed.data;
 }
 
+// Converts expected HttpErrors to their status/code and masks unexpected failures as 503s.
 export function apiError(error, c) {
   if (error instanceof HttpError) return c.json({ success: false, error: error.message, code: error.code }, error.status);
   console.error("[membership] operation failed");
   return c.json({ success: false, error: "The service is temporarily unavailable. Please try again.", code: "service_unavailable" }, 503);
 }
 
+// Validates the configured app base URL and permits plain HTTP only for non-live localhost.
 export function appUrl(env) {
   let url;
   try { url = new URL(env.APP_URL); } catch { throw new HttpError(503, "The application URL is not configured.", "configuration_required"); }
@@ -62,6 +69,7 @@ export function appUrl(env) {
   return url;
 }
 
+// Returns the configured base plus the fixed public app base used for allowed origins.
 export function applicationBases(env) {
   const bases = [appUrl(env)];
   for (const value of ADDITIONAL_APP_URLS) {
@@ -70,10 +78,12 @@ export function applicationBases(env) {
   return bases;
 }
 
+// Maps an exact allowed origin to its base URL, or returns null when it is not configured.
 export function appUrlForOrigin(env, origin) {
   return applicationBases(env).find((base) => base.origin === origin) || null;
 }
 
+// Rejects supplied origins outside configured app bases and the supported local dev ports.
 export function assertOrigin(c) {
   const origin = c.req.header("origin");
   if (!origin) return;
@@ -85,6 +95,7 @@ export function assertOrigin(c) {
   if (!allowed.has(origin)) throw new HttpError(403, "This origin is not allowed.", "origin_not_allowed");
 }
 
+// Allows OAuth callbacks only to the app's auth/index pages or their local dev equivalents.
 export function validateOAuthRedirect(env, redirectUri) {
   const bases = applicationBases(env).map((base) => base.href);
   for (const port of ["5173", "8080", "3000"]) {
@@ -101,6 +112,7 @@ export function validateOAuthRedirect(env, redirectUri) {
   if (!allowed.includes(redirectUri)) throw new HttpError(400, "This sign-in redirect is not allowed.", "invalid_redirect");
 }
 
+// Counts a key in fixed time windows and throws once its configured request limit is exceeded.
 export async function rateLimit(env, key, limit, seconds = 60) {
   const start = Math.floor(nowSeconds() / seconds) * seconds;
   const row = await env.DB.prepare(`INSERT INTO membership_rate_limits (key, window_start, count) VALUES (?, ?, 1)
@@ -109,6 +121,7 @@ export async function rateLimit(env, key, limit, seconds = 60) {
   if (row.count > limit) throw new HttpError(429, "Please wait a moment before trying again.", "rate_limited");
 }
 
+// Runs one operation per resource at a time and releases its expiring DB lease even on failure.
 export async function withLease(env, resource, operation) {
   const token = crypto.randomUUID();
   const now = nowSeconds();

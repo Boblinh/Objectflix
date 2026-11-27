@@ -13,11 +13,13 @@ const FEEDBACK_CATEGORIES = new Set([
 ]);
 const FEEDBACK_STATUSES = new Set(["new", "read"]);
 
+// Trims a value, limits its length, and uses null for empty input.
 function clean(value, max) {
 	const text = String(value ?? "").trim();
 	return text ? text.slice(0, max) : null;
 }
 
+// Maps a database request row to the public request response shape.
 function requestRow(row) {
 	return {
 		id: row.id,
@@ -32,6 +34,7 @@ function requestRow(row) {
 	};
 }
 
+// Maps a database feedback row to the public feedback response shape.
 function feedbackRow(row) {
 	return {
 		id: row.id,
@@ -47,6 +50,7 @@ function feedbackRow(row) {
 
 export const publicCommunity = new Hono();
 
+// Validates and stores a fan's show or episode request for the admin queue.
 publicCommunity.post("/requests", async (c) => {
 	let body;
 	try {
@@ -86,6 +90,7 @@ publicCommunity.post("/requests", async (c) => {
 	return c.json({ success: true, request: { ...entry, status: "pending" } }, 201);
 });
 
+// Checks the rating and message, then saves feedback for the admin inbox.
 publicCommunity.post("/feedback", async (c) => {
 	let body;
 	try {
@@ -125,6 +130,7 @@ publicCommunity.post("/feedback", async (c) => {
 	return c.json({ success: true, feedback: { ...entry, status: "new" } }, 201);
 });
 
+// Maps a database episode review row to its API response fields.
 function reviewRow(row) {
 	return {
 		id: row.id,
@@ -138,6 +144,7 @@ function reviewRow(row) {
 	};
 }
 
+// Returns an episode's newest reviews along with the current average and count.
 publicCommunity.get("/reviews", async (c) => {
 	const episodeId = clean(c.req.query("episodeId"), 120);
 	if (!episodeId) return c.json({ error: "episodeId is required." }, 400);
@@ -156,6 +163,7 @@ publicCommunity.get("/reviews", async (c) => {
 	return c.json({ success: true, reviews, average, count: reviews.length });
 });
 
+// Validates and stores a guest or account review with a 1–10 rating.
 publicCommunity.post("/reviews", async (c) => {
 	let body;
 	try {
@@ -200,6 +208,7 @@ publicCommunity.post("/reviews", async (c) => {
 
 export const adminCommunity = new Hono();
 
+// Lists recent requests, optionally narrowed to a known status.
 adminCommunity.get("/requests", async (c) => {
 	const status = c.req.query("status");
 	let sql = "SELECT * FROM community_requests";
@@ -216,6 +225,7 @@ adminCommunity.get("/requests", async (c) => {
 	return c.json({ success: true, requests: results.map(requestRow) });
 });
 
+// Changes a request's status, rejecting unknown statuses and missing IDs.
 adminCommunity.patch("/requests/:id", async (c) => {
 	let body;
 	try {
@@ -233,6 +243,7 @@ adminCommunity.patch("/requests/:id", async (c) => {
 	return c.json({ success: true });
 });
 
+// Removes one request from the admin queue, or returns 404 if it is gone.
 adminCommunity.delete("/requests/:id", async (c) => {
 	const result = await c.env.DB.prepare("DELETE FROM community_requests WHERE id = ?")
 		.bind(c.req.param("id"))
@@ -241,6 +252,7 @@ adminCommunity.delete("/requests/:id", async (c) => {
 	return c.json({ success: true });
 });
 
+// Lists recent feedback, optionally narrowed to a known status.
 adminCommunity.get("/feedback", async (c) => {
 	const status = c.req.query("status");
 	let sql = "SELECT * FROM community_feedback";
@@ -257,6 +269,7 @@ adminCommunity.get("/feedback", async (c) => {
 	return c.json({ success: true, feedback: results.map(feedbackRow) });
 });
 
+// Marks feedback with a valid status, returning 404 when its ID is missing.
 adminCommunity.patch("/feedback/:id", async (c) => {
 	let body;
 	try {
@@ -274,6 +287,7 @@ adminCommunity.patch("/feedback/:id", async (c) => {
 	return c.json({ success: true });
 });
 
+// Removes feedback from the inbox, or returns 404 if it is already gone.
 adminCommunity.delete("/feedback/:id", async (c) => {
 	const result = await c.env.DB.prepare("DELETE FROM community_feedback WHERE id = ?")
 		.bind(c.req.param("id"))
@@ -282,6 +296,7 @@ adminCommunity.delete("/feedback/:id", async (c) => {
 	return c.json({ success: true });
 });
 
+// Lists the newest reviews, optionally filtered to one episode.
 adminCommunity.get("/reviews", async (c) => {
 	const episodeId = c.req.query("episodeId");
 	let sql = "SELECT * FROM episode_reviews";
@@ -292,6 +307,7 @@ adminCommunity.get("/reviews", async (c) => {
 	return c.json({ success: true, reviews: results.map(reviewRow) });
 });
 
+// Deletes a review by ID and reports when no matching review exists.
 adminCommunity.delete("/reviews/:id", async (c) => {
 	const result = await c.env.DB.prepare("DELETE FROM episode_reviews WHERE id = ?")
 		.bind(c.req.param("id"))

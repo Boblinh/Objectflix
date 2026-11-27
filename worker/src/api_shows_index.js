@@ -26,6 +26,7 @@ export class ListShows extends OpenAPIRoute {
     },
   };
 
+  // Returns all shows with their public fields, sorted by title.
   async handle(c) {
     const DB = c.env.DB;
 

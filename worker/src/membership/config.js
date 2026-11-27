@@ -7,7 +7,9 @@ export const PLANS = Object.freeze([
   { id: "fan-favorite", name: "Fan Favorite", rank: 2, priceEnv: "STRIPE_PRICE_FAN_FAVORITE", description: "A little more personality. A little closer to the community." },
   { id: "grand-champion", name: "Grand Champion", rank: 3, priceEnv: "STRIPE_PRICE_GRAND_CHAMPION", description: "Go all in on the community you love." },
 ]);
+// Returns the configured tier for an ID, or undefined when the ID is unknown.
 export const planFor = (id) => PLANS.find((plan) => plan.id === id);
+// Treats unknown tiers as free so they never gain a higher rank by mistake.
 export const rankFor = (id) => planFor(id)?.rank ?? 0;
 
 export const PERKS = Object.freeze([
@@ -44,6 +46,7 @@ export const PERKS = Object.freeze([
   ["community_extras", "Additional community perks", "grand-champion", false],
 ].map(([id, label, minPlan, implemented]) => Object.freeze({ id, label, minPlan, implemented, enabled: implemented })));
 
+// Applies valid perk overrides while keeping public perks and unshipped perks protected.
 export function perkConfiguration(env) {
   let overrides;
   try { overrides = JSON.parse(env.MEMBERSHIP_PERKS_JSON || "{}"); }
@@ -59,10 +62,12 @@ export function perkConfiguration(env) {
   });
 }
 
+// Builds a boolean entitlement map from the plan rank and enabled perk configuration.
 export function entitlementsFor(env, planId) {
   return Object.fromEntries(perkConfiguration(env).map((perk) => [perk.id, perk.implemented && perk.enabled && rankFor(planId) >= rankFor(perk.minPlan)]));
 }
 
+// Resolves a Stripe Price ID to exactly one configured paid tier.
 export function planFromPrice(env, priceId) {
   if (!priceId) return null;
   const matches = PLANS.filter((plan) => plan.priceEnv && env[plan.priceEnv] === priceId);
@@ -70,6 +75,7 @@ export function planFromPrice(env, priceId) {
   return matches[0] || null;
 }
 
+// Picks the highest tier with an unexpired paid period, or the free tier if none qualify.
 export function effectivePlan(subscriptions, now = nowSeconds()) {
   const entitled = subscriptions.filter((sub) => ["active", "past_due"].includes(sub.status) && sub.paid_through > now && (!sub.cancel_at || sub.cancel_at > now));
   return entitled.sort((a, b) => rankFor(b.entitled_plan_id) - rankFor(a.entitled_plan_id))[0]?.entitled_plan_id || "newbie";
@@ -81,7 +87,9 @@ export const COSMETICS = Object.freeze({
   decorations: [{ id: "none", label: "No decoration", perk: null }, { id: "spark", label: "Little spark", perk: "animated_decorations" }, { id: "seasonal", label: "Autumn leaf", perk: "seasonal_cosmetics" }],
 });
 
+// Hides saved cosmetics and opt-ins when the current entitlement no longer allows them.
 export function effectivePreferences(row, entitlements) {
+  // Returns a saved option only while its required perk is still available.
   const permitted = (items, value, fallback) => {
     const item = items.find((entry) => entry.id === value);
     return item && (!item.perk || entitlements[item.perk]) ? item.id : fallback;
@@ -96,6 +104,7 @@ export function effectivePreferences(row, entitlements) {
   };
 }
 
+// Combines this user's mode-matched billing rows and saved preferences into the API state.
 export async function memberState(env, userId) {
   const [subscriptions, preference, customer] = await env.DB.batch([
     env.DB.prepare("SELECT * FROM billing_subscriptions WHERE user_id = ? ORDER BY verified_at DESC").bind(userId),
@@ -115,6 +124,7 @@ export async function memberState(env, userId) {
   };
 }
 
+// Stops a protected action with a consistent 403 when the member lacks its perk.
 export function requirePerk(member, key) {
   if (!member.entitlements[key]) throw new HttpError(403, "This perk is not included in your current membership.", "perk_required");
 }

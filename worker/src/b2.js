@@ -12,6 +12,7 @@ let activeTokenFetches = 0;
 const tokenFetcherQueue = [];
 const inflightTokenPromises = new Map(); 
 
+// Reserves a download-token request slot or waits until one is available.
 function acquireTokenSlot() {
   if (activeTokenFetches < MAX_CONCURRENT_TOKEN_FETCHES) {
     activeTokenFetches++;
@@ -20,12 +21,14 @@ function acquireTokenSlot() {
   return new Promise((resolve) => tokenFetcherQueue.push(resolve));
 }
 
+// Frees a token request slot and wakes the next queued caller.
 function releaseTokenSlot() {
   activeTokenFetches--;
   const next = tokenFetcherQueue.shift();
   if (next) next();
 }
 
+// Retries transient B2 failures with a short backoff, then rethrows the last error.
 async function withRetry(fn, attempts = 3) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
@@ -47,10 +50,12 @@ async function withRetry(fn, attempts = 3) {
   throw lastErr;
 }
 
+// Reports whether the primary B2 application key pair is configured.
 function isConfigured(env) {
   return Boolean(env.B2_APPLICATION_KEY_ID && env.B2_APPLICATION_KEY);
 }
 
+// Builds account entries for the configured legacy and primary B2 credentials.
 export function bucketAccounts(env) {
   const accounts = [];
   const hasLegacy = Boolean(env.B2_APPLICATION_KEY_ID_OLD && env.B2_APPLICATION_KEY_OLD);
@@ -77,6 +82,7 @@ export function bucketAccounts(env) {
   return accounts;
 }
 
+// Finds configured credentials whose bucket ID or name matches the supplied reference.
 export function findAccountForBucket(env, bucketRef) {
   if (!bucketRef) return null;
   const accounts = bucketAccounts(env);
@@ -87,11 +93,13 @@ export function findAccountForBucket(env, bucketRef) {
   );
 }
 
+// Chooses the legacy account first, falling back to the first configured account.
 export function defaultAccount(env) {
   const accounts = bucketAccounts(env);
   return accounts.find((a) => a.name === "legacy") || accounts[0] || null;
 }
 
+// Authorizes with the primary B2 application key pair.
 export async function authorize(env) {
   const keyId = env.B2_APPLICATION_KEY_ID;
   const key = env.B2_APPLICATION_KEY;
@@ -99,6 +107,7 @@ export async function authorize(env) {
   return authorizeWith(env, keyId, key);
 }
 
+// Authorizes with admin credentials, falling back to the primary key pair.
 export async function authorizeAdmin(env) {
   const keyId = env.B2_ADMIN_KEY_ID || env.B2_APPLICATION_KEY_ID;
   const key = env.B2_ADMIN_KEY || env.B2_APPLICATION_KEY;
@@ -106,6 +115,7 @@ export async function authorizeAdmin(env) {
   return authorizeWith(env, keyId, key);
 }
 
+// Caches B2 account authorization by key ID and coalesces concurrent requests.
 async function authorizeWith(env, keyId, key) {
   const now = Date.now();
   const cache = accountCaches.get(keyId);
@@ -155,6 +165,7 @@ async function authorizeWith(env, keyId, key) {
   }
 }
 
+// Gets a cached, prefix-restricted B2 download token for one media key.
 async function getDownloadToken(env, account, videoKey, bucketId) {
   const now = Date.now();
   const cacheKey = `${bucketId || account.bucketId}:${videoKey}`;
@@ -205,6 +216,7 @@ async function getDownloadToken(env, account, videoKey, bucketId) {
   }
 }
 
+// Resolves credentials and bucket details for a requested or default read bucket.
 export async function resolveReadContext(env, requested) {
   const entry = requested ? findAccountForBucket(env, requested) : defaultAccount(env);
   if (!entry || !entry.keyId) {
@@ -220,11 +232,13 @@ export async function resolveReadContext(env, requested) {
   };
 }
 
+// Returns only the ID and name from the resolved read context.
 export async function resolveReadBucket(env, requested) {
   const ctx = await resolveReadContext(env, requested);
   return { id: ctx.bucketId, name: ctx.bucketName };
 }
 
+// Builds a direct B2 video URL, returning undefined when the key or lookup is unavailable.
 export async function getVideoUrl(env, videoKey, bucketName) {
   if (!videoKey) return undefined;
   try {
@@ -238,12 +252,14 @@ export async function getVideoUrl(env, videoKey, bucketName) {
   }
 }
 
+// Builds the Worker media route URL with each path segment safely encoded.
 export function getMediaUrl(origin, videoKey) {
   if (!videoKey) return undefined;
   const encodedKey = videoKey.split("/").map(encodeURIComponent).join("/");
   return `${origin}/media/${encodedKey}`;
 }
 
+// Checks B2 for an exact object-name match within the selected bucket.
 export async function objectExists(env, key, bucketName) {
   if (!key) return false;
   const ctx = await resolveReadContext(env, bucketName);
@@ -263,6 +279,7 @@ export async function objectExists(env, key, bucketName) {
   return Array.isArray(data.files) && data.files.some((file) => file.fileName === key);
 }
 
+// Lists buckets visible to the configured B2 admin credentials.
 export async function listBuckets(env) {
   const account = await authorizeAdmin(env);
   const res = await withRetry(async () => {
@@ -281,6 +298,7 @@ export async function listBuckets(env) {
   return (await res.json()).buckets || [];
 }
 
+// Finds and deletes the exact B2 file version, returning its ID or null if absent.
 export async function deleteObject(env, key, bucketName) {
   const ctx = await resolveReadContext(env, bucketName);
   const listRes = await withRetry(async () => {
@@ -315,6 +333,7 @@ export async function deleteObject(env, key, bucketName) {
   return file.fileId;
 }
 
+// Gets an upload URL for a bucket using its credentials or the admin account.
 export async function getUploadUrl(env, bucketId, creds) {  
   
   const account = creds ? await authorizeWith(env, creds.keyId, creds.key) : await authorizeAdmin(env);
@@ -337,6 +356,7 @@ export async function getUploadUrl(env, bucketId, creds) {
 
 const MAX_CACHEABLE_BYTES = 512 * 1024 * 1024; 
 
+// Copies upstream headers and adds the range, validator, and cache headers for media.
 function cacheableResponseHeaders(upstream) {
   const headers = new Headers(upstream.headers);
   
@@ -354,6 +374,7 @@ function cacheableResponseHeaders(upstream) {
   return headers;
 }
 
+// Serves cached media or fetches it from B2, caching eligible video responses.
 export async function streamVideo(env, ctx, key, clientRequest, bucketName) {
   let resolved;
   try {

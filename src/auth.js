@@ -1,4 +1,3 @@
-// Objectflix: this is the auth part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -16,6 +15,7 @@ const DISCORD_CONFIG = {
   redirectUri: window.location.origin + window.location.pathname,
 };
 
+// Allows only known app pages or a tightly validated watch URL as an auth redirect.
 function authReturnTarget(value) {
   const staticTargets = ['membership.html', 'movie-nights.html', 'movie-night-admin.html', 'subtitle-workshop-admin.html'];
   if (staticTargets.includes(value)) return value;
@@ -45,6 +45,7 @@ export const Auth = {
     authToggleModeBtn: document.getElementById('authToggleModeBtn'),
   },
 
+  // Restores any safe return target, prepares the form, and handles an OAuth callback.
   init() {
     window.Auth = this;
     if (!this.elements.form) return;
@@ -57,6 +58,7 @@ export const Auth = {
     this.handleDiscordCallback();
   },
 
+  // Wires the sign-in controls, provider buttons, password toggle, and accessible tab keys.
   bindEvents() {
     this.elements.tabSignIn.addEventListener('click', () => this.setMode('signin'));
     this.elements.tabSignUp.addEventListener('click', () => this.setMode('signup'));
@@ -86,6 +88,7 @@ export const Auth = {
     });
   },
 
+  // Switches between sign-in and sign-up copy, fields, and tab accessibility state.
   setMode(mode) {
     this.state.mode = mode;
     this.elements.tabSignIn.classList.toggle('is-active', mode === 'signin');
@@ -106,10 +109,12 @@ export const Auth = {
     this.elements.authToggleModeBtn.textContent = mode === 'signin' ? 'Sign up now' : 'Sign in';
   },
 
+  // Reveals the authentication gate.
   open() {
     this.elements.gate?.classList.remove('is-hidden');
   },
 
+  // Closes the gate only when a user is already signed in.
   close() {
     const currentUser = JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
     if (!currentUser) {
@@ -119,6 +124,7 @@ export const Auth = {
     this.elements.gate?.classList.add('is-hidden');
   },
 
+  // Stores the signed-in user and credentials, then redirects to a safe requested page.
   finishLogin(user, credentials) {
     sessionStorage.removeItem('objectflix_active_profile');
     localStorage.removeItem('objectflix_guest');
@@ -132,6 +138,7 @@ export const Auth = {
     window.location.assign(authReturnTarget(returnTo) ? `./${authReturnTarget(returnTo)}` : './index.html');
   },
 
+  // Validates the email/password form and creates or signs in to a local browser account.
   async handleSubmit(e) {
     e.preventDefault();
     const email = document.getElementById('authEmail').value;
@@ -177,6 +184,7 @@ export const Auth = {
     }
   },
 
+  // Signs in through Firebase and the app API, requiring a verified Google email.
   async handleGoogleLogin() {
     if (!isFirebaseConfigured()) {
       this.showError('Google sign-in is not configured. Add your Firebase web config in src/firebase-config.js.');
@@ -218,6 +226,7 @@ export const Auth = {
     }
   },
 
+  // Starts Discord OAuth with a one-time state value to protect the callback.
   handleDiscordLogin() {
     const { clientId, redirectUri } = DISCORD_CONFIG;
     if (!clientId || clientId.startsWith('PASTE_')) {
@@ -239,6 +248,7 @@ export const Auth = {
     window.location.assign(`https://discord.com/oauth2/authorize?${params.toString()}`);
   },
 
+  // Verifies Discord's OAuth state, exchanges the code with the API, and completes sign-in.
   async handleDiscordCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -280,6 +290,7 @@ export const Auth = {
     }
   },
 
+  // Displays an authentication error or status message in the form alert.
   showError(message) {
     const alertEl = document.getElementById('authAlert');
     alertEl.textContent = message;

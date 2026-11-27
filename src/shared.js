@@ -1,4 +1,3 @@
-// Objectflix: this is the shared part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -6,6 +5,7 @@
   const data = window.OBJECTFLIX_DATA || { profiles: [], trendingSearches: [], searchFilters: [] };
   const API = window.OBJECTFLIX_API;
 
+  // Resolves a media path against the API base while leaving absolute URLs unchanged.
   function toAbsoluteMediaUrl(url) {
     if (!url) return '';
     if (/^https?:\/\//i.test(url)) return url;
@@ -13,6 +13,7 @@
     return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
+  // Produces a repeatable nonnegative integer for stable display choices.
   function stableHash(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -22,11 +23,13 @@
     return Math.abs(hash);
   }
 
+  // Finds the first four-digit 19xx or 20xx year in a description.
   function deriveYear(description) {
     const match = (description || '').match(/\b(19|20)\d{2}\b/);
     return match ? match[0] : '—';
   }
 
+  // Creates a repeatable match percentage from a show's ID.
   function deriveMatch(id) {
     return `${88 + (stableHash(id) % 11)}% Match`;
   }
@@ -41,12 +44,14 @@
     "10000000-0000-4000-8000-000000000007": "TV-PG-V",    
   };
 
+  // Returns a configured age rating or a stable fallback based on the show ID.
   function deriveRating(id) {
     if (SHOW_AGE_RATINGS[id]) return SHOW_AGE_RATINGS[id];
     const ratings = ['TV-Y7', 'TV-PG', 'TV-14', 'TV'];
     return ratings[stableHash(id) % ratings.length];
   }
 
+  // Picks up to three repeatable genres from a title and ID.
   function deriveGenres(title, id) {
     const pool = ['Animation', 'Comedy', 'Adventure', 'Family', 'Sci-Fi', 'Drama'];
     const hash = stableHash(title + id);
@@ -65,16 +70,19 @@
     ['#eee2bb', '#f8f1d8', '#c7b576'],
   ];
 
+  // Selects a consistent placeholder-art palette for a show ID.
   function paletteFor(id) {
     return SHOW_PALETTES[stableHash(id) % SHOW_PALETTES.length];
   }
 
+  // Uses the supplied duration or labels the episode by its catalog number.
   function formatEpisodeMeta(episode) {
     return episode.duration || `Ep ${episode.episodeNumber}`;
   }
 
   
   
+  // Identifies known series acronyms from their IDs or recognizable titles.
   function acronymFor(show) {
     const knownIds = {
       '10000000-0000-4000-8000-000000000001': 'BFDI',
@@ -98,10 +106,12 @@
     return '';
   }
 
+  // Converts search text into lowercase alphanumeric tokens.
   function normalizeTokens(s) {
     return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(Boolean);
   }
 
+  // Returns the edit distance between two strings using a rolling-row calculation.
   function levenshtein(a, b) {
     const m = a.length;
     const n = b.length;
@@ -120,6 +130,7 @@
     return prev[n];
   }
 
+  // Allows exact, shared-prefix, or small edit-distance matches between search tokens.
   function tokensRoughlyEqual(a, b) {
     if (a === b) return true;
     const min = Math.min(a.length, b.length);
@@ -128,6 +139,7 @@
     return false;
   }
 
+  // Finds a show by ID, acronym, substring, or sufficiently close title tokens.
   function findShow(library, query) {
     const q = String(query || '').trim();
     if (!q || !Array.isArray(library)) return null;
@@ -177,6 +189,7 @@
   const SHOWS_WITH_POSTERS = new Set(['TPOT', 'BFDIA', 'BFB', 'BFDI', 'BFDIE']);
   const SHOWS_WITH_BACKDROPS = new Set(['TPOT', 'BFDIA', 'BFB', 'BFDI', 'BFDIE', 'IDFB']);
 
+  // Uses a known series logo or generates matching placeholder artwork.
   function logoFor(show) {
     const acronym = acronymFor(show);
     const logoFile = LOGO_FILES[acronym];
@@ -184,6 +197,7 @@
     return window.createPlaceholderImage(show.title.toUpperCase(), 700, 1050, paletteFor(show.id));
   }
 
+  // Combines API show, season, and episode records with the UI's derived catalog fields.
   function buildCatalogItem(show, seasons, episodes) {
     const palette = paletteFor(show.id);
     const episodeCount = episodes.length;
@@ -227,6 +241,7 @@
     };
   }
 
+  // Loads the full catalog, applies local and upcoming entries, and restores watch progress.
   async function loadLibrary() {
     const shows = await API.listShows();
 
@@ -273,6 +288,7 @@
     return results;
   }
 
+  // Builds the browse-page rows from catalog item IDs, returning none for an empty library.
   function buildRows(items) {
     const rows = [];
     if (!items.length) return rows;
@@ -288,12 +304,14 @@
     return rows;
   }
 
+  // Returns the episode after the current one, or the first episode when none is selected.
   function nextEpisode(item, episode) {
     if (!episode) return item.episodes[0] || null;
     const index = item.episodes.findIndex((ep) => ep.id === episode.id);
     return item.episodes[index + 1] || null;
   }
 
+  // Generates a profile-colored SVG avatar data URL from the profile's initial.
   function createAvatarImage(profile) {
     const colors = {
       'profile-avatar--gradient-a': '#f5bb99',
@@ -309,6 +327,7 @@
 
   
 
+  // Adds the ARG sigil while unlocked and removes it when the archive is locked.
   function syncArgSigil(unlocked) {
     if (!document.body) return;
     let sigil = document.getElementById('argSigil');
@@ -326,6 +345,7 @@
     }
   }
 
+  // Updates API access, page styling, the sigil, and persisted ARG unlock state.
   function applyArgUnlock(unlocked) {
     window.OBJECTFLIX_API.setUnlocked(unlocked);
     document.documentElement.classList.toggle('arg-unlocked', Boolean(unlocked));
@@ -338,6 +358,7 @@
     }
   }
 
+  // Checks the persisted ARG flag and the user's setting, returning false on storage errors.
   function isArgUnlocked() {
     try {
       return localStorage.getItem(window.OBJECTFLIX_CONFIG.arg.storageKey) === '1'
@@ -347,6 +368,7 @@
     }
   }
 
+  // Replaces the catalog with its hidden archive entry when the ARG is unlocked.
   function applyArgArchiveFilter(library) {
     if (!isArgUnlocked() || !Array.isArray(library)) return library;
     const hiddenIds = new Set(window.OBJECTFLIX_CONFIG.arg.hiddenEpisodes.map((item) => item.id));
@@ -368,6 +390,7 @@
     }];
   }
 
+  // Restores an allowed ARG unlock from local storage and syncs its page decoration.
   function restoreArgUnlock() {
     let persisted = false;
     try {
@@ -385,6 +408,7 @@
 
   
   
+  // Fetches configured hidden episodes and adds any missing records to the matching show.
   async function injectSecretEpisodes(library, secretEpisodesMap) {
     const { hiddenEpisodes } = window.OBJECTFLIX_CONFIG.arg;
     const injected = [];
@@ -433,10 +457,12 @@
   
   
 
+  // Returns the configured local-storage key for catalog edits.
   function catalogPatchKey() {
     return window.OBJECTFLIX_CONFIG?.admin?.catalogKey || 'objectflix_admin_catalog';
   }
 
+  // Reads saved catalog edits, returning null when storage or JSON parsing fails.
   function loadCatalogPatches() {
     try {
       const raw = localStorage.getItem(catalogPatchKey());
@@ -446,6 +472,7 @@
     }
   }
 
+  // Persists catalog edits as JSON without interrupting the app if storage is unavailable.
   function saveCatalogPatches(patches) {
     try {
       localStorage.setItem(catalogPatchKey(), JSON.stringify(patches || {}));
@@ -454,6 +481,7 @@
     }
   }
 
+  // Applies saved show and episode additions, edits, and removals to the supplied catalog.
   function applyCatalogPatches(items) {
     const patches = loadCatalogPatches();
     if (!patches) return items;
@@ -510,6 +538,7 @@
     return items;
   }
 
+  // Adds configured unreleased episodes to their matching shows without duplicating entries.
   function injectUpcomingEpisodes(library) {
     const upcomingList = window.OBJECTFLIX_CONFIG?.upcoming?.episodes || [];
     for (const upcoming of upcomingList) {
@@ -559,6 +588,7 @@
     },
   ];
 
+  // Adds missing research-slate shows as placeholders with one unreleased episode.
   function appendResearchSlate(results) {
     for (const seed of RESEARCH_SLATE) {
       if (results.some((item) => item.id === seed.id)) continue;
@@ -599,6 +629,7 @@
     return results;
   }
 
+  // Checks API-hosted media when possible and allows other URLs or failed checks to proceed.
   async function isEpisodeStreamable(src) {
     if (!src) return false;
     const marker = '/media/';
@@ -611,6 +642,7 @@
     }
   }
 
+  // Creates or refreshes the release-date notice and binds its close controls.
   function showUnreleasedNoticeModal(episode) {    let modal = document.getElementById('unreleasedNoticeModal');
     if (!modal) {
       modal = document.createElement('div');
@@ -638,6 +670,7 @@
 
     modal.classList.remove('is-hidden');
 
+    // Shares one close action across the notice button and backdrop.
     const closeModal = () => modal.classList.add('is-hidden');
     modal.querySelector('#closeUnreleasedBtn')?.addEventListener('click', closeModal, { once: true });
     modal.querySelector('#gotItUnreleasedBtn')?.addEventListener('click', closeModal, { once: true });

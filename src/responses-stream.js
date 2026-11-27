@@ -1,4 +1,4 @@
-// Objectflix: this is the responses stream part, kept here so the rest of the app knows exactly where to look.
+// Reads a Responses API SSE stream, forwards accumulated text, and returns only completed output.
 export async function consumeResponsesStream(stream, onText = () => {}) {
   if (!stream) throw new Error('Missing response stream.');
   const reader = stream.getReader();
@@ -7,6 +7,7 @@ export async function consumeResponsesStream(stream, onText = () => {}) {
   let text = '';
   let completed = false;
 
+  // Parses one SSE block, appending text deltas or recording final completion state.
   function consume(block) {
     const data = block.split('\n').filter((line) => line.startsWith('data:')).map((line) => line.slice(5).replace(/^ /, '')).join('\n');
     if (!data || data === '[DONE]') return;

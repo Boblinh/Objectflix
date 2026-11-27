@@ -1,16 +1,18 @@
-// Objectflix: this is the alpha warning part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const STORAGE_KEY = "objectflix_alpha_acknowledged";
   const B2_KEY = "objectflix_b2_notice_seen";
 
+  // Checks whether this browser has acknowledged the alpha notice.
   function alreadySeen() {
     return localStorage.getItem(STORAGE_KEY) === "1";
   }
 
+  // Checks whether this browser has acknowledged the storage-limit notice.
   function b2AlreadySeen() {
     return localStorage.getItem(B2_KEY) === "1";
   }
 
+  // Saves the alpha acknowledgment, closes its modal, and shows the B2 notice if needed.
   function dismissAlpha() {
     localStorage.setItem(STORAGE_KEY, "1");
     const modal = document.getElementById("alphaWarningModal");
@@ -18,12 +20,14 @@
     if (!b2AlreadySeen()) createB2Modal();
   }
 
+  // Saves the storage notice acknowledgment and closes its modal.
   function dismissB2() {
     localStorage.setItem(B2_KEY, "1");
     const modal = document.getElementById("b2NoticeModal");
     if (modal) modal.classList.add("is-hidden");
   }
 
+  // Caches whether the browser reports support for either of the tested AV1 codecs.
   function browserSupportsAV1() {
     if (browserSupportsAV1._cached !== undefined) return browserSupportsAV1._cached;
     const probe = document.createElement("video");
@@ -36,6 +40,7 @@
     return browserSupportsAV1._cached;
   }
 
+  // Scans catalog video URLs for H.264 alternatives and lists episodes that appear AV1-only.
   async function runAV1Check() {
     const container = document.getElementById("alphaAV1Results");
     if (!container) return;
@@ -95,6 +100,7 @@
     }
   }
 
+  // Builds and displays the alpha welcome modal with its AV1 checker and close actions.
   function createModal() {
     if (document.getElementById("alphaWarningModal")) return;
 
@@ -171,6 +177,7 @@
     modal.classList.remove("is-hidden");
   }
 
+  // Builds and displays the one-time notice about Backblaze's daily download limits.
   function createB2Modal() {
     if (document.getElementById("b2NoticeModal")) return;
 
@@ -216,6 +223,7 @@
     modal.classList.remove("is-hidden");
   }
 
+  // Shows the alpha notice on first visit; later visits skip it.
   function init() {
     if (!alreadySeen()) createModal();
   }

@@ -1,4 +1,3 @@
-// Objectflix: this is the helpers part, kept here so the rest of the app knows exactly where to look.
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { Hono } from 'hono';
@@ -10,9 +9,13 @@ import { azureAI } from '../src/azure_api.js';
 import { profiles } from '../src/profiles_api.js';
 import { subtitleWorkshop } from '../src/subtitle_workshop.js';
 
+// Adapts node:sqlite statements to the async D1-like methods used by the Worker routes.
 class Statement {
+  // Stores a query and its bound values until a D1-style method executes it.
   constructor(db, sql, values = []) { this.db = db; this.sql = sql; this.values = values; }
+  // Creates a fresh wrapper with the supplied placeholders, matching D1's chainable bind API.
   bind(...values) { return new Statement(this.db, this.sql, values); }
+  // Runs the SQL synchronously and wraps results in the shapes expected from D1.
   execute(mode = 'all') {
     const statement = this.db.prepare(this.sql);
     if (mode === 'first') return statement.get(...this.values) || null;
@@ -20,11 +23,15 @@ class Statement {
     const results = statement.all(...this.values);
     return { success: true, results, meta: { changes: this.db.prepare('SELECT changes() AS changes').get().changes } };
   }
+  // Returns one row or null for SELECTs that use D1's first() method.
   async first() { return this.execute('first'); }
+  // Returns all rows and change metadata in the D1-style result object.
   async all() { return this.execute(); }
+  // Runs a write statement and exposes its affected-row count as D1 metadata.
   async run() { return this.execute('run'); }
 }
 
+// Creates an isolated in-memory SQLite DB, applies the app migrations, and exposes a small D1 test adapter.
 export function database() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('PRAGMA foreign_keys = ON');
@@ -34,7 +41,9 @@ export function database() {
   sqlite.exec('ALTER TABLE episodes ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0');
   return {
     sqlite,
+    // Wraps a SQL string so tests and routes can use the adapter's bind/first/all/run methods.
     prepare(sql) { return new Statement(sqlite, sql); },
+    // Applies a group of statements in one SQLite transaction and rolls back the whole batch on error.
     async batch(statements) {
       sqlite.exec('BEGIN');
       try { const results = statements.map((statement) => statement.execute()); sqlite.exec('COMMIT'); return results; }
@@ -43,9 +52,11 @@ export function database() {
   };
 }
 
+// Shares the API's Unix-seconds clock for fixtures and time-sensitive assertions.
 export const now = () => Math.floor(Date.now() / 1000);
 export const priceId = { 'announcers-pick': 'price_announcer', 'fan-favorite': 'price_favorite', 'grand-champion': 'price_champion' };
 
+// Supplies stable app, Stripe, and membership bindings for each isolated test database.
 export function environment(DB) {
   return { DB, APP_URL: 'https://objectflix.example/', STRIPE_MODE: 'test', STRIPE_SECRET_KEY: 'sk_test_fixture',
     STRIPE_WEBHOOK_SECRET: 'whsec_fixture', STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_fixture',
@@ -59,12 +70,14 @@ export const app = new Hono()
   .route('/api/stripe/webhook', stripeWebhooks).route('/api/ai', azureAI)
   .route('/api/profiles', profiles).route('/api/subtitle-workshop', subtitleWorkshop);
 
+// Inserts a verified Google fixture and returns its bearer token alongside the stored user row.
 export async function identity(env, id = 'viewer') {
   const session = await createVerifiedSession(env, { id, provider: 'google', email: `${id}@example.invalid`, displayName: `Viewer ${id}` });
   const user = await env.DB.prepare('SELECT * FROM account_users WHERE id = ?').bind(`google:${id}`).first();
   return { ...session, user };
 }
 
+// Calls the composed Hono app and optionally waits for waitUntil work, returning parsed JSON and task handles.
 export async function request(env, path, { auth, method = 'GET', body, headers = {}, wait = true } = {}) {
   const tasks = [];
   const finalHeaders = new Headers(headers);
@@ -75,6 +88,7 @@ export async function request(env, path, { auth, method = 'GET', body, headers =
   return { response, data: await response.json(), tasks };
 }
 
+// Signs raw webhook bytes with the fixture secret, submits them, and waits for scheduled processing.
 export async function signedEvent(env, event, { signature, raw, timestamp = now() } = {}) {
   const body = raw ?? JSON.stringify(event);
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
@@ -86,6 +100,7 @@ export async function signedEvent(env, event, { signature, raw, timestamp = now(
   return { response, data: await response.json() };
 }
 
+// Builds a one-item monthly subscription with an invoice line paid through the current test period.
 export function paidSubscription(userId, plan = 'announcers-pick', id = 'sub_fixture', customer = 'cus_fixture') {
   const price = { id: priceId[plan], recurring: { interval: 'month', interval_count: 1, usage_type: 'licensed' }, currency: 'usd' };
   return { id, customer, livemode: false, status: 'active', metadata: { objectflix_user_id: userId }, cancel_at_period_end: false, cancel_at: null,
@@ -95,17 +110,21 @@ export function paidSubscription(userId, plan = 'announcers-pick', id = 'sub_fix
   };
 }
 
+// Wraps a subscription or its invoice as a Stripe webhook event with the chosen event type.
 export function eventFor(subscription, type = 'customer.subscription.updated', id = crypto.randomUUID().replaceAll('-', '')) {
   const object = type.startsWith('invoice.') ? { ...subscription.latest_invoice, customer: subscription.customer } : subscription;
   return { id: `evt_${id}`, type, livemode: false, created: now(), data: { object } };
 }
 
+// Links a test user's verified ID to the Stripe customer used by the mock provider.
 export async function mapCustomer(env, user, customer = 'cus_fixture') {
   await env.DB.prepare('INSERT INTO billing_customers (user_id, stripe_customer_id, livemode, created_at) VALUES (?, ?, 0, ?)').bind(user.id, customer, now()).run();
 }
 
+// Intercepts Stripe API calls with deterministic fixture responses and exposes captured requests/state.
 export function stripeMock(t) {
   const state = { subscriptions: new Map(), sessions: new Map(), requests: [], failures: 0 };
+  // Node's test mock restores global fetch after the test, keeping provider stubs isolated.
   t.mock.method(globalThis, 'fetch', async (input, init = {}) => {
     const url = new URL(input);
     const values = Object.fromEntries(new URLSearchParams(init.body || ''));
@@ -137,6 +156,7 @@ export function stripeMock(t) {
   return state;
 }
 
+// Bundles a fresh database, environment, authenticated viewer, and Stripe stub for membership tests.
 export async function fixture(t) {
   const DB = database(); t.after(() => DB.sqlite.close());
   const env = environment(DB);
@@ -145,6 +165,7 @@ export async function fixture(t) {
   return { env, auth, stripe, DB };
 }
 
+// Grants a fixture plan through the real signed-webhook route instead of editing entitlements directly.
 export async function grant(f, plan = 'announcers-pick', id = 'sub_fixture') {
   await mapCustomer(f.env, f.auth.user);
   const subscription = paidSubscription(f.auth.user.id, plan, id);
@@ -153,6 +174,7 @@ export async function grant(f, plan = 'announcers-pick', id = 'sub_fixture') {
   return subscription;
 }
 
+// Creates a catalog episode, verified rights record, and Movie Night through the admin API.
 export async function seedEvent(env, auth, status = 'upcoming') {
   env.MEMBERSHIP_ADMIN_USER_IDS_JSON = JSON.stringify([auth.user.id]);
   await env.DB.prepare("INSERT INTO shows (id, title) VALUES ('show_fixture', 'A permitted story')").run();

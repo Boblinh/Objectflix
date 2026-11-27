@@ -1,4 +1,3 @@
-// Objectflix: this is the player test part, kept here so the rest of the app knows exactly where to look.
 import JASSUB from "jassub";
 
 const JASSUB_CDN =
@@ -61,12 +60,14 @@ const state = {
 const listenerController = new AbortController();
 const listenerOptions = { signal: listenerController.signal };
 
+// Updates one asset-status label and recalculates the overall test readiness.
 function setStatus(target, textTarget, status, message) {
   target.dataset.state = status;
   textTarget.textContent = message;
   updateStatusSummary();
 }
 
+// Summarizes video and subtitle readiness for the test page.
 function updateStatusSummary() {
   const statuses = [elements.videoStatus, elements.subtitleStatus];
   if (statuses.some((item) => item.dataset.state === "error")) {
@@ -80,16 +81,19 @@ function updateStatusSummary() {
   elements.statusSummary.textContent = "Loading…";
 }
 
+// Shows a titled status message over the test player.
 function showDevelopmentMessage(title, message) {
   elements.messageTitle.textContent = title;
   elements.messageText.textContent = message;
   elements.message.classList.remove("is-hidden");
 }
 
+// Hides the test player's current status message.
 function hideDevelopmentMessage() {
   elements.message.classList.add("is-hidden");
 }
 
+// Formats nonnegative seconds as mm:ss or h:mm:ss for player labels.
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const hours = Math.floor(seconds / 3600);
@@ -100,11 +104,13 @@ function formatTime(seconds) {
     : `${minutes}:${remainingSeconds}`;
 }
 
+// Clamps a progress ratio and applies it to the range input's visual fill.
 function updateRangeFill(input, ratio) {
   const percent = Math.min(100, Math.max(0, ratio * 100));
   input.style.setProperty("--range-progress", `${percent}%`);
 }
 
+// Syncs play controls and control visibility with the video's playback state.
 function syncPlaybackUI() {
   const isPlaying = !elements.video.paused && !elements.video.ended;
   elements.player.classList.toggle("is-playing", isPlaying);
@@ -114,6 +120,7 @@ function syncPlaybackUI() {
   else showControls(false);
 }
 
+// Updates elapsed and total time plus the progress slider when it is not being dragged.
 function syncTimeUI() {
   const duration = elements.video.duration;
   const current = elements.video.currentTime;
@@ -127,6 +134,7 @@ function syncTimeUI() {
   }
 }
 
+// Updates the mute button and volume slider from the remembered user settings.
 function syncVolumeUI() {
   const muted = state.userMuted || state.userVolume === 0;
   elements.player.classList.toggle("is-muted", muted);
@@ -135,6 +143,7 @@ function syncVolumeUI() {
   updateRangeFill(elements.volume, muted ? 0 : state.userVolume);
 }
 
+// Starts or pauses the test video and reports browser playback failures.
 async function togglePlayback() {
   if (elements.video.paused || elements.video.ended) {
     try {
@@ -148,6 +157,7 @@ async function togglePlayback() {
   }
 }
 
+// Moves playback by a relative number of seconds, clamped to the video duration.
 function seekBy(seconds) {
   if (!Number.isFinite(elements.video.duration)) return;
   elements.video.currentTime = Math.min(
@@ -157,6 +167,7 @@ function seekBy(seconds) {
   syncTimeUI();
 }
 
+// Applies the selected progress-slider position to the video.
 function commitProgress() {
   if (!Number.isFinite(elements.video.duration)) return;
   elements.video.currentTime = (Number(elements.progress.value) / 100) * elements.video.duration;
@@ -164,6 +175,7 @@ function commitProgress() {
   syncTimeUI();
 }
 
+// Previews a slider seek in the labels without moving the video yet.
 function previewProgress() {
   if (!Number.isFinite(elements.video.duration)) return;
   state.isSeeking = true;
@@ -173,6 +185,7 @@ function previewProgress() {
   updateRangeFill(elements.progress, Number(elements.progress.value) / 100);
 }
 
+// Toggles mute while keeping the last nonzero volume for unmuting.
 function toggleMute() {
   if (state.userMuted || state.userVolume === 0) {
     state.userMuted = false;
@@ -185,6 +198,7 @@ function toggleMute() {
   syncVolumeUI();
 }
 
+// Reads the volume slider and applies its value and mute state to the video.
 function setVolume() {
   const volume = Number(elements.volume.value);
   state.userVolume = volume;
@@ -194,17 +208,20 @@ function setVolume() {
   syncVolumeUI();
 }
 
+// Applies stored volume settings unless cleanup has already started.
 function applyUserVolume() {
   if (state.destroyed) return;
   elements.video.volume = state.userVolume;
   elements.video.muted = state.userMuted;
 }
 
+// Reveals the test controls and optionally schedules them to hide during playback.
 function showControls(scheduleHide = true) {
   elements.player.classList.remove("controls-hidden");
   if (scheduleHide && !elements.video.paused) scheduleControlsHide();
 }
 
+// Hides controls after a delay when playing and focus is outside the player.
 function scheduleControlsHide() {
   window.clearTimeout(state.controlsTimer);
   state.controlsTimer = window.setTimeout(() => {
@@ -214,10 +231,12 @@ function scheduleControlsHide() {
   }, 2600);
 }
 
+// Reads the fullscreen element across standard and WebKit browser APIs.
 function getFullscreenElement() {
   return document.fullscreenElement || document.webkitFullscreenElement || null;
 }
 
+// Enters or exits player fullscreen and displays a message if the request fails.
 async function toggleFullscreen() {
   try {
     if (getFullscreenElement()) {
@@ -235,6 +254,7 @@ async function toggleFullscreen() {
   }
 }
 
+// Updates fullscreen styling and schedules the subtitle canvas to resize.
 function syncFullscreenUI() {
   const isFullscreen = getFullscreenElement() === elements.player;
   elements.player.classList.toggle("is-fullscreen", isFullscreen);
@@ -242,6 +262,7 @@ function syncFullscreenUI() {
   requestSubtitleResize();
 }
 
+// Debounces JASSUB canvas resizing after video or viewport size changes.
 function requestSubtitleResize() {
   window.clearTimeout(state.resizeTimer);
   state.resizeTimer = window.setTimeout(async () => {
@@ -254,6 +275,7 @@ function requestSubtitleResize() {
   }, 120);
 }
 
+// Handles playback shortcuts without intercepting modified keys or form controls.
 function handleKeyboard(event) {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   const target = event.target;
@@ -281,6 +303,7 @@ function handleKeyboard(event) {
   action();
 }
 
+// Translates browser media error codes into local test-video troubleshooting text.
 function getMediaErrorMessage(error) {
   const mediaError = elements.video.error;
   if (mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
@@ -295,6 +318,7 @@ function getMediaErrorMessage(error) {
   return error?.message || "Check the local video path and browser codec support.";
 }
 
+// Marks the test video as failed and explains which local asset needs attention.
 function handleVideoError() {
   const message = getMediaErrorMessage(elements.video.error);
   elements.player.classList.remove("is-loading");
@@ -306,6 +330,7 @@ function handleVideoError() {
   );
 }
 
+// Fetches the local ASS file and confirms it contains the expected script header.
 async function verifySubtitleAsset() {
   setStatus(elements.subtitleStatus, elements.subtitleStatusText, "loading", "Checking local ASS file…");
   try {
@@ -331,12 +356,14 @@ async function verifySubtitleAsset() {
   }
 }
 
+// Creates a module-worker URL for the JASSUB renderer.
 function createWorkerBlobUrl() {
   
   const workerSource = `import "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist/worker/worker.js/+esm";`;
   return URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" }));
 }
 
+// Rejects when a startup promise exceeds its limit and always clears the timer.
 function withTimeout(promise, milliseconds, message) {
   return Promise.race([
     promise,
@@ -349,6 +376,7 @@ function withTimeout(promise, milliseconds, message) {
   });
 }
 
+// Classifies a JASSUB failure as WASM, worker, or general initialization trouble.
 function describeJassubError(error) {
   const message = String(error?.message || error || "Unknown JASSUB error");
   if (/wasm|webassembly/i.test(message)) return `WASM loading failed: ${message}`;
@@ -356,6 +384,7 @@ function describeJassubError(error) {
   return `JASSUB initialization failed: ${message}`;
 }
 
+// Verifies the local subtitle asset, starts JASSUB, and reports its ready or error state.
 async function initializeSubtitles() {
   const subtitleExists = await verifySubtitleAsset();
   if (!subtitleExists || state.destroyed) return;
@@ -397,6 +426,7 @@ async function initializeSubtitles() {
   }
 }
 
+// Reports whether custom font files are configured for the subtitle test.
 function initializeFontStatus() {
   if (absoluteAssets.fonts.length) {
     setStatus(
@@ -415,6 +445,7 @@ function initializeFontStatus() {
   }
 }
 
+// Connects the test controls, media events, keyboard shortcuts, and resize handling.
 function bindPlayerEvents() {
   elements.centerPlay.addEventListener("click", togglePlayback, listenerOptions);
   elements.playPause.addEventListener("click", togglePlayback, listenerOptions);
@@ -465,6 +496,7 @@ function bindPlayerEvents() {
   }
 }
 
+// Aborts listeners and releases timers, the subtitle renderer, and its worker URL.
 async function cleanup() {
   if (state.destroyed) return;
   state.destroyed = true;
@@ -492,6 +524,7 @@ async function cleanup() {
   }
 }
 
+// Wires the test player, loads its local video, initializes fonts, and starts subtitles.
 function initializePlayer() {
   bindPlayerEvents();
   elements.video.src = absoluteAssets.video;

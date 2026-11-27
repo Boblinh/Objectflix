@@ -2,8 +2,10 @@
 import { HttpError, nowSeconds } from "./http.js";
 
 export const STRIPE_API_VERSION = "2025-06-30.basil";
+// Selects the Stripe environment used by all key, customer, and webhook checks.
 export const liveMode = (env) => env.STRIPE_MODE === "live";
 
+// Rejects missing or test/live-mismatched secret keys before making Stripe requests.
 export function requireStripe(env) {
   const expected = liveMode(env) ? "live" : "test";
   if (!new RegExp(`^(sk|rk)_${expected}_[A-Za-z0-9_]+$`).test(env.STRIPE_SECRET_KEY || "")) {
@@ -11,16 +13,19 @@ export function requireStripe(env) {
   }
 }
 
+// Reports whether key, portal configuration, and webhook secret are all ready for billing.
 export function billingConfigured(env) {
   try { requireStripe(env); return /^bpc_[A-Za-z0-9]+$/.test(env.STRIPE_PORTAL_CONFIGURATION_ID || "") && Boolean(env.STRIPE_WEBHOOK_SECRET); }
   catch { return false; }
 }
 
+// Extracts a Stripe ID from either a plain ID or expanded object and checks its prefix.
 export function stripeId(value, prefix) {
   const id = typeof value === "object" && value ? value.id : value;
   return typeof id === "string" && new RegExp(`^${prefix}_[A-Za-z0-9_]+$`).test(id) ? id : null;
 }
 
+// Sends an authenticated form-encoded request and normalizes network, API, and mode errors.
 export async function stripeRequest(env, method, path, parameters = {}, idempotencyKey) {
   requireStripe(env);
   const headers = {
@@ -49,6 +54,7 @@ export async function stripeRequest(env, method, path, parameters = {}, idempote
   return result;
 }
 
+// Fetches a configured price and accepts only an active fixed licensed monthly recurring price.
 export async function monthlyPrice(env, id) {
   if (!stripeId(id, "price")) throw new HttpError(503, "Monthly pricing has not been configured for this plan.", "price_not_configured");
   const price = await stripeRequest(env, "GET", `/prices/${id}`);
@@ -58,6 +64,7 @@ export async function monthlyPrice(env, id) {
   return price;
 }
 
+// Allows only HTTPS checkout or billing-portal URLs on Stripe's expected host.
 export function safeStripeUrl(url, type) {
   const host = type === "portal" ? "billing.stripe.com" : "checkout.stripe.com";
   let parsed;
@@ -66,6 +73,7 @@ export function safeStripeUrl(url, type) {
   return parsed.href;
 }
 
+// Verifies Stripe's timestamped HMAC against current/previous secrets within a five-minute window.
 export async function verifyStripeSignature(payload, header, env, now = nowSeconds()) {
   if (!env.STRIPE_WEBHOOK_SECRET) throw new HttpError(503, "Stripe webhooks are not configured.", "webhook_not_configured");
   if (!header || header.length > 4096) throw new HttpError(400, "Invalid Stripe signature.", "invalid_signature");

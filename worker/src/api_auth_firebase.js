@@ -10,6 +10,7 @@ const encoder = new TextEncoder();
 let cachedKeys = null;
 let cachedUntil = 0;
 
+// Decodes a base64url JWT segment into its original bytes.
 function base64UrlDecode(value) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
@@ -17,6 +18,7 @@ function base64UrlDecode(value) {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
+// Loads Firebase's signing keys and reuses them for up to an hour.
 async function firebasePublicKeys() {
   const now = Date.now();
   if (cachedKeys && cachedUntil > now) return cachedKeys;
@@ -29,6 +31,7 @@ async function firebasePublicKeys() {
   return cachedKeys;
 }
 
+// Verifies the token signature and Firebase claims, returning its trusted payload.
 async function verifyFirebaseIdToken(idToken, projectId) {
   const parts = String(idToken || "").split(".");
   if (parts.length !== 3) throw new Error("Malformed Firebase ID token.");
@@ -95,6 +98,7 @@ export class FirebaseAuthCallback extends OpenAPIRoute {
     },
   };
 
+  // Validates the submitted Firebase token and creates a verified Objectflix session.
   async handle(c) {
     c.header("Cache-Control", "no-store");
     const projectId = c.env.FIREBASE_PROJECT_ID;

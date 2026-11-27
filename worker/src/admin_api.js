@@ -18,6 +18,7 @@ admin.use("*", async (c, next) => {
 
 admin.route("/community", adminCommunity);
 
+// Accepts a bucket ID directly or looks up a name; null means the lookup failed.
 async function resolveBucketId(env, requested) {
   if (!requested) return undefined;
   if (/^[0-9a-f]{12}$/i.test(requested)) return requested;
@@ -30,6 +31,7 @@ async function resolveBucketId(env, requested) {
   }
 }
 
+// Probes B2 and returns available buckets, falling back to configured bucket details when listing is unavailable.
 admin.get("/storage", async (c) => {
   try {
     const account = await authorizeAdmin(c.env);
@@ -66,6 +68,7 @@ admin.get("/storage", async (c) => {
   }
 });
 
+// Validates a media object name and bucket, then returns credentials for a direct B2 upload.
 admin.post("/uploads/sign", async (c) => {
   let body;
   try {
@@ -108,6 +111,7 @@ admin.post("/uploads/sign", async (c) => {
   }
 });
 
+// Validates the media object name and deletes that exact object from the selected bucket.
 admin.post("/uploads/delete", async (c) => {
   let body;
   try {

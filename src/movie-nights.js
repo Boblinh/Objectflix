@@ -1,4 +1,3 @@
-// Objectflix: this is the movie nights part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const { escapeHTML: esc, icon } = M;
@@ -10,10 +9,14 @@
   let selected = null;
   let detailRequest = 0;
   const names = { newbie: 'Newbie', 'announcers-pick': "Announcer's Pick", 'fan-favorite': 'Fan Favorite', 'grand-champion': 'Grand Champion' };
+  // Formats an event's Unix start or end time for the viewer's locale.
   const dateTime = (seconds) => new Date(seconds * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  // Maps API event states to the short labels shown in the schedule.
   const statusLabel = (status) => ({ upcoming: 'Coming up', live: 'Live now', completed: 'Completed', cancelled: 'Cancelled' }[status] || status);
+  // Displays or clears the Movie Nights alert banner.
   function showError(text) { alert.textContent = text; alert.classList.toggle('is-hidden', !text); }
 
+  // Filters the loaded events and renders the schedule cards or empty state.
   function renderEvents() {
     const shown = events.filter((event) => filter === 'all' || (filter === 'upcoming' ? ['upcoming', 'live'].includes(event.status) : ['completed', 'cancelled'].includes(event.status)));
     grid.innerHTML = shown.length ? shown.map((event) => {
@@ -23,6 +26,7 @@
     grid.setAttribute('aria-busy', 'false');
   }
 
+  // Loads the public schedule and restores event details from the URL fragment.
   async function loadEvents() {
     showError(''); grid.setAttribute('aria-busy', 'true');
     try {
@@ -37,6 +41,7 @@
     }
   }
 
+  // Renders one event's playback, RSVP, poll, theme suggestion, and supporter details.
   function renderDetail(data) {
     const { event, viewer } = data;
     const open = ['upcoming', 'live'].includes(event.status);
@@ -49,6 +54,7 @@
       ${data.supporters.length ? `<div class="event-supporters"><p class="eyebrow">A LITTLE THANK-YOU</p><h3>Making nights like this a little brighter.</h3><p>These supporters chose to be recognized at this event.</p><ul class="supporter-names">${data.supporters.map((supporter) => `<li>${esc(supporter.displayName)}${supporter.title ? ` · ${esc(supporter.title)}` : ''}</li>`).join('')}</ul></div>` : ''}`;
   }
 
+  // Fetches one event's details and ignores stale responses from earlier selections.
   async function openEvent(id, focus = true) {
     const requestId = ++detailRequest;
     detail.classList.remove('is-hidden');

@@ -1,15 +1,19 @@
-// Objectflix: this is the browse part, kept here so the rest of the app knows exactly where to look.
 
 
 
 (() => {
   const { trendingSearches, searchFilters } = window.OBJECTFLIX_DATA || { trendingSearches: [], searchFilters: [] };
   const SHARED = window.OBJECTFLIX_SHARED;
+  // Escapes catalog and profile values before they enter browse-page HTML.
   const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  // Builds an SVG use element for a named icon in the shared sprite.
   const icon = (name) => `<svg class="ui-icon" aria-hidden="true"><use href="./assets/ui/icons.svg#${name}"></use></svg>`;
   const fullTitles = { BFDI: 'Battle for Dream Island', BFDIA: 'Battle for Dream Island Again', BFB: 'Battle for BFDI', TPOT: 'Battle for Dream Island: The Power of Two', BFDIE: 'Battle for Dream Island Elsewhere', IDFB: 'dnalsI maerD rof elttaB' };
+  // Uses a configured long title for known acronyms, otherwise keeps the catalog title.
   const displayTitle = (item) => fullTitles[item.title.toUpperCase()] || item.title;
+  // Excludes upcoming episodes so play controls only target released entries.
   const releasedEpisodes = (item) => item.episodes.filter((episode) => episode.released !== false);
+  // Returns the released episode count, or a coming-soon label when none are available.
   const episodeLabel = (item) => {
     const count = releasedEpisodes(item).length;
     return count ? `${count} episode${count === 1 ? '' : 's'}` : 'Coming soon';
@@ -72,6 +76,7 @@
   
   
 
+  // Reads the current account from localStorage, returning null if the stored value is invalid.
   function currentUser() {
     try {
       return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
@@ -80,6 +85,7 @@
     }
   }
 
+  // Restores the selected profile, creating a guest profile when no account is signed in.
   function restoreActiveProfile() {
     let profile = null;
     try {
@@ -102,6 +108,7 @@
     return { profile, userProfiles: [profile] };
   }
 
+  // Applies the active profile's avatar and greeting, then loads its saved lists and appearance.
   function applyCurrentProfile() {
     if (!state.currentProfile) return;
     elements.avatarButton.style.backgroundImage = `url("${SHARED.createAvatarImage(state.currentProfile)}")`;
@@ -112,6 +119,7 @@
     window.OBJECTFLIX_MEMBERSHIP?.applyAppearance();
   }
 
+  // Loads this profile's saved titles and likes, resetting both sets if storage is invalid.
   function loadLists() {
     const profile = state.currentProfile;
     if (!profile) return;
@@ -124,6 +132,7 @@
     }
   }
 
+  // Persists the active profile's saved-title IDs in localStorage.
   function saveList() {
     const profile = state.currentProfile;
     if (!profile) return;
@@ -134,6 +143,7 @@
     }
   }
 
+  // Persists the active profile's liked-title IDs in localStorage.
   function saveLikes() {
     const profile = state.currentProfile;
     if (!profile) return;
@@ -148,6 +158,7 @@
   
   
 
+  // Loads the catalog, applies unlocked ARG content, renders browse views, and opens linked details.
   async function bootLibrary() {
     state.libraryLoading = true;
     state.libraryError = null;
@@ -179,6 +190,7 @@
     }
   }
 
+  // Displays placeholder cards while the catalog is loading.
   function showSkeletons() {
     const skeleton = `
       <div class="browse-loading" role="status">
@@ -193,6 +205,7 @@
     elements.homeView.innerHTML = skeleton;
   }
 
+  // Replaces the home view with a retry prompt and an escaped catalog-load error.
   function renderLibraryError(error) {
     const message = error?.message || 'Something went wrong while loading the library.';
     elements.homeView.innerHTML = `
@@ -210,6 +223,7 @@
   
   
 
+  // Renders the active browse view, including history, discovery, spotlight, and catalog rows.
   function renderHome() {
     if (state.libraryLoading) { showSkeletons(); return; }
     if (state.libraryError) { renderLibraryError(state.libraryError); return; }
@@ -246,6 +260,7 @@
     const favorites = library.filter((item) => state.myList.has(item.id) || state.likedTitles.has(item.id) || history.some((entry) => entry.showId === item.id));
     const interests = new Map();
     favorites.forEach((item) => item.genres.forEach((genre) => interests.set(genre, (interests.get(genre) || 0) + 1)));
+    // Scores a title by how often its genres appear among this profile's favorites.
     const relevance = (item) => item.genres.reduce((score, genre) => score + (interests.get(genre) || 0), 0);
     const available = activeItems.filter((item) => releasedEpisodes(item).length).sort((a, b) => relevance(b) - relevance(a));
     const upcoming = activeItems.filter((item) => !releasedEpisodes(item).length);
@@ -264,6 +279,7 @@
     `;
   }
 
+  // Builds the mood-search form, suggestions, status, and any discovery results.
   function renderDiscoveryConcierge() {
     const discovery = state.discovery;
     const results = discovery.results || [];
@@ -285,6 +301,7 @@
     </section>`;
   }
 
+  // Builds one recommendation card with match details, watch/explore, and save controls.
   function renderDiscoveryResult(result) {
     const item = result.item;
     const id = escapeHTML(item.id);
@@ -296,6 +313,7 @@
     </article>`;
   }
 
+  // Requests catalog recommendations for a nonempty query and stores the results or error.
   async function runDiscovery(query) {
     const text = String(query || '').trim();
     if (!text || state.discovery.loading) return;
@@ -315,16 +333,19 @@
     document.getElementById('discoveryInput')?.focus({ preventScroll: true });
   }
 
+  // Selects up to three released shows, prioritizing configured spotlight favorites.
   function spotlightPicks() {
     const order = ['BFDI', 'TPOT', 'BFB'];
     const picks = library.filter((item) => releasedEpisodes(item).length && !item.backdrop.startsWith('data:'));
     picks.sort((a, b) => {
+      // Places configured spotlight shows first and sends all other titles to the end.
       const rank = (item) => { const index = order.indexOf(SHARED.acronymFor(item)); return index < 0 ? order.length : index; };
       return rank(a) - rank(b);
     });
     return (picks.length ? picks : library).slice(0, 3);
   }
 
+  // Renders the current featured show and its pagination, watch, details, and save actions.
   function renderSpotlight() {
     const picks = spotlightPicks();
     if (!picks.length) return '';
@@ -344,6 +365,7 @@
     </section>`;
   }
 
+  // Returns the empty-state markup tailored to the current list, history, or genre filter.
   function renderEmptyView() {
     const isList = state.currentView === 'my-list';
     const isHistory = state.currentView === 'history';
@@ -358,6 +380,7 @@
     `;
   }
 
+  // Filters the catalog to the requested browse category, list, or history shows.
   function getHomeItemsForView(view) {
     if (view === 'history') {
       const ids = [...new Set((window.OBJECTFLIX_HISTORY?.entries() || []).map((entry) => entry.showId))];
@@ -370,6 +393,7 @@
     return library;
   }
 
+  // Builds a horizontal carousel section from a title, description, and item list.
   function renderRow(row) {
     return `
       <section class="section show-shelf" aria-label="${row.title}">
@@ -393,6 +417,7 @@
     `;
   }
 
+  // Renders a catalog card with detail, save, upcoming, and optional viewing-progress controls.
   function renderMediaCard(item, showProgress = false) {
     const inList = state.myList.has(item.id);
     const upcoming = !releasedEpisodes(item).length;
@@ -415,6 +440,7 @@
   
   
 
+  // Rebuilds search filters and trending terms, then displays results or library status.
   function renderSearch() {
     elements.searchFilters.innerHTML = searchFilters
       .map((filter) => `<button class="filter-chip ${state.activeFilter === filter ? 'is-active' : ''}" data-filter="${filter}" type="button" aria-pressed="${state.activeFilter === filter}">${filter}</button>`)
@@ -433,6 +459,7 @@
     refreshSearchResults();
   }
 
+  // Matches all query terms against catalog text, applies the active filter, and renders results.
   function refreshSearchResults() {
     const query = state.searchQuery;
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -449,6 +476,7 @@
       : renderNoResults(query);
   }
 
+  // Filters titles by the selected catalog category or genre.
   function applyFilter(items) {
     return items.filter((item) => {
       if (state.activeFilter === 'All') return true;
@@ -459,6 +487,7 @@
     });
   }
 
+  // Returns search empty-state markup that includes the query when one was supplied.
   function renderNoResults(query) {
     return `<div class="empty-state search-empty"><span class="empty-state__icon">${icon('search')}</span><h2>No little worlds found. Yet.</h2><p>${query ? `We couldn't find “${escapeHTML(query)}”. Try another name or a broader search.` : 'Nothing matches this filter just yet.'}</p><button class="button button--primary" type="button" data-action="clear-search">Explore everything ${icon('arrow-right')}</button></div>`;
   }
@@ -467,6 +496,7 @@
   
   
 
+  // Opens a title's details dialog with its episodes, watch controls, and profile actions.
   function openDetails(id) {
     const item = library.find((entry) => entry.id === id);
     if (!item) return;
@@ -512,6 +542,7 @@
     elements.closeModalButton.focus();
   }
 
+  // Closes the details dialog, clears selection, and returns focus to its prior target.
   function closeDetails() {
     const wasOpen = !elements.detailsModal.classList.contains('is-hidden');
     elements.detailsModal.classList.add('is-hidden');
@@ -525,6 +556,7 @@
   }
 
 
+  // Opens the resume or first released episode for a title, falling back to its details.
   function playTitle(id) {
     const item = library.find((entry) => entry.id === id);
     if (!item) return;
@@ -533,6 +565,7 @@
     window.location.href = `watch.html?id=${encodeURIComponent(item.id)}&ep=${encodeURIComponent(episode ? episode.id : '')}`;
   }
 
+  // Plays a released episode by catalog IDs, or shows release information if it is upcoming.
   function playEpisode(itemId, episodeId) {
     const item = library.find((entry) => entry.id === itemId);
     if (!item) return;
@@ -546,6 +579,7 @@
   }
 
 
+  // Toggles a title in the active profile's saved list and updates visible controls.
   function toggleMyList(id) {
     const item = library.find((entry) => entry.id === id);
     if (!item) return;
@@ -572,10 +606,12 @@
     showToast(saved ? `${displayTitle(item)} has a home in your list.` : `${displayTitle(item)} removed from your list.`);
   }
 
+  // Refreshes every visible saved-list count from the active profile's set.
   function updateListCount() {
     document.querySelectorAll('[data-list-count]').forEach((count) => { count.textContent = state.myList.size; });
   }
 
+  // Displays a temporary browse toast, replacing any existing hide timer.
   function showToast(message) {
     const toast = document.getElementById('browseToast');
     toast.textContent = message;
@@ -584,6 +620,7 @@
     showToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 3200);
   }
 
+  // Opens a random released title's details, or reports when the catalog has no items yet.
   function surpriseMe() {
     const available = library.filter((item) => releasedEpisodes(item).length);
     const picks = available.length ? available : library;
@@ -591,6 +628,7 @@
     openDetails(picks[Math.floor(Math.random() * picks.length)].id);
   }
 
+  // Toggles the active profile's like for a title and updates matching controls.
   function toggleLike(id) {
     if (state.likedTitles.has(id)) {
       state.likedTitles.delete(id);
@@ -608,6 +646,7 @@
     showToast(liked ? 'A little love for a great show.' : 'Like removed.');
   }
 
+  // Scrolls the button's carousel by most of its visible width in the chosen direction.
   function scrollCarousel(button) {
     const section = button.closest('.section');
     const carousel = section?.querySelector('.carousel');
@@ -617,6 +656,7 @@
   }
 
 
+  // Counts logo clicks within the configured time window and unlocks the ARG when reached.
   function handleLogoRitual() {
     const { logoClicksRequired, clickWindowMs } = window.OBJECTFLIX_CONFIG.arg;
 
@@ -636,6 +676,7 @@
     }
   }
 
+  // Unlocks and loads secret episodes, then refreshes the catalog views with the result.
   function unlockArg() {
     SHARED.applyArgUnlock(true);
     arg.unlocked = true;
@@ -657,6 +698,7 @@
     });
   }
 
+  // Displays or reuses the temporary toast used for ARG unlock status.
   function showArgToast(message) {
     let toast = document.querySelector('.arg-toast');
     if (!toast) {
@@ -673,6 +715,7 @@
   }
 
 
+  // Switches browse views, updates the URL and navigation state, and renders the chosen panel.
   function changeView(view, updateHistory = true) {
     if (!Object.hasOwn(viewMap, view)) view = 'home';
     if (state.currentView !== view) state.homeFilter = 'All';
@@ -710,6 +753,7 @@
   }
 
 
+  // Delegates browse actions and wires search, navigation, modal, keyboard, and menu behavior.
   function bindEvents() {
     document.addEventListener('submit', (event) => {
       const form = event.target.closest?.('[data-discovery-form]');
@@ -873,6 +917,7 @@
   }
 
 
+  // Restores guest/account and profile state, then wires the page and begins loading the catalog.
   function init() {
     const user = currentUser();
     const isGuest = !user || user.provider === 'guest' || localStorage.getItem('objectflix_guest') === 'true';

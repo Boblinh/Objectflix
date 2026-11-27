@@ -50,6 +50,7 @@ export class DiscordAuthCallback extends OpenAPIRoute {
     },
   };
 
+  // Exchanges the validated OAuth code, loads the Discord profile, and creates a session.
   async handle(c) {
     c.header("Cache-Control", "no-store");
     const clientId = c.env.DISCORD_CLIENT_ID;

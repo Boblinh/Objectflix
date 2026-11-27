@@ -1,4 +1,3 @@
-// Objectflix: this is the profiles.test part, kept here so the rest of the app knows exactly where to look.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -6,6 +5,7 @@ import vm from 'node:vm';
 import { app, database, environment, identity, now, request } from './helpers.mjs';
 import { createVerifiedSession } from '../src/membership/identity.js';
 
+// Sets up two verified users and one profile owned by the first, then closes SQLite after the test.
 async function fixture(t) {
   const DB = database();
   t.after(() => DB.sqlite.close());
@@ -17,6 +17,7 @@ async function fixture(t) {
   return { DB, env, owner, other };
 }
 
+// Builds the same profile requests across list/create/update/delete auth checks.
 function operations(account) {
   return [
     { path: '/api/profiles' },
@@ -138,10 +139,19 @@ test('the profile limit is scoped to the verified owner', async (t) => {
   assert.equal((await request(f.env, '/api/profiles', { auth: f.owner })).data.profiles.length, 4);
 });
 
+// Runs the browser API scripts in an isolated VM with fake storage and fetch routed to the test app.
 function browserClient(env, auth) {
+  // Provides the Storage methods scripts use without sharing state between local/session storage.
   const store = () => {
     const data = new Map();
-    return { getItem(key) { return data.get(key) ?? null; }, setItem(key, value) { data.set(key, String(value)); }, removeItem(key) { data.delete(key); } };
+    return {
+      // Mirrors Storage.getItem's null result for keys that have not been written.
+      getItem(key) { return data.get(key) ?? null; },
+      // Stores values as strings, like the browser's Storage API.
+      setItem(key, value) { data.set(key, String(value)); },
+      // Removes a key without affecting other stored session values.
+      removeItem(key) { data.delete(key); },
+    };
   };
   const localStorage = store();
   const sessionStorage = store();
@@ -149,9 +159,20 @@ function browserClient(env, auth) {
   if (auth) sessionStorage.setItem('objectflix_verified_session', JSON.stringify({ accessToken: auth.accessToken, expiresAt: auth.expiresAt, userId: auth.user.id }));
   const requests = [];
   const context = vm.createContext({
-    window: { __OBJECTFLIX_ENV__: { OBJECTFLIX_API_BASE_URL: 'https://api.example' }, addEventListener() {} },
-    document: { readyState: 'loading', addEventListener() {}, querySelectorAll() { return []; } },
+    window: {
+      __OBJECTFLIX_ENV__: { OBJECTFLIX_API_BASE_URL: 'https://api.example' },
+      // UI startup listeners are irrelevant here; the API client can still initialize without a page lifecycle.
+      addEventListener() {},
+    },
+    document: {
+      readyState: 'loading',
+      // Skips DOM startup work while allowing scripts to register their usual listener.
+      addEventListener() {},
+      // The VM has no page markup, so UI selectors should see an empty page.
+      querySelectorAll() { return []; },
+    },
     localStorage, sessionStorage, AbortController, AbortSignal, setTimeout, clearTimeout,
+    // Captures browser requests for assertions, then serves them through the real Hono API routes.
     fetch(input, init) {
       requests.push({ url: new URL(input), init });
       return app.fetch(new Request(input, init), env);

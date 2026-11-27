@@ -1,4 +1,3 @@
-// Objectflix: this is the modal pages part, kept here so the rest of the app knows exactly where to look.
 (() => {
   
   if (window.self !== window.top) {
@@ -14,6 +13,7 @@
   let overlay = null;
   let lastFocused = null;
 
+  // Creates the reusable iframe overlay once and wires its close controls.
   function buildOverlay() {
     if (overlay) return overlay;
     overlay = document.createElement('div');
@@ -42,6 +42,7 @@
     return overlay;
   }
 
+  // Opens a supported page in the overlay and moves keyboard focus into it.
   function openModal(name) {
     const page = PAGES[name];
     if (!page) return;
@@ -56,6 +57,7 @@
     el.querySelector('.modal__close')?.focus();
   }
 
+  // Hides the overlay, unloads its iframe, and restores the previous focus target.
   function closeModal() {
     if (!overlay || overlay.classList.contains('is-hidden')) return;
     overlay.classList.add('is-hidden');
@@ -89,6 +91,7 @@
   try {
     const name = new URLSearchParams(window.location.search).get('modal');
     if (name && PAGES[name]) {
+      // Defers the requested modal until its page elements can receive focus.
       const open = () => openModal(name);
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', open);
       else open();

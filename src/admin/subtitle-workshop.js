@@ -1,4 +1,3 @@
-// Objectflix: this is the subtitle workshop part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const endpoints = window.OBJECTFLIX_CONFIG.endpoints;
@@ -11,15 +10,18 @@
   let reports = [];
   let submissions = [];
 
+  // Displays a moderation status message and applies its visual state.
   function setStatus(message, state = '') {
     status.innerHTML = message;
     status.dataset.state = state;
   }
 
+  // Converts a Unix timestamp in seconds to local time, using “Just now” when absent.
   function date(seconds) {
     return seconds ? new Date(seconds * 1000).toLocaleString() : 'Just now';
   }
 
+  // Renders the current subtitle issue reports and their available review actions.
   function renderReports() {
     document.getElementById('reportQueueCount').textContent = String(reports.filter((row) => row.status === 'open').length);
     if (!reports.length) {
@@ -36,6 +38,7 @@
     </article>`).join('');
   }
 
+  // Renders pending fan subtitle submissions with preview and moderation controls.
   function renderSubmissions() {
     document.getElementById('submissionQueueCount').textContent = String(submissions.filter((row) => row.status === 'pending').length);
     if (!submissions.length) {
@@ -50,6 +53,7 @@
     </article>`).join('');
   }
 
+  // Updates queue-tab selection and displays the currently selected moderation queue.
   function render() {
     document.querySelectorAll('[data-queue]').forEach((button) => {
       const active = button.dataset.queue === activeQueue;
@@ -60,6 +64,7 @@
     else renderSubmissions();
   }
 
+  // Loads open reports and pending submissions, then shows the right queue or access error.
   async function load() {
     setStatus('Loading the moderation queue…');
     try {
@@ -83,6 +88,7 @@
     }
   }
 
+  // Saves a report resolution or submission decision, then reloads both moderation queues.
   async function review(type, id, decision, note) {
     const endpoint = type === 'report'
       ? `${endpoints.subtitleAdminReports}/${encodeURIComponent(id)}`
@@ -96,6 +102,7 @@
     }
   }
 
+  // Fetches a submission's text and opens it in the read-only subtitle preview panel.
   async function showPreview(id) {
     try {
       const data = await M.request(`${endpoints.subtitleAdminSubmissions}/${encodeURIComponent(id)}/content`);

@@ -1,4 +1,3 @@
-// Objectflix: this is the player part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -17,6 +16,7 @@ const JASSUB_CDN = "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist";
 
 const MEDIA_BUST = Date.now().toString(36);
 
+// Checks once whether the browser can play AV1 media.
 function supportsAV1() {
   if (supportsAV1._result === undefined) {
     const probe = document.createElement("video");
@@ -35,6 +35,7 @@ function supportsAV1() {
   return supportsAV1._result;
 }
 
+// Looks for a sibling .avc.mp4 when the supplied video may not play on this browser.
 async function probeAvcTwin(url) {
   try {
     const candidate = new URL(url, window.location.href);
@@ -52,6 +53,7 @@ async function probeAvcTwin(url) {
 }
 
 export class ObjectflixPlayer {
+  // Stores the player elements and initial volume state, then wires and syncs the UI.
   constructor({ video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText, fakeDuration }) {
     this.elements = { video, canvas, controls, centerPlay, playPause, mute, fullscreen, progress, volume, currentTime, totalDuration, subtitleIndicator, message, messageTitle, messageText };
 
@@ -88,6 +90,7 @@ export class ObjectflixPlayer {
     this.syncTimeUI();
   }
 
+  // Resets subtitle state and begins loading a video and its optional subtitle track.
   load({ src, subtitleUrl }) {
     const { video, canvas } = this.elements;
     this.state.subtitleUrl = subtitleUrl || null;
@@ -117,6 +120,7 @@ export class ObjectflixPlayer {
     void this.startPlayback(src, subtitleUrl, loadToken);
   }
 
+  // Selects a compatible video URL, ignores stale loads, and starts video and subtitles.
   async startPlayback(src, subtitleUrl, loadToken) {
     const { video } = this.elements;
 
@@ -140,6 +144,7 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Stops playback and releases event listeners, timers, subtitle resources, and the video source.
   destroy() {
     if (this.state.destroyed) return;
     this.state.destroyed = true;
@@ -166,6 +171,7 @@ export class ObjectflixPlayer {
 
   
 
+  // Formats nonnegative seconds as mm:ss or h:mm:ss for the player display.
   formatTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
     const hours = Math.floor(seconds / 3600);
@@ -176,6 +182,7 @@ export class ObjectflixPlayer {
       : `${minutes}:${remainingSeconds}`;
   }
 
+  // Updates video or subtitle status attributes and presents relevant error text.
   setState(kind, status, message) {
     const key = kind === "video" ? "video" : "subtitle";
     const el = kind === "video" ? this.elements.video : this.elements.subtitleIndicator;
@@ -194,11 +201,13 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Sets a range input's visual fill to a clamped fraction of its track.
   updateRangeFill(input, ratio) {
     const percent = Math.min(100, Math.max(0, ratio * 100));
     input.style.setProperty("--range-progress", `${percent}%`);
   }
 
+  // Syncs play controls and auto-hide behavior with the video's current state.
   syncPlaybackUI() {
     const { video, controls, centerPlay, playPause } = this.elements;
     const isPlaying = !video.paused && !video.ended;
@@ -210,10 +219,12 @@ export class ObjectflixPlayer {
   }
 
   
+  // Uses the configured display override when present, otherwise formats the media duration.
   displayDuration(duration) {
     return this.fakeDuration || this.formatTime(duration);
   }
 
+  // Updates elapsed and total time plus the progress slider when the user is not seeking.
   syncTimeUI() {
     const { video, progress, currentTime, totalDuration } = this.elements;
     const duration = video.duration;
@@ -228,6 +239,7 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Updates mute labels and the volume slider from the remembered user volume.
   syncVolumeUI() {
     const { controls, mute, volume } = this.elements;
     const muted = this.state.userMuted || this.state.userVolume === 0;
@@ -237,6 +249,7 @@ export class ObjectflixPlayer {
     this.updateRangeFill(volume, muted ? 0 : this.state.userVolume);
   }
 
+  // Starts or pauses the video and shows a readable message if playback is rejected.
   async togglePlayback() {
     const { video, message, messageTitle, messageText } = this.elements;
     if (video.paused || video.ended) {
@@ -251,6 +264,7 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Moves playback by a relative number of seconds, clamped to the media duration.
   seekBy(seconds) {
     const { video } = this.elements;
     if (!Number.isFinite(video.duration)) return;
@@ -258,6 +272,7 @@ export class ObjectflixPlayer {
     this.syncTimeUI();
   }
 
+  // Applies the selected progress-slider position to the video and refreshes the display.
   commitProgress() {
     const { video, progress } = this.elements;
     if (!Number.isFinite(video.duration)) return;
@@ -266,6 +281,7 @@ export class ObjectflixPlayer {
     this.syncTimeUI();
   }
 
+  // Previews a slider seek without changing the video's actual playback position.
   previewProgress() {
     const { video, progress, currentTime } = this.elements;
     if (!Number.isFinite(video.duration)) return;
@@ -276,6 +292,7 @@ export class ObjectflixPlayer {
     this.updateRangeFill(progress, Number(progress.value) / 100);
   }
 
+  // Toggles mute while remembering the last nonzero volume for unmuting.
   toggleMute() {
     if (this.state.userMuted || this.state.userVolume === 0) {
       this.state.userMuted = false;
@@ -288,6 +305,7 @@ export class ObjectflixPlayer {
     this.syncVolumeUI();
   }
 
+  // Reads the volume slider, updates mute state, and applies the new volume.
   setVolume() {
     const { volume } = this.elements;
     const value = Number(volume.value);
@@ -298,6 +316,7 @@ export class ObjectflixPlayer {
     this.syncVolumeUI();
   }
 
+  // Copies remembered volume settings to the video unless this player was destroyed.
   applyUserVolume() {
     const { video } = this.elements;
     if (this.state.destroyed) return;
@@ -305,12 +324,14 @@ export class ObjectflixPlayer {
     video.muted = this.state.userMuted;
   }
 
+  // Reveals the controls and optionally schedules them to hide during playback.
   showControls(scheduleHide = true) {
     const { controls, video } = this.elements;
     controls.classList.remove("controls-hidden");
     if (scheduleHide && !video.paused) this.scheduleControlsHide();
   }
 
+  // Hides controls after a delay only while playing and without keyboard focus inside them.
   scheduleControlsHide() {
     window.clearTimeout(this.state.controlsTimer);
     this.state.controlsTimer = window.setTimeout(() => {
@@ -321,10 +342,12 @@ export class ObjectflixPlayer {
     }, 2600);
   }
 
+  // Returns the fullscreen element across standard and WebKit browser APIs.
   getFullscreenElement() {
     return document.fullscreenElement || document.webkitFullscreenElement || null;
   }
 
+  // Enters or exits fullscreen and shows a message if the browser refuses the request.
   async toggleFullscreen() {
     try {
       if (this.getFullscreenElement()) {
@@ -341,6 +364,7 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Syncs fullscreen styling and accessibility text, then resizes subtitle rendering.
   syncFullscreenUI() {
     const isFullscreen = this.getFullscreenElement() === this.elements.controls;
     this.elements.controls.classList.toggle("is-fullscreen", isFullscreen);
@@ -348,6 +372,7 @@ export class ObjectflixPlayer {
     this.requestSubtitleResize();
   }
 
+  // Debounces subtitle-canvas resizing after video or viewport geometry changes.
   requestSubtitleResize() {
     window.clearTimeout(this.state.resizeTimer);
     this.state.resizeTimer = window.setTimeout(async () => {
@@ -360,6 +385,7 @@ export class ObjectflixPlayer {
     }, 120);
   }
 
+  // Handles player shortcuts while leaving modified keys and focused form controls alone.
   handleKeyboard(event) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target;
@@ -386,6 +412,7 @@ export class ObjectflixPlayer {
     action();
   }
 
+  // Converts browser media error codes into guidance suitable for the player message.
   getMediaErrorMessage(error) {
     const mediaError = this.elements.video.error;
     if (mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
@@ -400,6 +427,7 @@ export class ObjectflixPlayer {
     return error?.message || "Check the video URL and browser codec support.";
   }
 
+  // Marks the player as failed and shows the browser's video error explanation.
   handleVideoError() {
     const message = this.getMediaErrorMessage(this.elements.video.error);
     this.elements.controls.classList.remove("is-loading");
@@ -408,18 +436,21 @@ export class ObjectflixPlayer {
     this.showMessage("Video unavailable", message);
   }
 
+  // Displays a titled message over the player using text-safe DOM updates.
   showMessage(title, text) {
     this.elements.messageTitle.textContent = title;
     this.elements.messageText.textContent = text;
     this.elements.message.classList.remove("is-hidden");
   }
 
+  // Hides the current player message overlay.
   hideMessage() {
     this.elements.message.classList.add("is-hidden");
   }
 
   
 
+  // Builds a JASSUB module worker that forwards worker console errors to the page.
   createWorkerBlobUrl() {
     const workerSource = `
       import "https://cdn.jsdelivr.net/npm/jassub@2.5.14/dist/worker/worker.js/+esm";
@@ -440,6 +471,7 @@ export class ObjectflixPlayer {
     return URL.createObjectURL(new Blob([workerSource], { type: "text/javascript" }));
   }
 
+  // Rejects if initialization exceeds the time limit and always clears its timer.
   withTimeout(promise, milliseconds, message) {
     return Promise.race([
       promise,
@@ -452,6 +484,7 @@ export class ObjectflixPlayer {
     });
   }
 
+  // Groups JASSUB failures into readable WASM, worker, or rendering messages.
   describeJassubError(error) {
     const message = String(error?.message || error || "Unknown JASSUB error");
     if (/wasm|webassembly/i.test(message)) return `Subtitle WASM loading failed: ${message}`;
@@ -459,6 +492,7 @@ export class ObjectflixPlayer {
     return `Subtitle rendering failed: ${message}`;
   }
 
+  // Replaces the active subtitle track, or reports that subtitles were turned off.
   async setSubtitleTrack(subtitleUrl) {
     this.state.subtitleUrl = subtitleUrl || null;
     if (this.state.jassub) {
@@ -477,6 +511,7 @@ export class ObjectflixPlayer {
     }
   }
 
+  // Loads JASSUB, prepares a usable canvas, and reports subtitle startup success or failure.
   async initializeSubtitles() {
     const { subtitleIndicator } = this.elements;
     subtitleIndicator.classList.remove("has-error");
@@ -552,6 +587,7 @@ export class ObjectflixPlayer {
 
   
 
+  // Connects player controls, media state, keyboard input, and resize events to their handlers.
   bindPlayerEvents() {
     const { video, controls, centerPlay, playPause, mute, fullscreen, volume, progress, message } = this.elements;
 

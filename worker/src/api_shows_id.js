@@ -51,6 +51,7 @@ export class GetShow extends OpenAPIRoute {
     },
   };
 
+  // Looks up one show by ID and returns a not-found response when it is missing.
   async handle(c) {
     
     const data = await this.getValidatedData();

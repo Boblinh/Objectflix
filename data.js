@@ -1,10 +1,11 @@
-// Objectflix: this is the data part, kept here so the rest of the app knows exactly where to look.
 (() => {
   
   
 
+  // Generates encoded SVG placeholder artwork with a simple face and wrapped title.
   const createPlaceholderImage = (title, width = 1280, height = 720, palette = ['#e5dcef', '#f6f1fa', '#a18bb7']) => {
     const [a, b, c] = palette;
+    // Escapes text characters that would otherwise change the generated SVG markup.
     const escapeXML = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
     const portrait = height > width;
     const fontSize = width * (portrait ? 0.086 : 0.065);
@@ -55,9 +56,11 @@
     defaultBucket: 'objectflix-videos',
   };
 
+  // Uses the configured settings key or the legacy default when config is unavailable.
   const SETTINGS_KEY = () => window.OBJECTFLIX_CONFIG?.admin?.settingsKey || 'objectflix_admin_settings';
 
   window.OBJECTFLIX_SETTINGS = {
+    // Merges valid saved values over defaults and returns the full settings object.
     getAll() {
       const merged = { ...SETTINGS_DEFAULTS };
       try {
@@ -70,10 +73,12 @@
       }
       return merged;
     },
+    // Returns one setting or its fallback when that key has no saved value.
     get(key, fallback) {
       const all = this.getAll();
       return all[key] !== undefined ? all[key] : fallback;
     },
+    // Saves one setting while preserving the other values and returns the assigned value.
     set(key, value) {
       const current = this.getAll();
       current[key] = value;

@@ -1,4 +1,3 @@
-// Objectflix: this is the content warning part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const SEVERITY = {
     standard: { icon: '\u26a0', label: 'Content Warning' },
@@ -85,6 +84,7 @@
 
   const CONFIRM_KEY = 'objectflix.cw.confirmed';
 
+  // Normalizes a title or keyword into lowercase alphanumeric tokens for matching.
   function tokens(str) {
     return String(str || '')
       .toLowerCase()
@@ -94,6 +94,7 @@
       .filter(Boolean);
   }
 
+  // Maps a recorded age threshold to its warning level, or null below the supported range.
   function levelFor(age) {
     if (age >= 18) return 'adult';
     if (age >= 17) return 'very-strong';
@@ -102,6 +103,7 @@
     return null;
   }
 
+  // Finds a warning record by exact item ID first, then by all tokens in a title keyword.
   function recordFor(item) {
     if (!item) return null;
     const byId = RECORDS.find((record) => item.id && record.id === item.id);
@@ -118,6 +120,7 @@
     return null;
   }
 
+  // Returns the item's warning data with a derived severity level, or null if none applies.
   function requiredFor(item) {
     const record = recordFor(item);
     if (!record) return null;
@@ -125,6 +128,7 @@
     return level ? { ...record, level } : null;
   }
 
+  // Escapes warning text before it is inserted into modal HTML.
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
       '&': '&amp;',
@@ -135,6 +139,7 @@
     }[ch]));
   }
 
+  // Loads acknowledged show IDs from localStorage, returning an empty set for invalid data.
   function confirmedIds() {
     try {
       return new Set(JSON.parse(localStorage.getItem(CONFIRM_KEY)) || []);
@@ -143,10 +148,12 @@
     }
   }
 
+  // Checks whether a viewer has already acknowledged the warning for this show ID.
   function isConfirmed(id) {
     return confirmedIds().has(id);
   }
 
+  // Adds a show ID to the locally remembered warning acknowledgments.
   function confirm(id) {
     try {
       const ids = confirmedIds();
@@ -161,6 +168,7 @@
   let pending = null;
   let keydownHandler = null;
 
+  // Creates the shared warning dialog, its controls, and keyboard focus handling.
   function buildModal() {
     const modal = document.createElement('div');
     modal.className = 'modal cw-modal is-hidden';
@@ -196,6 +204,7 @@
       });
     });
 
+    // Keeps Escape and Tab navigation inside the active warning dialog.
     keydownHandler = (event) => {
       if (modal.classList.contains('is-hidden') || !pending) return;
       if (event.key === 'Escape') {
@@ -222,6 +231,7 @@
     return modal;
   }
 
+  // Fills the dialog with the show's age rating, severity, content warnings, and character text.
   function render(modal, item, record) {
     const level = record.level || levelFor(record.age) || 'standard';
     const sev = SEVERITY[level] || SEVERITY.standard;
@@ -257,6 +267,7 @@
     ].join('');
   }
 
+  // Displays a warning for an item and stores the callbacks to run on the viewer's choice.
   function open(item, record, opts) {
     if (!record) return;
     if (!modalRoot) modalRoot = buildModal();
@@ -270,6 +281,7 @@
     }
   }
 
+  // Closes the dialog, remembers opted-in confirmations, and invokes the matching callback.
   function settle(confirmed) {
     if (!modalRoot) return;
     modalRoot.classList.add('is-hidden');
@@ -289,6 +301,7 @@
     }
   }
 
+  // Opens a required, unconfirmed warning and returns true when playback should be paused.
   function guard(item, opts) {
     const record = requiredFor(item);
     if (!record) return false;

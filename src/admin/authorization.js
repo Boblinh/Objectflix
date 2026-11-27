@@ -1,4 +1,3 @@
-// Objectflix: this is the authorization part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -60,6 +59,7 @@
 
   const ALL_PERMISSIONS = ROLE_PERMISSIONS.owner;
 
+  // Reads the stored browser account and returns null if the saved JSON is invalid.
   function currentUser() {
     try {
       return JSON.parse(localStorage.getItem("objectflix_current_user") || "null");
@@ -68,10 +68,12 @@
     }
   }
 
+  // Accepts only accounts with a nonempty Discord provider ID.
   function isDiscordUser(user) {
     return Boolean(user && user.provider === "discord" && typeof user.id === "string" && user.id);
   }
 
+  // Looks up the allowlisted admin role for a Discord ID, returning null for others.
   function roleFor(discordId) {
     if (typeof discordId !== "string") return null;
     return ADMIN_ROLES[discordId] || null;
@@ -79,6 +81,7 @@
 
   
   
+  // Builds an authorized admin session with permissions and Discord identity-change details.
   function session() {
     const user = currentUser();
     if (!isDiscordUser(user)) return null;
@@ -112,6 +115,7 @@
 
   
   
+  // Checks a permission against a supplied session or the current authorized session.
   function can(sessionOrPermission, permission) {
     if (typeof sessionOrPermission === "string") {
       permission = sessionOrPermission;
@@ -123,6 +127,7 @@
     return s.permissions.includes(permission);
   }
 
+  // Checks whether the current admin session includes the requested permission.
   function hasPermission(permission) {
     return can(permission);
   }

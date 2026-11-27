@@ -1,4 +1,3 @@
-// Objectflix: this is the tv watch part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -15,6 +14,7 @@
   let progressDragging = false;
 
   
+  // Looks up the TV player element associated with an ID.
   const $ = (id) => document.getElementById(id);
 
   const dom = {
@@ -54,11 +54,13 @@
   };
 
   
+  // Reads the locally stored account used to authorize TV playback.
   function currentUser() {
     return JSON.parse(localStorage.getItem('objectflix_current_user') || 'null');
   }
 
   
+  // Formats nonnegative seconds as mm:ss or h:mm:ss for the TV controls.
   function formatTime(s) {
     if (!Number.isFinite(s) || s < 0) return '0:00';
     const h = Math.floor(s / 3600);
@@ -67,6 +69,7 @@
     return h > 0 ? `${h}:${m.toString().padStart(2, '0')}:${sec}` : `${m}:${sec}`;
   }
 
+  // Escapes text before it is inserted into generated TV markup.
   function esc(str) {
     return (str || '').replace(/[&<>"']/g,
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c)
@@ -74,12 +77,14 @@
   }
 
   
+  // Reveals playback controls and episode info, then starts their hide timer.
   function showControls() {
     dom.controls.classList.remove('is-hidden');
     dom.epInfo.classList.remove('is-hidden');
     scheduleHide();
   }
 
+  // Hides TV controls only during playback when focus is outside the player.
   function hideControls() {
     if (!dom.video.paused && !dom.player.matches(':focus-within')) {
       dom.controls.classList.add('is-hidden');
@@ -88,12 +93,14 @@
     }
   }
 
+  // Restarts the delay before inactive playback controls are hidden.
   function scheduleHide() {
     clearTimeout(controlsTimer);
     controlsTimer = setTimeout(hideControls, 4000);
   }
 
   
+  // Updates TV play/pause icons and the center play button from video state.
   function syncPlayPauseUI() {
     const paused = dom.video.paused || dom.video.ended;
     const playIcon = dom.playPause.querySelector('.icon-play');
@@ -105,6 +112,7 @@
     dom.centerPlay.classList.toggle('is-hidden', !paused);
   }
 
+  // Updates displayed times and the progress bar unless the user is dragging it.
   function syncTimeUI() {
     const cur = dom.video.currentTime;
     const dur = dom.video.duration;
@@ -119,6 +127,7 @@
     }
   }
 
+  // Syncs TV volume icons and bar fill with the video's mute and volume values.
   function syncVolumeUI() {
     const muted = dom.video.muted || dom.video.volume === 0;
     const volIcon = dom.mute.querySelector('.icon-volume');
@@ -129,6 +138,7 @@
   }
 
   
+  // Builds the shared player, loads subtitles, checks stream availability, and starts playback.
   async function initPlayer() {
     const Player = window.ObjectflixPlayer;
     if (!Player) {
@@ -198,6 +208,7 @@
   }
 
   
+  // Seeks to the pointer's clamped position on the TV progress bar.
   function seekFromEvent(e) {
     const rect = dom.progressWrap.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -208,6 +219,7 @@
   }
 
   
+  // Sets video volume from the pointer position and updates the TV volume UI.
   function setVolumeFromEvent(e) {
     const rect = dom.volumeBar.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -218,6 +230,7 @@
   }
 
   
+  // Shows and focuses the next-episode prompt when another episode is available.
   function showNextBanner() {
     if (!currentItem || !currentEpisode) return;
     const next = SHARED.nextEpisode(currentItem, currentEpisode);
@@ -229,6 +242,7 @@
     dom.nextBannerBtn.focus();
   }
 
+  // Navigates to the next catalog episode when the current show has one.
   function playNextEpisode() {
     if (!currentItem || !currentEpisode) return;
     const next = SHARED.nextEpisode(currentItem, currentEpisode);
@@ -237,6 +251,7 @@
   }
 
   
+  // Replaces any admin-request button and displays a player status message.
   function showMessage(title, text) {
     dom.message.querySelector('#tvAskAdminsBtn')?.remove();
     dom.messageTitle.textContent = title;
@@ -244,6 +259,7 @@
     dom.message.classList.remove('is-hidden');
   }
 
+  // Adds a button that opens the episode request flow, avoiding duplicate buttons.
   function showAskAdminsButton() {
     if (document.getElementById('tvAskAdminsBtn')) return;
     const btn = document.createElement('button');
@@ -258,6 +274,7 @@
   }
 
   
+  // Maps remote and keyboard keys to seeking, focus movement, playback, and navigation.
   function handleKeydown(e) {
     const key = e.key;
 
@@ -332,6 +349,7 @@
   }
 
   
+  // Returns the available TV player controls in their horizontal navigation order.
   function getFocusables() {
     return [
       dom.skipBack,
@@ -344,6 +362,7 @@
     ].filter(Boolean);
   }
 
+  // Moves focus through the player controls, wrapping at either end.
   function moveFocus(delta) {
     const items = getFocusables();
     const idx = items.indexOf(document.activeElement);
@@ -351,6 +370,7 @@
     if (next) next.focus();
   }
 
+  // Moves remote focus up to Back or down to the main play/pause control.
   function moveFocusVertical(delta) {
     
     if (delta < 0) {
@@ -361,6 +381,7 @@
   }
 
   
+  // Connects TV controls, pointer seeking, and keyboard or remote navigation.
   function bindEvents() {
     
     dom.playPause.addEventListener('click', () => player?.togglePlayback());
@@ -414,6 +435,7 @@
   }
 
   
+  // Validates the account and URL, loads the catalog, and starts the selected episode.
   async function init() {
     if (!currentUser()) {
       window.location.replace('index.html');

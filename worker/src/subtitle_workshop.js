@@ -37,6 +37,7 @@ const submissionReviewSchema = z.object({
 
 const MAX_SUBTITLE_BYTES = 400 * 1024;
 
+// Rejects oversized or malformed ASS/SSA text before it is stored as a submission.
 function validateSubtitleFile(content, format) {
   const bytes = new TextEncoder().encode(content).byteLength;
   if (bytes > MAX_SUBTITLE_BYTES) throw new HttpError(413, "Subtitle files must be 400 KiB or smaller.", "subtitle_too_large");
@@ -46,6 +47,7 @@ function validateSubtitleFile(content, format) {
   }
 }
 
+// Builds a report rate-limit key from the signed-in user or a hashed client IP.
 async function reportRateKey(c) {
   const user = await getIdentity(c, true);
   if (user) return `subtitle-report:user:${user.id}`;
@@ -53,6 +55,7 @@ async function reportRateKey(c) {
   return `subtitle-report:ip:${(await tokenHash(ip)).slice(0, 32)}`;
 }
 
+// Maps a subtitle report database row to the API response shape.
 function reportRow(row) {
   return {
     id: row.id,
@@ -73,6 +76,7 @@ function reportRow(row) {
   };
 }
 
+// Maps a subtitle submission database row to the API response shape.
 function submissionRow(row) {
   return {
     id: row.id,
@@ -98,6 +102,7 @@ subtitleWorkshop.use("*", async (c, next) => {
   await next();
 });
 
+// Validates and rate-limits a report, checking that its episode and optional subtitle track exist together.
 subtitleWorkshop.post("/reports", async (c) => {
   assertOrigin(c);
   const limitKey = await reportRateKey(c);
@@ -120,6 +125,7 @@ subtitleWorkshop.post("/reports", async (c) => {
   return c.json({ success: true, report: { id, status: "open", createdAt } }, 201);
 });
 
+// Accepts authenticated, rate-limited subtitle uploads only for visible episodes and valid ASS/SSA content.
 subtitleWorkshop.post("/submissions", requireIdentity, async (c) => {
   assertOrigin(c);
   const user = c.get("user");
@@ -138,6 +144,7 @@ subtitleWorkshop.post("/submissions", requireIdentity, async (c) => {
   return c.json({ success: true, submission: { id, status: "pending", createdAt } }, 201);
 });
 
+// Returns only the signed-in user's recent subtitle reports and submissions.
 subtitleWorkshop.get("/mine", requireIdentity, async (c) => {
   const userId = c.get("user").id;
   const [reports, submissions] = await c.env.DB.batch([
@@ -151,6 +158,7 @@ subtitleWorkshop.get("/mine", requireIdentity, async (c) => {
   return c.json({ success: true, reports: reports.results.map(reportRow), submissions: submissions.results.map(submissionRow) });
 });
 
+// Serves a track as plain text only after its workshop submission has been approved.
 subtitleWorkshop.get("/tracks/:id", async (c) => {
   const row = await c.env.DB.prepare(`SELECT w.content, w.format FROM subtitle_workshop_submissions w
     JOIN subtitles s ON s.workshop_submission_id = w.id WHERE w.id = ? AND w.status = 'approved'`).bind(c.req.param("id")).first();
@@ -165,6 +173,7 @@ subtitleWorkshop.get("/tracks/:id", async (c) => {
 
 const workshopAdmin = new Hono();
 workshopAdmin.use("*", requireMembershipAdmin);
+// Lists recent reports for admins, optionally filtering by a validated report status.
 workshopAdmin.get("/reports", async (c) => {
   const status = c.req.query("status");
   if (status && !["open", "resolved", "rejected"].includes(status)) throw new HttpError(400, "Unknown report status.", "invalid_status");
@@ -176,6 +185,7 @@ workshopAdmin.get("/reports", async (c) => {
   return c.json({ success: true, reports: rows.results.map(reportRow) });
 });
 
+// Lists recent submissions for admins, optionally filtering by a validated review status.
 workshopAdmin.get("/submissions", async (c) => {
   const status = c.req.query("status");
   if (status && !["pending", "approved", "rejected"].includes(status)) throw new HttpError(400, "Unknown submission status.", "invalid_status");
@@ -189,12 +199,14 @@ workshopAdmin.get("/submissions", async (c) => {
   return c.json({ success: true, submissions: rows.results.map(submissionRow) });
 });
 
+// Returns the stored subtitle source for an admin's review, or a not-found error.
 workshopAdmin.get("/submissions/:id/content", async (c) => {
   const row = await c.env.DB.prepare("SELECT content, format FROM subtitle_workshop_submissions WHERE id = ?").bind(c.req.param("id")).first();
   if (!row) throw new HttpError(404, "Submission not found.", "submission_not_found");
   return c.json({ success: true, content: row.content, format: row.format });
 });
 
+// Validates and records an admin's report decision, resolution note, and review time.
 workshopAdmin.patch("/reports/:id", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, reportReviewSchema, 4096);
@@ -205,6 +217,7 @@ workshopAdmin.patch("/reports/:id", async (c) => {
   return c.json({ success: true, status: body.status });
 });
 
+// Applies one admin decision to a pending submission and creates a public track when approved.
 workshopAdmin.patch("/submissions/:id", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, submissionReviewSchema, 4096);

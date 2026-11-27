@@ -1,4 +1,3 @@
-// Objectflix: this is the movie night admin part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const esc = M.escapeHTML;
@@ -6,12 +5,17 @@
   let rights = [];
   let events = [];
   let editingId = null;
+  // Formats a Unix timestamp for the host desk's event and permission lists.
   const date = (value) => new Date(value * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  // Converts a form date value to Unix seconds, rejecting invalid input.
   const seconds = (value) => { const result = new Date(value).getTime() / 1000; if (!Number.isFinite(result)) throw new Error('Please enter a valid date and time.'); return Math.floor(result); };
+  // Converts Unix seconds into the local date-time format used by form inputs.
   const localDate = (seconds) => { const date = new Date(seconds * 1000); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   const alert = document.getElementById('hostAlert');
+  // Displays an admin operation error in the host alert banner.
   function errorMessage(error) { alert.textContent = error.message; alert.classList.remove('is-hidden'); }
 
+  // Fetches host data and rebuilds the permission, event, poll, and suggestion lists.
   async function loadDesk() {
     const [permissions, schedule, themes] = await Promise.all([M.request(`${prefix}/rights`), M.request(`${prefix}/events`), M.request(`${prefix}/suggestions`)]);
     rights = permissions.rights;
@@ -25,6 +29,7 @@
     document.getElementById('hostSuggestions').innerHTML = themes.suggestions.length ? themes.suggestions.map((suggestion) => `<article class="host-record"><div><span class="host-small-status">${esc(suggestion.event_title)} · ${esc(suggestion.status)}</span><h3>${esc(suggestion.theme)}</h3><p>${esc(suggestion.description)}</p></div><div class="member-form__actions"><button class="button button--secondary" type="button" data-suggestion-id="${esc(suggestion.id)}" data-suggestion-status="approved" ${suggestion.status === 'approved' ? 'disabled' : ''}>Approve</button><button class="button button--ghost" type="button" data-suggestion-id="${esc(suggestion.id)}" data-suggestion-status="declined" ${suggestion.status === 'declined' ? 'disabled' : ''}>Decline</button></div></article>`).join('') : '<p class="host-small-status">Community suggestions will arrive here.</p>';
   }
 
+  // Runs a form operation while showing its result and preventing duplicate submissions.
   async function submitForm(event, operation) {
     event.preventDefault();
     const form = event.currentTarget;

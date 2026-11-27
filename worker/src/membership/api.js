@@ -20,6 +20,7 @@ export const membership = new Hono();
 membership.onError(apiError);
 membership.use("*", async (c, next) => { c.header("Cache-Control", "no-store"); await next(); });
 
+// Returns tier entitlements and exposes checkout only when configured monthly prices validate.
 membership.get("/plans", async (c) => {
   const perks = perkConfiguration(c.env);
   let ready = billingConfigured(c.env);
@@ -40,6 +41,7 @@ membership.get("/plans", async (c) => {
 });
 
 membership.use("*", requireIdentity);
+// Returns the signed-in user's current billing state, available cosmetics, and staff status.
 membership.get("/me", async (c) => {
   const user = c.get("user");
   const member = await memberState(c.env, user.id);
@@ -47,6 +49,7 @@ membership.get("/me", async (c) => {
   return c.json({ success: true, membership: member, cosmetics, user: { id: user.id, displayName: user.display_name }, isStaff: isMembershipAdmin(c.env, user) });
 });
 
+// Uses an allowed request origin for return links, otherwise the configured app URL.
 function returnBase(c) {
   const origin = c.req.header("origin");
   if (origin) {
@@ -56,6 +59,7 @@ function returnBase(c) {
   return appUrl(c.env);
 }
 
+// Validates and rate-limits the requested tier before creating a server-priced checkout session.
 membership.post("/checkout", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, z.object({ planId }).strict());
@@ -63,6 +67,7 @@ membership.post("/checkout", async (c) => {
   return c.json({ success: true, ...await createCheckout(c.env, c.get("user"), body.planId, returnBase(c)) });
 });
 
+// Rate-limits access to a billing portal session scoped to the authenticated customer's account.
 membership.post("/portal", async (c) => {
   assertOrigin(c);
   const body = await jsonBody(c, z.object({ planId: planId.optional() }).strict());
@@ -70,6 +75,7 @@ membership.post("/portal", async (c) => {
   return c.json({ success: true, ...await createPortal(c.env, c.get("user"), body.planId, returnBase(c)) });
 });
 
+// Checks every selected cosmetic and opt-in against current perks before saving preferences.
 membership.put("/preferences", async (c) => {
   const user = c.get("user");
   const values = await jsonBody(c, preferencesSchema);
@@ -89,6 +95,7 @@ membership.put("/preferences", async (c) => {
   return c.json({ success: true, membership: await memberState(c.env, user.id) });
 });
 
+// Accepts a daily rate-limited feature suggestion only from a member with the required perk.
 membership.post("/feature-suggestions", async (c) => {
   const user = c.get("user");
   requirePerk(await memberState(c.env, user.id), "feature_suggestions");
@@ -99,11 +106,13 @@ membership.post("/feature-suggestions", async (c) => {
   return c.json({ success: true }, 201);
 });
 
+// Lists the latest Stripe webhook processing records for authorized membership admins.
 membership.get("/admin/webhooks", requireMembershipAdmin, async (c) => {
   const { results } = await c.env.DB.prepare("SELECT event_id, event_type, state, attempts, received_at, processed_at, last_error_code FROM stripe_webhook_events ORDER BY received_at DESC LIMIT 100").all();
   return c.json({ success: true, events: results });
 });
 
+// Retries an existing pending verified event; other stored webhook states are left unchanged.
 membership.post("/admin/webhooks/:id/retry", requireMembershipAdmin, async (c) => {
   const event = await c.env.DB.prepare("SELECT event_id, state FROM stripe_webhook_events WHERE event_id = ?").bind(c.req.param("id")).first();
   if (!event) throw new HttpError(404, "Verified event not found.", "event_not_found");
@@ -111,6 +120,7 @@ membership.post("/admin/webhooks/:id/retry", requireMembershipAdmin, async (c) =
   return c.json({ success: true });
 });
 
+// Lists recent member feature suggestions for authorized membership admins.
 membership.get("/admin/feature-suggestions", requireMembershipAdmin, async (c) => {
   const { results } = await c.env.DB.prepare("SELECT id, title, description, created_at FROM member_feature_suggestions ORDER BY created_at DESC LIMIT 100").all();
   return c.json({ success: true, suggestions: results });

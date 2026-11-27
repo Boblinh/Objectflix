@@ -4,6 +4,7 @@
   const THEMES = ['light', 'dark', 'crimson', 'purple', 'ocean'];
   const COLORS = { light: '#f5f2e9', dark: '#101114', crimson: '#190b10', purple: '#140f20', ocean: '#0b151b' };
 
+  // Selects a separate saved-theme key for each active profile or the guest session.
   function storageKey() {
     try {
       const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
@@ -11,6 +12,7 @@
     } catch { return 'objectflix_theme_guest'; }
   }
 
+  // Reads this profile's theme, falling back to the older watch key and then light mode.
   function savedTheme() {
     try {
       const profile = JSON.parse(sessionStorage.getItem('objectflix_active_profile') || 'null');
@@ -19,6 +21,7 @@
     } catch { return 'light'; }
   }
 
+  // Applies a supported theme to the page and optionally saves it for the active profile.
   function apply(theme, persist = false) {
     const value = THEMES.includes(theme) ? theme : 'light';
     document.documentElement.dataset.theme = value;
@@ -30,15 +33,22 @@
     }
   }
 
-  function pickerMarkup(id, label) {
-    return `<label class="${id === 'globalThemeSelect' ? 'global-theme-picker' : 'watch-theme-picker'}"><span aria-hidden="true">◐</span><span class="sr-only">${label}</span><select id="${id}" aria-label="Choose a theme"><option value="light">Light</option><option value="dark">Dark</option><option value="crimson">Crimson</option><option value="purple">Purple</option><option value="ocean">Ocean</option></select></label>`;
+  // Returns the accessible theme-picker markup used when a page has no picker yet.
+  function pickerMarkup(id, label, floating = false) {
+    const pickerClass = id === 'globalThemeSelect'
+      ? `global-theme-picker${floating ? ' global-theme-picker--floating' : ''}`
+      : 'watch-theme-picker';
+    return `<label class="${pickerClass}"><span aria-hidden="true">◐</span><span class="sr-only">${label}</span><select id="${id}" aria-label="Choose a theme"><option value="light">Light</option><option value="dark">Dark</option><option value="crimson">Crimson</option><option value="purple">Purple</option><option value="ocean">Ocean</option></select></label>`;
   }
 
   apply(savedTheme());
   const existing = document.getElementById('watchThemeSelect');
   if (existing) existing.addEventListener('change', (event) => apply(event.target.value, true));
   else if (document.body?.classList.contains('objectflix-v2')) {
-    document.body.insertAdjacentHTML('afterbegin', pickerMarkup('globalThemeSelect', 'Choose site theme'));
+    const headerControls = document.querySelector('.navbar__right, .welcome-nav > nav');
+    const markup = pickerMarkup('globalThemeSelect', 'Choose site theme', !headerControls);
+    if (headerControls) headerControls.insertAdjacentHTML('beforeend', markup);
+    else document.body.insertAdjacentHTML('afterbegin', markup);
     document.getElementById('globalThemeSelect').addEventListener('change', (event) => apply(event.target.value, true));
   }
 

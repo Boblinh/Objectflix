@@ -38,6 +38,7 @@ export class SearchShows extends OpenAPIRoute {
     },
   };
 
+  // Searches show titles by substring and returns the matching show metadata.
   async handle(c) {
     
     const data = await this.getValidatedData();

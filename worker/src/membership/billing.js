@@ -3,6 +3,7 @@ import { HttpError, appUrl, nowSeconds, withLease } from "./http.js";
 import { planFor, planFromPrice } from "./config.js";
 import { billingConfigured, liveMode, monthlyPrice, safeStripeUrl, stripeId, stripeRequest } from "./stripe.js";
 
+// Reuses this user's Stripe customer, creating and recording one only when needed.
 async function customerFor(env, user) {
   const existing = await env.DB.prepare("SELECT * FROM billing_customers WHERE user_id = ?").bind(user.id).first();
   if (existing) {
@@ -20,12 +21,14 @@ async function customerFor(env, user) {
   return customer.id;
 }
 
+// Lists this user's subscriptions except canceled/expired records and rejects incomplete pages.
 export async function currentStripeSubscriptions(env, customer, userId) {
   const response = await stripeRequest(env, "GET", "/subscriptions", { customer, status: "all", limit: 100 });
   if (response.has_more) throw new HttpError(409, "Please manage this account through billing support.", "billing_review_required");
   return (response.data || []).filter((sub) => sub.metadata?.objectflix_user_id === userId && !["canceled", "incomplete_expired"].includes(sub.status));
 }
 
+// Opens or reuses a locked checkout session using the server's configured plan price.
 export async function createCheckout(env, user, planId, base) {
   const plan = planFor(planId);
   if (!plan?.priceEnv) throw new HttpError(400, "Choose a paid membership plan.", "invalid_plan");
@@ -86,6 +89,7 @@ export async function createCheckout(env, user, planId, base) {
   });
 }
 
+// Creates a customer portal link, optionally with a server-validated cancel or plan-change flow.
 export async function createPortal(env, user, targetPlanId, base) {
   if (!/^bpc_[A-Za-z0-9]+$/.test(env.STRIPE_PORTAL_CONFIGURATION_ID || "")) throw new HttpError(503, "Billing management is not configured yet.", "billing_not_configured");
   const customer = await env.DB.prepare("SELECT * FROM billing_customers WHERE user_id = ?").bind(user.id).first();

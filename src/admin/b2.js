@@ -1,4 +1,3 @@
-// Objectflix: this is the b2 part, kept here so the rest of the app knows exactly where to look.
 
 
 
@@ -22,6 +21,7 @@
   
   
 
+  // Resolves a show's configured storage prefix, with a normalized title fallback.
   function showPrefixFor(showTitle) {
     const prefixes = window.OBJECTFLIX_CONFIG?.catalog?.showPrefixes || {};
     const t = String(showTitle || "").toUpperCase();
@@ -29,6 +29,7 @@
   }
 
   
+  // Builds a storage key from a show's prefix, a cleaned episode number, and the file extension.
   function objectKeyFor(showTitle, episodeNumber, fileName) {
     const prefix = showPrefixFor(showTitle);
     const cleanEpisode = String(episodeNumber || "").trim().replace(/[\\/]/g, "").toLowerCase();
@@ -38,21 +39,25 @@
     return `${prefix}/${cleanEpisode}.${ext}`;
   }
 
+  // Joins a media key to the configured public media base URL.
   function mediaUrlFor(key) {
     const base = CONFIG.mediaBase || "";
     return `${base}/${String(key).replace(/^\/+/, "")}`;
   }
 
+  // Returns the bucket's Backblaze S3 endpoint, using the default region when absent.
   function bucketEndpoint(bucket) {
     const region = bucket?.region || "us-west-004";
     return `https://${bucket?.name}.s3.${region}.backblazeb2.com`;
   }
 
+  // Finds a configured bucket by name, then falls back to the first available bucket.
   function configuredBucket(bucketName) {
     const buckets = CONFIG.buckets || [];
     return buckets.find((b) => b.name === bucketName) || buckets[0] || null;
   }
 
+  // Checks whether an upload proxy or direct B2 credentials are configured.
   function isConfigured() {
     if (CONFIG.uploadEndpoint) return true;
     return Boolean(CONFIG.accountId && CONFIG.applicationKey);
@@ -62,6 +67,7 @@
   
   
 
+  // Reads a JSON value from localStorage and returns the fallback on missing or invalid data.
   function loadJSON(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -71,6 +77,7 @@
     }
   }
 
+  // Stores a value as JSON in localStorage, ignoring storage quota or access failures.
   function saveJSON(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -79,18 +86,22 @@
     }
   }
 
+  // Loads the persisted upload queue, defaulting to no queued items.
   function getUploads() {
     return loadJSON(QUEUE_KEY, []);
   }
 
+  // Persists the supplied upload queue under the configured queue key.
   function saveUploads(queue) {
     saveJSON(QUEUE_KEY, queue);
   }
 
+  // Loads recent admin activity, defaulting to an empty list.
   function getActivity() {
     return loadJSON(ACTIVITY_KEY, []);
   }
 
+  // Prepends an activity record and keeps only the latest 100 entries.
   function logActivity(action, detail) {
     const list = getActivity();
     list.unshift({ at: Date.now(), action, detail });
@@ -103,6 +114,7 @@
 
   let cachedAuth = null;
 
+  // Retrieves and caches B2 account authorization, throwing a coded error on failure.
   async function authorize() {
     if (cachedAuth) return cachedAuth;
     if (!isConfigured()) {
@@ -128,6 +140,7 @@
     return cachedAuth;
   }
 
+  // Lists buckets through the configured proxy or directly through the B2 API.
   async function listBuckets() {
     if (CONFIG.storageEndpoint) {
       let res;
@@ -171,6 +184,7 @@
   
   
   
+  // HEAD-checks the media URL and configured bucket URL, returning existence and probe details.
   async function checkObject(key, bucketName) {
     const probeUrls = [mediaUrlFor(key)];
     const bucket = configuredBucket(bucketName);
@@ -186,6 +200,7 @@
     return { exists: false, url: probeUrls[0], status: 0, offline: true };
   }
 
+  // Hashes a file with Web Crypto, or signals that verification is unavailable.
   function computeSha1(file) {
     if (typeof crypto === "undefined" || !crypto.subtle) return Promise.resolve("do_not_verify");
     return file
@@ -194,6 +209,7 @@
       .then((digest) => [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join(""));
   }
 
+  // Posts the file with XMLHttpRequest so byte progress can be reported to the queue.
   function uploadWithProgress(url, headers, body, onProgress) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -223,6 +239,7 @@
 
   
   
+  // Gets an upload URL and token from the signing proxy or directly from B2.
   async function getUploadTarget(bucketName, key) {
     if (CONFIG.uploadEndpoint) {
       let res;
@@ -267,6 +284,7 @@
     return { uploadUrl, authorizationToken, fileName: key };
   }
 
+  // Signs, hashes, and uploads one file, forwarding byte progress to the caller.
   async function uploadObject({ bucket, key, file, onProgress }) {
     const target = await getUploadTarget(bucket?.name || bucket, key);
     const sha1 = await computeSha1(file);
@@ -287,6 +305,7 @@
   
   const pendingFiles = new Map();
 
+  // Adds an upload record to persistent queue state while retaining the File for this session.
   function enqueue({ showId, showTitle, episodeNumber, fileName, file, bucketName, key }) {
     const queue = getUploads();
     const item = {
@@ -312,6 +331,7 @@
     return item;
   }
 
+  // Applies fields to one queued item, persists the queue, and returns the updated item.
   function patch(id, update) {
     const queue = getUploads();
     const item = queue.find((entry) => entry.id === id);
@@ -321,6 +341,7 @@
     return item;
   }
 
+  // Checks, uploads, and records one queued file, updating its status and progress along the way.
   async function process(id) {
     const item = getUploads().find((entry) => entry.id === id);
     if (!item) return null;
@@ -372,6 +393,7 @@
     return getUploads().find((entry) => entry.id === id);
   }
 
+  // Requeues an upload when its File is still in memory and starts processing it again.
   function retry(id) {
     const item = getUploads().find((entry) => entry.id === id);
     if (!item) return null;
@@ -384,17 +406,20 @@
     return item;
   }
 
+  // Removes a queue item and releases its in-memory File reference.
   function removeUpload(id) {
     const queue = getUploads().filter((entry) => entry.id !== id);
     pendingFiles.delete(id);
     saveUploads(queue);
   }
 
+  // Removes completed, already-existing, and failed items while keeping active uploads.
   function clearCompleted() {
     const queue = getUploads().filter((entry) => !["complete", "exists", "failed"].includes(entry.status));
     saveUploads(queue);
   }
 
+  // Empties the queue and releases all session-held File references.
   function clearAll() {
     pendingFiles.clear();
     saveUploads([]);

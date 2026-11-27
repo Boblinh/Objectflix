@@ -1,4 +1,3 @@
-// Objectflix: this is the subtitle workshop.test part, kept here so the rest of the app knows exactly where to look.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { app, database, environment, identity, request } from './helpers.mjs';
@@ -9,6 +8,7 @@ const EPISODE_ID = '10000000-0000-4000-8000-000000000003';
 const SUBTITLE_ID = '10000000-0000-4000-8000-000000000004';
 const ASS = `[Script Info]\nScriptType: v4.00+\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello there!\n`;
 
+// Seeds a streamed episode and subtitle plus one staff and one viewer identity for review tests.
 async function fixture(t) {
   const DB = database();
   t.after(() => DB.sqlite.close());
@@ -25,6 +25,7 @@ async function fixture(t) {
   return { DB, env, owner, viewer };
 }
 
+// Sends a request without parsing its response, which is needed for plain-text track downloads.
 async function rawRequest(env, path, { auth, method = 'GET', body, headers = {} } = {}) {
   const requestHeaders = new Headers(headers);
   if (auth) requestHeaders.set('Authorization', `Bearer ${auth.accessToken}`);
@@ -36,6 +37,7 @@ async function rawRequest(env, path, { auth, method = 'GET', body, headers = {} 
   }), env, { waitUntil() {}, passThroughOnException() {} });
 }
 
+// Supplies a valid ASS submission by default so tests can override one field at a time.
 function submission(overrides = {}) {
   return {
     episodeId: EPISODE_ID,

@@ -1,4 +1,3 @@
-// Objectflix: this is the community part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const CONFIG = window.OBJECTFLIX_CONFIG;
   const API = window.OBJECTFLIX_API;
@@ -7,6 +6,7 @@
   const OUTBOX_KEY = (CONFIG?.admin?.communityOutboxKey) || "objectflix_community_outbox";
   const CATEGORIES = ["General", "Bug Report", "Feature Idea", "Content Suggestion", "Compliment", "Other"];
 
+  // Reads a JSON list from localStorage, falling back to an empty list when parsing fails.
   function readStore(key) {
     try {
       return JSON.parse(localStorage.getItem(key) || "[]");
@@ -15,6 +15,7 @@
     }
   }
 
+  // Saves JSON under the given storage key and reports whether localStorage accepted it.
   function writeStore(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -24,6 +25,7 @@
     }
   }
 
+  // Returns the signed-in user's best available display name, or an empty string.
   function currentUserName() {
     let user = null;
     try {
@@ -36,9 +38,12 @@
 
   
 
+  // Returns the locally cached community requests.
   const listRequests = () => readStore(REQUESTS_KEY);
+  // Returns the locally cached viewer feedback records.
   const listFeedback = () => readStore(FEEDBACK_KEY);
 
+  // Trims request fields and fills the request type and submitter from safe defaults.
   function normalizeRequestPayload(payload) {
     return {
       type: payload.type === "episode" ? "episode" : "show",
@@ -50,6 +55,7 @@
     };
   }
 
+  // Clamps the rating and normalizes feedback fields to supported categories and strings.
   function normalizeFeedbackPayload(payload) {
     return {
       rating: Math.max(1, Math.min(5, Number(payload.rating) || 0)),
@@ -60,10 +66,12 @@
     };
   }
 
+  // Loads community submissions queued locally while the server was unreachable.
   function readOutbox() {
     return readStore(OUTBOX_KEY);
   }
 
+  // Sends a normalized show/episode request, queueing it locally if the API call fails.
   async function addRequest(payload) {
     try {
       const entry = await API.submitCommunityRequest(normalizeRequestPayload(payload));
@@ -76,6 +84,7 @@
     }
   }
 
+  // Sends normalized feedback, queueing it locally if the API call fails.
   async function addFeedback(payload) {
     try {
       const entry = await API.submitCommunityFeedback(normalizeFeedbackPayload(payload));
@@ -88,6 +97,7 @@
     }
   }
 
+  // Retries queued submissions and returns how many were delivered, retaining failures.
   async function syncOutbox() {
     const outbox = readOutbox();
     if (!outbox.length) return 0;
@@ -105,48 +115,56 @@
     return outbox.length - remaining.length;
   }
 
+  // Counts submissions still waiting in the local outbox.
   function pendingOutboxCount() {
     return readOutbox().length;
   }
 
   
 
+  // Fetches the admin request inbox, caches it locally, and returns the server records.
   async function fetchRequests() {
     const items = await API.listAdminCommunity("requests");
     writeStore(REQUESTS_KEY, items);
     return items;
   }
 
+  // Fetches the admin feedback inbox, caches it locally, and returns the server records.
   async function fetchFeedback() {
     const items = await API.listAdminCommunity("feedback");
     writeStore(FEEDBACK_KEY, items);
     return items;
   }
 
+  // Updates a request on the server and mirrors its new status in the local cache.
   async function setRequestStatus(id, status) {
     const result = await API.updateAdminCommunity("requests", id, { status });
     writeStore(REQUESTS_KEY, listRequests().map((item) => (item.id === id ? { ...item, status } : item)));
     return result;
   }
 
+  // Updates feedback on the server and mirrors its new status in the local cache.
   async function setFeedbackStatus(id, status) {
     const result = await API.updateAdminCommunity("feedback", id, { status });
     writeStore(FEEDBACK_KEY, listFeedback().map((item) => (item.id === id ? { ...item, status } : item)));
     return result;
   }
 
+  // Deletes one server request and removes it from the local cache.
   async function deleteRequest(id) {
     const result = await API.deleteAdminCommunity("requests", id);
     writeStore(REQUESTS_KEY, listRequests().filter((item) => item.id !== id));
     return result;
   }
 
+  // Deletes one server feedback record and removes it from the local cache.
   async function deleteFeedback(id) {
     const result = await API.deleteAdminCommunity("feedback", id);
     writeStore(FEEDBACK_KEY, listFeedback().filter((item) => item.id !== id));
     return result;
   }
 
+  // Attempts to delete all requests or just resolved ones, then removes targets locally.
   async function clearRequests(onlyResolved) {
     const items = listRequests();
     const targets = onlyResolved
@@ -158,6 +176,7 @@
     return targets.length;
   }
 
+  // Attempts to delete all feedback or just read entries, then removes targets locally.
   async function clearFeedback(onlyRead) {
     const items = listFeedback();
     const targets = onlyRead
@@ -173,6 +192,7 @@
 
   let lastFocusedElement = null;
 
+  // Returns the shared community dialog, creating and attaching it if necessary.
   function ensureModal() {
     let modal = document.getElementById("communityModal");
     if (!modal) {
@@ -197,6 +217,7 @@
     return modal;
   }
 
+  // Populates and opens the community dialog, focusing its first form control.
   function openCommunityModal({ eyebrow, title, bodyHTML }) {
     const modal = ensureModal();
     if (!modal.classList.contains("is-hidden") && !lastFocusedElement) {
@@ -209,6 +230,7 @@
     modal.querySelector("[data-community-body] input, [data-community-body] textarea, [data-community-body] select")?.focus?.();
   }
 
+  // Closes the dialog, clears its form markup, and restores the previous focus target.
   function closeCommunityModal() {
     const modal = document.getElementById("communityModal");
     if (!modal || modal.classList.contains("is-hidden")) return;
@@ -220,6 +242,7 @@
     lastFocusedElement = null;
   }
 
+  // Replaces the form with a thank-you dialog using the supplied title and message.
   function showSuccess(title, message) {
     openCommunityModal({
       eyebrow: "THANK YOU",
@@ -236,6 +259,7 @@
     });
   }
 
+  // Escapes user-provided values before inserting them into generated HTML.
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;",
@@ -248,6 +272,7 @@
 
   
 
+  // Returns the HTML form used to submit a show suggestion.
   function requestShowForm() {
     return `
       <form id="communityForm" class="community-form" data-form-type="show">
@@ -271,6 +296,7 @@
     `;
   }
 
+  // Returns an episode-request form with catalog suggestions and optional prefilled details.
   function requestEpisodeForm(prefill = {}) {
     const library = Array.isArray(window.OBJECTFLIX_LIBRARY) ? window.OBJECTFLIX_LIBRARY : [];
     const options = library.map((item) => `<option value="${escapeHtml(item.title)}"></option>`).join("");
@@ -303,6 +329,7 @@
 
   let selectedRating = 0;
 
+  // Renders five rating buttons, highlighting the stars up to the supplied rating.
   function starButtons(rating) {
     let html = '<div class="star-rating" role="radiogroup" aria-label="Rating">';
     for (let i = 1; i <= 5; i++) {
@@ -311,6 +338,7 @@
     return html + "</div>";
   }
 
+  // Sets the initial rating and returns the feedback form markup.
   function feedbackForm(rating) {
     selectedRating = rating || 0;
     return `
@@ -341,6 +369,7 @@
     `;
   }
 
+  // Opens the community dialog with the show-request form.
   function openRequestShow() {
     openCommunityModal({
       eyebrow: "COMMUNITY REQUEST",
@@ -349,6 +378,7 @@
     });
   }
 
+  // Opens the community dialog with an episode-request form and optional prefill values.
   function openRequestEpisode(prefill) {
     openCommunityModal({
       eyebrow: "COMMUNITY REQUEST",
@@ -357,6 +387,7 @@
     });
   }
 
+  // Opens the feedback dialog with no rating selected initially.
   function openFeedback() {
     openCommunityModal({
       eyebrow: "WE'D LOVE TO HEAR FROM YOU",
@@ -365,6 +396,7 @@
     });
   }
 
+  // Updates star-button styling and the visible rating hint within a form container.
   function updateStars(container, rating) {
     container.querySelectorAll("[data-star]").forEach((btn) => {
       btn.classList.toggle("is-lit", Number(btn.dataset.star) <= rating);
@@ -373,10 +405,12 @@
     if (hint) hint.textContent = rating ? `${rating}/5` : "Tap a star to rate";
   }
 
+  // Validates and sends a request or feedback form, showing success or offline-queue status.
   async function handleFormSubmit(form) {
     const formData = new FormData(form);
     const type = form.dataset.formType;
     const submitButton = form.querySelector('button[type="submit"]');
+    // Disables the submit button while sending and restores its original label afterward.
     const setSending = (sending) => {
       if (submitButton) {
         submitButton.disabled = sending;

@@ -1,4 +1,3 @@
-// Objectflix: this is the membership part, kept here so the rest of the app knows exactly where to look.
 (() => {
   const M = window.OBJECTFLIX_MEMBERSHIP;
   const { escapeHTML: esc, icon } = M;
@@ -11,13 +10,16 @@
   let account = null;
   let busy = false;
   let refreshTimer;
+  // Formats a Unix timestamp for membership billing and return-status messages.
   const date = (seconds) => seconds ? new Date(seconds * 1000).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'Not scheduled';
 
+  // Shows or clears the membership alert banner.
   function message(text) {
     elements.membershipAlert.textContent = text;
     elements.membershipAlert.classList.toggle('is-hidden', !text);
   }
 
+  // Renders plan cards with the correct checkout, portal, or sign-in action for this account.
   function renderPlans() {
     const plans = catalog?.plans || placeholders;
     elements.planGrid.innerHTML = plans.map((plan, index) => {
@@ -41,6 +43,7 @@
     if (busy) elements.planGrid.querySelectorAll('[data-billing]').forEach((button) => { button.disabled = true; });
   }
 
+  // Renders enabled plan benefits and the separate list of proposed perks.
   function renderComparison() {
     if (!catalog) {
       elements.featureComparison.innerHTML = '<p class="member-loading">The feature comparison is temporarily unavailable. <button class="text-link" data-refresh type="button">Try again ↗</button></p>';
@@ -53,6 +56,7 @@
     elements.plannedPerksList.innerHTML = catalog.plans.filter((plan) => !plan.free).map((plan) => `<div><h3>${esc(plan.name)}</h3><ul>${catalog.perks.filter((perk) => !perk.implemented && perk.minPlan === plan.id).map((perk) => `<li>${esc(perk.label)} <span>Proposed</span></li>`).join('')}</ul></div>`).join('');
   }
 
+  // Renders the account's current access, billing state, and staff-only links.
   function renderAccount() {
     const member = account?.membership;
     if (!member) {
@@ -73,6 +77,7 @@
     document.getElementById('featureSuggestionSection').classList.toggle('is-hidden', !member?.entitlements.feature_suggestions);
   }
 
+  // Renders the member's profile preview and controls for available cosmetics and preferences.
   function renderWardrobe() {
     const member = account.membership;
     const prefs = member.preferences;
@@ -85,6 +90,7 @@
     M.applyAppearance();
   }
 
+  // Refreshes plan and account data independently, then redraws all membership sections.
   async function refresh() {
     message('');
     const [plans, member] = await Promise.allSettled([M.request('/api/membership/plans', { public: true }), M.load(true)]);
@@ -95,6 +101,7 @@
     renderAccount(); renderPlans(); renderComparison();
   }
 
+  // Rechecks billing status after checkout, retrying briefly while a verified session remains.
   async function confirmReturn(attempt = 0) {
     await refresh();
     const member = account?.membership;

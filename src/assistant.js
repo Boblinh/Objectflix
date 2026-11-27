@@ -1,10 +1,11 @@
-// Objectflix: this is the assistant part, kept here so the rest of the app knows exactly where to look.
 
 
 
 (() => {
   const IS_GITHUB_PAGES = /(^|\.)github\.io$/i.test(window.location.hostname);
+  // Keeps development logs out of the public GitHub Pages build.
   const debugLog = (...args) => { if (!IS_GITHUB_PAGES) console.log(...args); };
+  // Keeps development warnings out of the public GitHub Pages build.
   const debugWarn = (...args) => { if (!IS_GITHUB_PAGES) console.warn(...args); };
 
   const ASSISTANT_STATE_KEY = 'objectflix_assistant_active';
@@ -30,6 +31,7 @@
     }
   } catch {}
 
+  // Saves the selected assistant and both conversation histories for this tab.
   function saveState() {
     try {
       sessionStorage.setItem(ASSISTANT_STATE_KEY, currentAssistant);
@@ -42,6 +44,7 @@
   const AI_KEY_INDEX_KEY = 'objectflix_ai_key_index';
   const AI_PROVIDER_KEY_INDEX_PREFIX = 'objectflix_ai_key_idx_';
 
+  // Combines configured and browser-saved Gemini keys, including the older single-key setting.
   function getAIKeys() {
     const configKeys = window.OBJECTFLIX_CONFIG?.ai?.apiKeys || [];
     let storedKeys = [];
@@ -60,6 +63,7 @@
     return all;
   }
 
+  // Combines one fallback provider's environment and browser-saved API keys.
   function getProviderKeys(provider) {
     const env = window.__OBJECTFLIX_ENV__ || {};
     const envRaw = env[provider.envKey] || '';
@@ -76,22 +80,27 @@
     return all;
   }
 
+  // Reads the saved round-robin key position for one fallback provider.
   function getProviderKeyIndex(providerId) {
     try { return parseInt(localStorage.getItem(`${AI_PROVIDER_KEY_INDEX_PREFIX}${providerId}`), 10) || 0; } catch { return 0; }
   }
 
+  // Saves the round-robin key position for one fallback provider.
   function setProviderKeyIndex(providerId, i) {
     try { localStorage.setItem(`${AI_PROVIDER_KEY_INDEX_PREFIX}${providerId}`, String(i)); } catch {}
   }
 
+  // Reads the saved round-robin position for the primary AI key list.
   function getCurrentKeyIndex() {
     try { return parseInt(localStorage.getItem(AI_KEY_INDEX_KEY), 10) || 0; } catch { return 0; }
   }
 
+  // Saves the round-robin position for the primary AI key list.
   function setCurrentKeyIndex(i) {
     try { localStorage.setItem(AI_KEY_INDEX_KEY, String(i)); } catch {}
   }
 
+  // Advances the primary key rotation and returns the next configured key.
   function cycleKey() {
     const keys = getAIKeys();
     if (keys.length <= 1) return keys[0] || null;
@@ -106,6 +115,7 @@
   
   
 
+  // Escapes assistant text and converts the supported Markdown subset into chat HTML.
   function renderMarkdown(text) {
     if (!text) return '';
     let html = escapeHtml(text);
@@ -280,6 +290,7 @@ Accuracy rules (critical):
   
   
 
+  // Summarizes the current page and, on the watch page, the playing title and progress.
   function getAppContext() {
     const pathname = window.location.pathname;
     let currentPage = 'Home';
@@ -299,6 +310,7 @@ Accuracy rules (critical):
         const cur = videoEl.currentTime;
         const dur = videoEl.duration;
         const pct = Math.round((cur / dur) * 100);
+        // Formats playback seconds as minutes and zero-padded seconds.
         const formatT = (s) => {
           const m = Math.floor(s / 60);
           const sec = Math.floor(s % 60).toString().padStart(2, '0');
@@ -340,6 +352,7 @@ Accuracy rules (critical):
   
 
   const VIDEO_ACTIONS = {
+    // Restarts the active player and resumes playback; returns false if no player is mounted.
     RESTART() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
@@ -348,24 +361,28 @@ Accuracy rules (critical):
       w.player.elements.video.play().catch(() => {});
       return true;
     },
+    // Starts playback in the active player, returning false when the watch player is unavailable.
     PLAY() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.elements.video.play().catch(() => {});
       return true;
     },
+    // Pauses the active player, returning false when the watch player is unavailable.
     PAUSE() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.elements.video.pause();
       return true;
     },
+    // Toggles playback in the active player, returning false when it is unavailable.
     TOGGLE() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.togglePlayback();
       return true;
     },
+    // Seeks to a clamped absolute time in seconds.
     SEEK(seconds) {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
@@ -373,18 +390,21 @@ Accuracy rules (critical):
       video.currentTime = Math.max(0, Math.min(Number(seconds) || 0, video.duration || 0));
       return true;
     },
+    // Seeks forward by the supplied seconds, defaulting to 30 when the value is falsy.
     SKIP(seconds) {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.seekBy(Number(seconds) || 30);
       return true;
     },
+    // Seeks backward by the supplied seconds, defaulting to 10 when the value is falsy.
     BACK(seconds) {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.seekBy(-(Number(seconds) || 10));
       return true;
     },
+    // Sets player volume to a clamped percentage and updates its slider when present.
     VOLUME(percent) {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
@@ -393,12 +413,14 @@ Accuracy rules (critical):
       if (w.player.elements.volume) w.player.elements.volume.value = vol * 100;
       return true;
     },
+    // Toggles mute in the active player, returning false when the watch player is unavailable.
     MUTE() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.player) return false;
       w.player.toggleMute();
       return true;
     },
+    // Plays the next catalog episode when the current show has one.
     NEXT_EP() {
       const w = window.OBJECTFLIX_WATCH;
       if (!w?.item || !w?.episode) return false;
@@ -407,6 +429,7 @@ Accuracy rules (critical):
       w.playEpisode(w.item.id, next.id);
       return true;
     },
+    // Finds a show by acronym and plays its requested episode or first title episode.
     SWITCH(showAcronym, epNumber) {
       const w = window.OBJECTFLIX_WATCH;
       const query = (showAcronym || '').trim();
@@ -438,6 +461,7 @@ Accuracy rules (critical):
     }
   };
 
+  // Parses one assistant action tag and dispatches its optional arguments to the player.
   function executeVideoAction(actionTag) {
     const match = actionTag.match(/\[ACTION:(\w+)(?::([^\]]*))?\]/);
     if (!match) return false;
@@ -462,6 +486,7 @@ Accuracy rules (critical):
   
   
 
+  // Provides a short character-specific reply when no AI provider is available.
   function generateFallbackResponse(assistantId, message, context) {
     const lower = message.toLowerCase();
     const page = context?.current_page || 'Home';
@@ -503,6 +528,7 @@ Accuracy rules (critical):
   
   
 
+  // Tries configured OpenAI-compatible models and keys, returning response text or null.
   async function tryOpenAICompatible(apiMessages, baseUrl, keys, getKeyIndex, setKeyIndex, models) {
     const modelList = Array.isArray(models) ? models : [models];
     const deadKeys = new Set();
@@ -569,12 +595,14 @@ Accuracy rules (critical):
     return null;
   }
 
+  // Identifies rate limits, server errors, and billing/quota messages worth retrying.
   function isRetryableError(status, errMsg) {
     if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) return true;
     if (typeof errMsg === 'string' && /credit|billing|quota|plan|insufficient|payment/i.test(errMsg)) return true;
     return false;
   }
 
+  // Tries Anthropic-style message requests across configured models and keys, returning text or null.
   async function tryMessagesProtocol(apiMessages, baseUrl, keys, getKeyIndex, setKeyIndex, models) {
     const modelList = Array.isArray(models) ? models : [models];
     const deadKeys = new Set();
@@ -646,6 +674,7 @@ Accuracy rules (critical):
     return null;
   }
 
+  // Streams a signed-in user's Azure response and returns its text, or null when unavailable.
   async function tryAzureResponses(apiMessages, onText) {
     const session = window.OBJECTFLIX_MEMBERSHIP?.session();
     if (!session) return null;
@@ -665,6 +694,7 @@ Accuracy rules (critical):
     }
   }
 
+  // Builds catalog and conversation context, tries configured AI providers, and returns a reply.
   async function requestAI(assistantId, message, context, onText) {
     const allKeys = getAIKeys();
     const provider = window.OBJECTFLIX_CONFIG?.ai?.provider || 'gemini';
@@ -708,12 +738,14 @@ Accuracy rules (critical):
     const contextStr = `${catalogStr}Current Objectflix State:\n- current_page: ${context.current_page}\n- currently_playing: ${context.currently_playing}\n- watch_progress: ${context.watch_progress}\n\n`;
     const history = histories[assistantId] || [];
     const contextLimit = Number(window.OBJECTFLIX_SETTINGS?.get?.('conversationContext') || 8);
+    // Rebuilds the Azure prompt with the latest user message after the prior conversation turns.
     const azureMessages = (messages) => [
       { role: 'system', content: `${systemPrompt}\n\n${contextStr}` },
       ...messages.slice(0, -1),
       { role: 'user', content: message },
     ];
 
+    // Calls the primary provider, then eligible configured fallbacks, returning text or null.
     async function callAI(messages) {
       if (provider === 'azure') {
         const result = await tryAzureResponses(azureMessages(messages), onText);
@@ -862,6 +894,7 @@ Accuracy rules (critical):
     return reply;
   }
 
+  // Uses the assistant for catalog-only recommendations and validates returned IDs against the catalog.
   async function discoverShows(query, catalog) {
     const items = Array.isArray(catalog) ? catalog : [];
     const cleanQuery = String(query || '').trim();
@@ -875,6 +908,7 @@ Use ONLY shows in the Objectflix Catalog provided in your context. Return ONLY v
 
 Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes as available. Match by tone, genre, pace, episode count, and the viewer's constraints. If the request is vague, make a thoughtful variety of choices. `;
 
+    // Scores titles by query-word overlap and supplies safe recommendations if AI output fails.
     const localDiscovery = () => {
       const terms = cleanQuery.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
       const scored = items.map((item) => {
@@ -916,6 +950,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
   
   
 
+  // Adds the chat widget once, installs its styles, and renders the selected assistant's history.
   function injectAssistantWidget() {
     if (document.getElementById('objectflixAssistant')) return;
 
@@ -1042,6 +1077,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     renderMessages();
   }
 
+  // Connects the launcher, close button, assistant tabs, and message form to chat state.
   function bindWidgetEvents() {
     const triggerBtn = document.getElementById('assistantTriggerBtn');
     const panel = document.getElementById('assistantPanel');
@@ -1089,6 +1125,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     });
   }
 
+  // Syncs the active tab, banner text, avatar, and typing label with the selected assistant.
   function updateAssistantHeader() {
     document.querySelectorAll('.assistant-tab').forEach((tab) => {
       const active = tab.dataset.assistant === currentAssistant;
@@ -1114,6 +1151,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     }
   }
 
+  // Renders the active assistant's chat history, using Markdown only for assistant replies.
   function renderMessages() {
     const container = document.getElementById('assistantMessages');
     if (!container) return;
@@ -1149,6 +1187,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     scrollToBottom();
   }
 
+  // Scrolls the chat history container to its newest message when it exists.
   function scrollToBottom() {
     const container = document.getElementById('assistantMessages');
     if (container) {
@@ -1156,6 +1195,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     }
   }
 
+  // Escapes text before it is inserted into the assistant chat markup.
   function escapeHtml(str) {
     return (str || '').replace(/[&<>'"]/g,
       (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
@@ -1166,6 +1206,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
   
   
 
+  // Removes video-control tags from an assistant reply before it is shown or saved.
   function stripActionTags(text) {
     return text.replace(/\n?\[ACTION:[^\]]*\]\s*/g, '').trim();
   }
@@ -1174,6 +1215,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
   
   
 
+  // Adds a user turn, streams the assistant reply, runs any video actions, and saves the result.
   async function sendUserMessage(text) {
     const requestedAssistant = currentAssistant;
     const history = histories[currentAssistant];
@@ -1232,6 +1274,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
   
   
 
+  // Routes simple home, watchlist, and search requests to the matching browse controls.
   function executeActionsIfNeeded(message) {
     const lower = message.toLowerCase();
     if (lower.includes('home') || lower.includes('go home')) {
@@ -1247,6 +1290,7 @@ Return 1 to 4 results, never invent IDs, and do not mention unreleased episodes 
     }
   }
 
+  // Clicks a supported browse navigation link when the current page is browse.html.
   function navigateTo(view) {
     if (['home', 'shows', 'movies', 'originals', 'my-list'].includes(view) && window.location.pathname.includes('browse.html')) {
       const link = document.querySelector(`.navbar__nav [data-view="${view}"]`);
